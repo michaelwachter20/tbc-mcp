@@ -1,0 +1,53 @@
+{
+ "key": "ScaleObjects",
+ "caption": "Scale Objects",
+ "last_seen": "2026-10-13T11:40:15",
+ "fields": [
+  {
+   "id": "YScaleFactor",
+   "label": "Horizontal (Y) scale",
+   "kind": "text"
+  },
+  {
+   "id": "cbLockXY",
+   "label": "Lock X and Y scales",
+   "kind": "bool"
+  },
+  {
+   "id": "ceFrom",
+   "label": "From",
+   "kind": "text"
+  },
+  {
+   "id": "scaleFactor",
+   "label": "Horizontal (X) scale",
+   "kind": "text"
+  },
+  {
+   "id": "SelectedEntities",
+   "label": "Objects to scale",
+   "kind": "text"
+  },
+  {
+   "id": "UseVerticalChk",
+   "label": "Scale vertical",
+   "kind": "bool"
+  },
+  {
+   "id": "m_BaseElevation",
+   "label": "Base elevation",
+   "kind": "text"
+  },
+  {
+   "id": "verticalScale",
+   "label": "Vertical scale",
+   "kind": "text"
+  }
+ ],
+ "buttons": [
+  "Close",
+  "Apply"
+ ],
+ "notes": [],
+ "tbc_version": "2026.10"
+}

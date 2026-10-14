@@ -1,0 +1,35 @@
+{
+ "key": "AppendTrackedLine",
+ "caption": "Append Tracked Line",
+ "last_seen": "2026-10-13T16:19:52",
+ "fields": [
+  {
+   "id": "m_EndClipStationEdit",
+   "label": "End clip",
+   "kind": "text"
+  },
+  {
+   "id": "m_StartClipStationEdit",
+   "label": "Start clip",
+   "kind": "text"
+  },
+  {
+   "id": "AppendLineSelectEntity",
+   "label": "Line to append",
+   "kind": "entity"
+  },
+  {
+   "id": "BaseLineSelectEntity",
+   "label": "Base line",
+   "kind": "entity"
+  }
+ ],
+ "buttons": [
+  null,
+  null,
+  "Close",
+  "Append"
+ ],
+ "notes": [],
+ "tbc_version": "2026.10"
+}

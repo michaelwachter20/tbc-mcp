@@ -1,0 +1,84 @@
+{
+ "key": "DrapeObjectsOnPointCloud",
+ "caption": "Drape Objects",
+ "last_seen": "2026-10-13T11:23:23",
+ "fields": [
+  {
+   "id": "TextBox",
+   "label": "CAD objects selection",
+   "kind": "text"
+  },
+  {
+   "id": "TextBox#2",
+   "label": "Point cloud selection",
+   "kind": "text"
+  },
+  {
+   "id": "Search_Strategy",
+   "label": "Search Strategy",
+   "kind": "choice",
+   "options_sample": [
+    "Maximum elevation",
+    "High average elevation",
+    "Median elevation",
+    "Average elevation",
+    "Low average elevation",
+    "Minimum elevation"
+   ],
+   "option_count": 6
+  },
+  {
+   "id": "ClientAreaTextBox",
+   "label": "Search distance",
+   "kind": "text"
+  },
+  {
+   "id": "Offset_lines",
+   "label": "Offset lines",
+   "kind": "bool"
+  },
+  {
+   "id": "ClientAreaTextBox#2",
+   "label": "Creation Options",
+   "kind": "text"
+  },
+  {
+   "id": "choice",
+   "label": null,
+   "kind": "choice",
+   "options": "project data (not recorded)"
+  },
+  {
+   "id": "Add_point_when_interval_exceeds",
+   "label": "Add point when interval exceeds",
+   "kind": "bool"
+  },
+  {
+   "id": "ClientAreaTextBox#3",
+   "label": null,
+   "kind": "text"
+  },
+  {
+   "id": "Interpolate_missing_elevations_for_lines",
+   "label": "Interpolate missing elevations for lines",
+   "kind": "bool"
+  },
+  {
+   "id": "ComboBox",
+   "label": "Layer",
+   "kind": "choice",
+   "options": "project data (not recorded)"
+  },
+  {
+   "id": "Delete_the_existing_objects",
+   "label": "Delete the existing objects",
+   "kind": "bool"
+  }
+ ],
+ "buttons": [
+  "Apply",
+  "Cancel"
+ ],
+ "notes": [],
+ "tbc_version": "2026.10"
+}

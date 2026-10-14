@@ -1,0 +1,91 @@
+{
+ "key": "CreateAtInterval",
+ "caption": "Create Points at Intervals",
+ "last_seen": "2026-10-13T11:40:56",
+ "fields": [
+  {
+   "id": "Radio_TwoPoints",
+   "label": "Two points",
+   "kind": "radio"
+  },
+  {
+   "id": "Radio_Selection",
+   "label": "Selection",
+   "kind": "radio"
+  },
+  {
+   "id": "memberSelection1",
+   "label": null,
+   "kind": "text"
+  },
+  {
+   "id": "PointQuality",
+   "label": "Point quality",
+   "kind": "choice",
+   "options_sample": [
+    "Control",
+    "Survey",
+    "Mapping",
+    "Unknown"
+   ],
+   "option_count": 4
+  },
+  {
+   "id": "Offset_Vert",
+   "label": "Vertical offset",
+   "kind": "text"
+  },
+  {
+   "id": "CreateGridOnlyPoints",
+   "label": "Create grid-only points",
+   "kind": "bool"
+  },
+  {
+   "id": "Offset_Horiz",
+   "label": "Horizontal offset",
+   "kind": "text"
+  },
+  {
+   "id": "layer1",
+   "label": "Layer",
+   "kind": "choice",
+   "options": "project data (not recorded)"
+  },
+  {
+   "id": "featureCodesEdit1",
+   "label": "Feature code",
+   "kind": "text"
+  },
+  {
+   "id": "CheckBox_AddStartEndPoints",
+   "label": "Add points at start and end position",
+   "kind": "bool"
+  },
+  {
+   "id": "CheckBox_AddSegmentEndPoints",
+   "label": "Add points at intermediate line vertices",
+   "kind": "bool"
+  },
+  {
+   "id": "CheckBox_AddVerticalTransitions",
+   "label": "Add points at vertical transitions",
+   "kind": "bool"
+  },
+  {
+   "id": "Interval",
+   "label": "Interval",
+   "kind": "text"
+  },
+  {
+   "id": "StartName",
+   "label": "Starting point ID",
+   "kind": "text"
+  }
+ ],
+ "buttons": [
+  "Close",
+  "Apply"
+ ],
+ "notes": [],
+ "tbc_version": "2026.10"
+}

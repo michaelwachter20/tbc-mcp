@@ -1,0 +1,40 @@
+{
+ "key": "PrintPlanView",
+ "caption": "Print Plan View",
+ "last_seen": "2026-10-14T09:03:55",
+ "fields": [
+  {
+   "id": "ComboBox",
+   "label": "Template",
+   "kind": "choice",
+   "options": "project data (not recorded)"
+  },
+  {
+   "id": "Name",
+   "label": "Name",
+   "kind": "text"
+  },
+  {
+   "id": "ClientAreaTextBox",
+   "label": "Scale",
+   "kind": "text"
+  },
+  {
+   "id": "ClientAreaTextBox#2",
+   "label": "Location",
+   "kind": "text"
+  },
+  {
+   "id": "ClientAreaTextBox#3",
+   "label": "Rotation",
+   "kind": "text"
+  }
+ ],
+ "buttons": [
+  "Create",
+  "Print",
+  "Close"
+ ],
+ "notes": [],
+ "tbc_version": "2026.10"
+}

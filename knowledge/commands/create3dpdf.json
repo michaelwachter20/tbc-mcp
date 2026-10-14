@@ -1,0 +1,59 @@
+{
+ "key": "Create3dPDF",
+ "caption": "Create 3D PDF",
+ "last_seen": "2026-10-14T09:04:16",
+ "fields": [
+  {
+   "id": "m_OutputFile",
+   "label": null,
+   "kind": "text"
+  },
+  {
+   "id": "m_UserName",
+   "label": null,
+   "kind": "ultra"
+  },
+  {
+   "id": "m_Description",
+   "label": null,
+   "kind": "ultra"
+  },
+  {
+   "id": "IncludeIcon",
+   "label": null,
+   "kind": "ultra"
+  },
+  {
+   "id": "ModifyProjectSettings",
+   "label": null,
+   "kind": "ultra"
+  },
+  {
+   "id": "m_Phone",
+   "label": null,
+   "kind": "ultra"
+  },
+  {
+   "id": "m_Email",
+   "label": null,
+   "kind": "ultra"
+  },
+  {
+   "id": "m_Website",
+   "label": null,
+   "kind": "ultra"
+  },
+  {
+   "id": "m_CompanyName",
+   "label": null,
+   "kind": "ultra"
+  }
+ ],
+ "buttons": [
+  "Cancel",
+  "OK",
+  "..."
+ ],
+ "notes": [],
+ "tbc_version": "2026.10"
+}

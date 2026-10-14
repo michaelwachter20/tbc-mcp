@@ -1,0 +1,48 @@
+{
+ "key": "RotTransSclObjects",
+ "caption": "Move/Rotate/Scale Objects",
+ "last_seen": "2026-10-13T11:23:40",
+ "fields": [
+  {
+   "id": "scaleFactor",
+   "label": "Horizontal scale",
+   "kind": "text"
+  },
+  {
+   "id": "aeAngle",
+   "label": "Rotation angle",
+   "kind": "text"
+  },
+  {
+   "id": "deltaElevation",
+   "label": "Delta elevation",
+   "kind": "text"
+  },
+  {
+   "id": "SelectedEntities",
+   "label": "Objects to move",
+   "kind": "text"
+  },
+  {
+   "id": "ceFrom",
+   "label": "From",
+   "kind": "text"
+  },
+  {
+   "id": "ceTo",
+   "label": "To",
+   "kind": "text"
+  },
+  {
+   "id": "UseElevationChk",
+   "label": "3D move",
+   "kind": "bool"
+  }
+ ],
+ "buttons": [
+  "Close",
+  "Apply"
+ ],
+ "notes": [],
+ "tbc_version": "2026.10"
+}

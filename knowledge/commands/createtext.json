@@ -1,0 +1,85 @@
+{
+ "key": "CreateText",
+ "caption": "Create Text",
+ "last_seen": "2026-10-14T09:01:19",
+ "fields": [
+  {
+   "id": "ObliqueAngleTextBox",
+   "label": "Oblique angle",
+   "kind": "text"
+  },
+  {
+   "id": "WidthFactorTextBox",
+   "label": "Width factor",
+   "kind": "text"
+  },
+  {
+   "id": "RotationBearingEdit",
+   "label": "Rotation",
+   "kind": "text"
+  },
+  {
+   "id": "HeightDistanceEdit",
+   "label": "Height",
+   "kind": "text"
+  },
+  {
+   "id": "JustificationComboBox",
+   "label": "Justification",
+   "kind": "choice",
+   "options_sample": [
+    "Top left",
+    "Top center",
+    "Top right",
+    "Middle left",
+    "Middle center",
+    "Middle right",
+    "Bottom left",
+    "Bottom center"
+   ],
+   "option_count": 9
+  },
+  {
+   "id": "TextInsertionPointCoordinateEdit",
+   "label": "Text insertion point",
+   "kind": "text"
+  },
+  {
+   "id": "richTextBox1",
+   "label": null,
+   "kind": "text"
+  },
+  {
+   "id": "LeaderTypeComboBox",
+   "label": "Leader type",
+   "kind": "choice",
+   "options_sample": [
+    "No leader",
+    "Line with no arrow",
+    "Line with arrow",
+    "Spline with no arrow",
+    "Spline with arrow"
+   ],
+   "option_count": 5
+  },
+  {
+   "id": "textStyle1",
+   "label": "Text style",
+   "kind": "choice",
+   "options": "project data (not recorded)"
+  },
+  {
+   "id": "layer1",
+   "label": "Layer",
+   "kind": "choice",
+   "options": "project data (not recorded)"
+  }
+ ],
+ "buttons": [
+  "Insert Smart Text",
+  "Close",
+  "Apply"
+ ],
+ "notes": [],
+ "tbc_version": "2026.10"
+}

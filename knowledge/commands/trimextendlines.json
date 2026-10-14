@@ -1,0 +1,53 @@
+{
+ "key": "TrimExtendLines",
+ "caption": "Trim/Extend Lines",
+ "last_seen": "2026-10-13T16:14:59",
+ "fields": [
+  {
+   "id": "MultipleBoundingRadioButton",
+   "label": "Multiple lines to bounding lines",
+   "kind": "radio"
+  },
+  {
+   "id": "OneBoundingRadioButton",
+   "label": "One line to bounding lines",
+   "kind": "radio"
+  },
+  {
+   "id": "DistanceRadioButton",
+   "label": "One line by distance",
+   "kind": "radio"
+  },
+  {
+   "id": "OneBoundingShortestRadioButton",
+   "label": "Trim/extend shortest distance",
+   "kind": "radio"
+  },
+  {
+   "id": "memBoundariesOne",
+   "label": "Bounding lines",
+   "kind": "text"
+  },
+  {
+   "id": "OneBoundingExtendRadioButton",
+   "label": "Extend",
+   "kind": "radio"
+  },
+  {
+   "id": "OneBoundingTrimRadioButton",
+   "label": "Trim",
+   "kind": "radio"
+  },
+  {
+   "id": "OneLineSelectEntity",
+   "label": "Line to trim or extend",
+   "kind": "entity"
+  }
+ ],
+ "buttons": [
+  "Close",
+  "Apply"
+ ],
+ "notes": [],
+ "tbc_version": "2026.10"
+}

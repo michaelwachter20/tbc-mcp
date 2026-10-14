@@ -1,0 +1,33 @@
+{
+ "key": "MoveSurveyPoint",
+ "caption": "Move Survey Point",
+ "last_seen": "2026-10-13T12:47:11",
+ "fields": [
+  {
+   "id": "resultBox",
+   "label": "Result",
+   "kind": "text"
+  },
+  {
+   "id": "selectPoint",
+   "label": "Point ID",
+   "kind": "entity"
+  },
+  {
+   "id": "elevationEdit",
+   "label": "Elevation",
+   "kind": "text"
+  },
+  {
+   "id": "coordinateEditTo",
+   "label": "To",
+   "kind": "text"
+  }
+ ],
+ "buttons": [
+  "Cancel",
+  "OK"
+ ],
+ "notes": [],
+ "tbc_version": "2026.10"
+}

@@ -1,0 +1,23 @@
+{
+ "key": "ImportBlocks",
+ "caption": "Import Blocks",
+ "last_seen": "2026-10-14T09:06:56",
+ "fields": [
+  {
+   "id": "ReplaceExistingBlocks",
+   "label": "Replace existing blocks",
+   "kind": "bool"
+  },
+  {
+   "id": "browseFile1",
+   "label": "My block folder path",
+   "kind": "text"
+  }
+ ],
+ "buttons": [
+  "Cancel",
+  "Import"
+ ],
+ "notes": [],
+ "tbc_version": "2026.10"
+}

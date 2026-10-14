@@ -1,0 +1,107 @@
+{
+ "caption": "Select Observations",
+ "last_seen": "2026-10-14T10:36:21",
+ "fields": [
+  {
+   "id": "cboDurationOperator",
+   "label": "Duration",
+   "kind": "choice",
+   "options_sample": [
+    "<=",
+    "=",
+    ">="
+   ],
+   "option_count": 3
+  },
+  {
+   "id": "txtDuration",
+   "label": null,
+   "kind": "text"
+  },
+  {
+   "id": "cboEndTimeOperator",
+   "label": "End Time",
+   "kind": "choice",
+   "options_sample": [
+    "<=",
+    ">="
+   ],
+   "option_count": 2
+  },
+  {
+   "id": "cboStartTimeOperator",
+   "label": "Start Time",
+   "kind": "choice",
+   "options_sample": [
+    "<=",
+    ">="
+   ],
+   "option_count": 2
+  },
+  {
+   "id": "txtEndTime",
+   "label": null,
+   "kind": "text"
+  },
+  {
+   "id": "txtStartTime",
+   "label": null,
+   "kind": "text"
+  },
+  {
+   "id": "chkIsSideShot",
+   "label": "Observation ID",
+   "kind": "ultra"
+  },
+  {
+   "id": "SelectedPointTo",
+   "label": "To",
+   "kind": "text"
+  },
+  {
+   "id": "SelectedPointFrom",
+   "label": "From",
+   "kind": "text"
+  },
+  {
+   "id": "clbStatus",
+   "label": "Status",
+   "kind": "list",
+   "options_sample": [
+    "Disabled",
+    "Enabled",
+    "Enabled as check"
+   ],
+   "option_count": 3
+  },
+  {
+   "id": "txtObservationID",
+   "label": "Observation ID",
+   "kind": "text"
+  },
+  {
+   "id": "clbType",
+   "label": "Type",
+   "kind": "list",
+   "options_sample": [
+    "Mean Angle",
+    "RTK Vector",
+    "Total Station Observation"
+   ],
+   "option_count": 3
+  },
+  {
+   "id": "chkAddToCurrentSelection",
+   "label": "Add to current selection",
+   "kind": "bool"
+  }
+ ],
+ "buttons": [
+  "Apply",
+  "Cancel",
+  "OK"
+ ],
+ "key": "SelectObservations",
+ "tbc_version": "2026.10",
+ "notes": []
+}

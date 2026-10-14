@@ -1,0 +1,13 @@
+{
+ "key": "InternetDownload",
+ "caption": "Internet Download",
+ "last_seen": "2026-10-13T11:56:00",
+ "fields": [],
+ "buttons": [
+  "Manual",
+  "Automatic",
+  "Close"
+ ],
+ "notes": [],
+ "tbc_version": "2026.10"
+}

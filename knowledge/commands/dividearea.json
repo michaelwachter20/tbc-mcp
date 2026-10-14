@@ -1,0 +1,44 @@
+{
+ "key": "DivideArea",
+ "caption": "Divide Area",
+ "last_seen": "2026-10-13T16:20:57",
+ "fields": [
+  {
+   "id": "ClientAreaTextBox",
+   "label": "Area to Divide",
+   "kind": "text"
+  },
+  {
+   "id": "ClientAreaTextBox#2",
+   "label": "Origin",
+   "kind": "text"
+  },
+  {
+   "id": "ClientAreaTextBox#3",
+   "label": "End point",
+   "kind": "text"
+  },
+  {
+   "id": "Divide_area_based_on",
+   "label": "Divide area based on",
+   "kind": "choice",
+   "options_sample": [
+    "Number of subareas",
+    "Target area",
+    "Distance from Baseline"
+   ],
+   "option_count": 3
+  },
+  {
+   "id": "ClientAreaTextBox#4",
+   "label": "Amount [min. 2]",
+   "kind": "text"
+  }
+ ],
+ "buttons": [
+  "Divide",
+  "Close"
+ ],
+ "notes": [],
+ "tbc_version": "2026.10"
+}

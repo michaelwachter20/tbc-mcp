@@ -1,0 +1,66 @@
+{
+ "key": "LabelPoints",
+ "caption": "Label Points",
+ "last_seen": "2026-10-14T09:02:32",
+ "fields": [
+  {
+   "id": "AttributeValuesOnlyCheckBox",
+   "label": "Hide feature code attribute name",
+   "kind": "bool"
+  },
+  {
+   "id": "AlignToSegmentCheckBox",
+   "label": "Align label to associated line segment",
+   "kind": "bool"
+  },
+  {
+   "id": "Rotation",
+   "label": "Rotation",
+   "kind": "text"
+  },
+  {
+   "id": "SelectPointEntity",
+   "label": "Select point to label",
+   "kind": "entity"
+  },
+  {
+   "id": "Selection",
+   "label": "Multi-select points to label",
+   "kind": "text"
+  },
+  {
+   "id": "SymbolCode",
+   "label": "Symbol code",
+   "kind": "text"
+  },
+  {
+   "id": "AttributesVerticalCheckBox",
+   "label": "Display feature code attributes vertically",
+   "kind": "bool"
+  },
+  {
+   "id": "PointLabelSymbolSize",
+   "label": "Symbol size (mm)",
+   "kind": "text"
+  },
+  {
+   "id": "Layer",
+   "label": "Layer",
+   "kind": "choice",
+   "options": "project data (not recorded)"
+  },
+  {
+   "id": "Style",
+   "label": "Point label style",
+   "kind": "text"
+  }
+ ],
+ "buttons": [
+  "Add",
+  "Remove",
+  "...",
+  "Close"
+ ],
+ "notes": [],
+ "tbc_version": "2026.10"
+}

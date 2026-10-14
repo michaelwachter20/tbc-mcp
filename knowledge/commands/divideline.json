@@ -1,0 +1,53 @@
+{
+ "key": "DivideLine",
+ "caption": "Divide Lines",
+ "last_seen": "2026-10-13T16:15:06",
+ "fields": [
+  {
+   "id": "radioSlopeLength",
+   "label": "Slope length",
+   "kind": "radio"
+  },
+  {
+   "id": "radioHorzLength",
+   "label": "Horizontal length",
+   "kind": "radio"
+  },
+  {
+   "id": "dedDivideLength",
+   "label": null,
+   "kind": "text"
+  },
+  {
+   "id": "numUpDownDivideNum",
+   "label": null,
+   "kind": "number"
+  },
+  {
+   "id": "radioDivideByLength",
+   "label": "Divide by length",
+   "kind": "radio"
+  },
+  {
+   "id": "radioDivideByNumber",
+   "label": "Divide by number of separated objects",
+   "kind": "radio"
+  },
+  {
+   "id": "selDivideSegment",
+   "label": "Select a segment to divide",
+   "kind": "entity"
+  },
+  {
+   "id": "memSelectionDivideLines",
+   "label": "Multi-select lines to divide",
+   "kind": "text"
+  }
+ ],
+ "buttons": [
+  "Close",
+  "Apply"
+ ],
+ "notes": [],
+ "tbc_version": "2026.10"
+}

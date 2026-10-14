@@ -1,0 +1,119 @@
+{
+ "key": "DoubleProportioning",
+ "caption": "Double Proportioning",
+ "last_seen": "2026-10-13T12:57:56",
+ "fields": [
+  {
+   "id": "planarRadioButton",
+   "label": "Planar",
+   "kind": "radio"
+  },
+  {
+   "id": "geodeticRadioButton",
+   "label": "Geodetic",
+   "kind": "radio"
+  },
+  {
+   "id": "selectSegment",
+   "label": "- OR - Select segment #1",
+   "kind": "entity"
+  },
+  {
+   "id": "bearingEdit",
+   "label": "Azimuth #1",
+   "kind": "text"
+  },
+  {
+   "id": "distanceEdit",
+   "label": "Distance #1",
+   "kind": "text"
+  },
+  {
+   "id": "selectSegment#2",
+   "label": "- OR - Select segment #2",
+   "kind": "entity"
+  },
+  {
+   "id": "bearingEdit#2",
+   "label": "Azimuth #2",
+   "kind": "text"
+  },
+  {
+   "id": "distanceEdit#2",
+   "label": "Distance #2",
+   "kind": "text"
+  },
+  {
+   "id": "coordinateEdit",
+   "label": "Western known position",
+   "kind": "text"
+  },
+  {
+   "id": "createReportCheckBox",
+   "label": "Create report",
+   "kind": "bool"
+  },
+  {
+   "id": "createPointsCheckBox",
+   "label": "Create points at known positions",
+   "kind": "bool"
+  },
+  {
+   "id": "createLinesCheckBox",
+   "label": "Create lines",
+   "kind": "bool"
+  },
+  {
+   "id": "pointsLayer",
+   "label": "Layer",
+   "kind": "choice",
+   "options": "project data (not recorded)"
+  },
+  {
+   "id": "startingPointTextBox",
+   "label": "Starting point ID",
+   "kind": "text"
+  },
+  {
+   "id": "featureEdit",
+   "label": "Feature code",
+   "kind": "text"
+  },
+  {
+   "id": "westRadioButton",
+   "label": "West",
+   "kind": "radio"
+  },
+  {
+   "id": "northRadioButton",
+   "label": "North",
+   "kind": "radio"
+  },
+  {
+   "id": "eastRadioButton",
+   "label": "East",
+   "kind": "radio"
+  },
+  {
+   "id": "southRadioButton",
+   "label": "South",
+   "kind": "radio"
+  },
+  {
+   "id": "groundRadioButton",
+   "label": "Ground",
+   "kind": "radio"
+  },
+  {
+   "id": "gridRadioButton",
+   "label": "Grid",
+   "kind": "radio"
+  }
+ ],
+ "buttons": [
+  "Close",
+  "Apply"
+ ],
+ "notes": [],
+ "tbc_version": "2026.10"
+}

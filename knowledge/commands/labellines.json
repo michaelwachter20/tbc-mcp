@@ -1,0 +1,55 @@
+{
+ "key": "LabelLines",
+ "caption": "Label Lines",
+ "last_seen": "2026-10-14T09:04:27",
+ "fields": [
+  {
+   "id": "KeepLineDirectionCheckbox",
+   "label": "Keep line direction placement",
+   "kind": "bool"
+  },
+  {
+   "id": "SelectTable",
+   "label": "Minimum line length",
+   "kind": "text"
+  },
+  {
+   "id": "AddSmallSegmentsToTable",
+   "label": "Add small segments to table",
+   "kind": "bool"
+  },
+  {
+   "id": "SelectLinearEntity",
+   "label": "Select segment to label",
+   "kind": "entity"
+  },
+  {
+   "id": "MinimumLineLength",
+   "label": "Minimum line length",
+   "kind": "text"
+  },
+  {
+   "id": "Layer",
+   "label": "Layer",
+   "kind": "choice",
+   "options": "project data (not recorded)"
+  },
+  {
+   "id": "Selection",
+   "label": "Multi-select lines to label",
+   "kind": "text"
+  },
+  {
+   "id": "Style",
+   "label": "Line label style",
+   "kind": "text"
+  }
+ ],
+ "buttons": [
+  "Remove",
+  "Add",
+  "Close"
+ ],
+ "notes": [],
+ "tbc_version": "2026.10"
+}

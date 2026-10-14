@@ -1,0 +1,18 @@
+{
+ "key": "CreatePlanSet",
+ "caption": "Create Plan Set",
+ "last_seen": "2026-10-14T09:04:07",
+ "fields": [
+  {
+   "id": "NameTextBox",
+   "label": "Name",
+   "kind": "text"
+  }
+ ],
+ "buttons": [
+  "Cancel",
+  "OK"
+ ],
+ "notes": [],
+ "tbc_version": "2026.10"
+}

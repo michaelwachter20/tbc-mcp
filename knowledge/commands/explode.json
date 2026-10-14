@@ -1,0 +1,23 @@
+{
+ "key": "Explode",
+ "caption": "Explode",
+ "last_seen": "2026-10-13T11:41:30",
+ "fields": [
+  {
+   "id": "DeleteBlocks",
+   "label": "Delete blocks after exploding",
+   "kind": "bool"
+  },
+  {
+   "id": "EntitiesToProcess",
+   "label": "Objects to explode",
+   "kind": "text"
+  }
+ ],
+ "buttons": [
+  "Close",
+  "Explode"
+ ],
+ "notes": [],
+ "tbc_version": "2026.10"
+}

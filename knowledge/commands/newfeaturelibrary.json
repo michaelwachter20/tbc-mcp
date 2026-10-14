@@ -1,0 +1,18 @@
+{
+ "key": "NewFeatureLibrary",
+ "caption": "New Feature Library",
+ "last_seen": "2026-10-13T13:04:51",
+ "fields": [
+  {
+   "id": "fxlName",
+   "label": "Library name",
+   "kind": "text"
+  }
+ ],
+ "buttons": [
+  "Cancel",
+  "OK"
+ ],
+ "notes": [],
+ "tbc_version": "2026.10"
+}

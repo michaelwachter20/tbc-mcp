@@ -1,0 +1,12 @@
+# GitHub also offers an automatic "Source code (zip)" download on every release. These paths are left out of it
+# (export-ignore), so that download matches the release package: no tests, dev tools or repo plumbing.
+tests/ export-ignore
+tools/ export-ignore
+.github/ export-ignore
+.gitattributes export-ignore
+.gitignore export-ignore
+release_files.txt export-ignore
+
+# keep Windows line endings out of the repo; PowerShell scripts stay CRLF so they run as-is on Windows
+* text=auto
+*.ps1 text eol=crlf

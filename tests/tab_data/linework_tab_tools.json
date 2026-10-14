@@ -1,0 +1,453 @@
+{
+ "tab": "Linework",
+ "groups": [
+  {
+   "tools": [
+    {
+     "key": "ANZ_ShowLineDirectionOptions",
+     "help": "29943",
+     "children": [
+      {
+       "key": "ANZ_ReverseLines",
+       "help": "30004",
+       "type": "ButtonTool",
+       "enabled": true,
+       "caption": "Reverse"
+      },
+      {
+       "key": "ANZ_SetLineDirection",
+       "help": "30008",
+       "type": "ButtonTool",
+       "enabled": true,
+       "caption": "Set Direction"
+      }
+     ],
+     "type": "PopupGalleryTool",
+     "enabled": true,
+     "caption": "Show Direction"
+    }
+   ],
+   "group": "Direction"
+  },
+  {
+   "tools": [
+    {
+     "key": "CreatePolyline",
+     "help": "10424",
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Polyline"
+    },
+    {
+     "key": "CreateLinestring",
+     "help": "5444",
+     "children": [
+      {
+       "key": "CreateBoundary",
+       "help": "20865",
+       "type": "ButtonTool",
+       "enabled": true,
+       "caption": "Boundary"
+      },
+      {
+       "key": "CreateBreakLine",
+       "help": "1533",
+       "type": "ButtonTool",
+       "enabled": true,
+       "caption": "Breakline"
+      },
+      {
+       "key": "CreatePolygon",
+       "help": "11048",
+       "type": "ButtonTool",
+       "enabled": true,
+       "caption": "Polygon"
+      },
+      {
+       "key": "CaptureOutline",
+       "help": "29200",
+       "type": "ButtonTool",
+       "enabled": true,
+       "caption": "Outline"
+      }
+     ],
+     "type": "PopupGalleryTool",
+     "enabled": true,
+     "caption": "Linestring"
+    },
+    {
+     "key": "CreateCircle",
+     "help": "10795",
+     "children": [
+      {
+       "key": "CreateThreePointCircle",
+       "help": "21020",
+       "type": "ButtonTool",
+       "enabled": true,
+       "caption": "Three-Point Circle"
+      }
+     ],
+     "type": "PopupGalleryTool",
+     "enabled": true,
+     "caption": "Create Circle"
+    },
+    {
+     "key": "CreateArc",
+     "help": "13280",
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Arc"
+    },
+    {
+     "key": "ANZ_CreateChordLines",
+     "help": "29811",
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Chord"
+    },
+    {
+     "key": "CreateRectangle",
+     "help": "14049",
+     "children": [
+      {
+       "key": "CreateThreePointRectangle",
+       "help": "21041",
+       "type": "ButtonTool",
+       "enabled": true,
+       "caption": "Three-Point Rectangle"
+      }
+     ],
+     "type": "PopupGalleryTool",
+     "enabled": true,
+     "caption": "Rectangle"
+    },
+    {
+     "key": "BestFitLine",
+     "help": "19745",
+     "children": [
+      {
+       "key": "ANZ_BestFitCircle",
+       "help": "29735",
+       "type": "ButtonTool",
+       "enabled": true,
+       "caption": "Best Fit Circle"
+      }
+     ],
+     "type": "PopupGalleryTool",
+     "enabled": true,
+     "caption": "Best-Fit Line"
+    },
+    {
+     "key": "QuickLine",
+     "help": "22055",
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Quick Line"
+    }
+   ],
+   "group": "Create"
+  },
+  {
+   "tools": [
+    {
+     "key": "ANZ_ConvertToLinestring",
+     "help": "29729",
+     "children": [
+      {
+       "key": "ANZ_ConvertToHorizontalLinestring",
+       "help": "29728",
+       "type": "ButtonTool",
+       "enabled": true,
+       "caption": "To Horizontal"
+      },
+      {
+       "key": "ANZ_ConvertToPolygon",
+       "help": "29749",
+       "type": "ButtonTool",
+       "enabled": true,
+       "caption": "To Polygon"
+      }
+     ],
+     "type": "PopupGalleryTool",
+     "enabled": true,
+     "caption": "To Linestring"
+    }
+   ],
+   "group": "Convert"
+  },
+  {
+   "tools": [
+    {
+     "key": "OffsetLinestring",
+     "help": "7349",
+     "children": [
+      {
+       "key": "VariableOffsetLine",
+       "help": "19917",
+       "type": "ButtonTool",
+       "enabled": true,
+       "caption": "Variable Offset"
+      }
+     ],
+     "type": "PopupGalleryTool",
+     "enabled": true,
+     "caption": "Offset"
+    },
+    {
+     "key": "ANZ_MoveLine",
+     "help": "29940",
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Move"
+    },
+    {
+     "key": "ANZ_MergeLines",
+     "help": "29935",
+     "children": [
+      {
+       "key": "AppendTrackedLine",
+       "help": "13279",
+       "type": "ButtonTool",
+       "enabled": true,
+       "caption": "Append Tracked"
+      }
+     ],
+     "type": "PopupGalleryTool",
+     "enabled": true,
+     "caption": "Merge"
+    },
+    {
+     "key": "FilletChamfer",
+     "help": "19946",
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Fillet Chamfer"
+    },
+    {
+     "key": "TrimExtendLines",
+     "help": "8240",
+     "children": [
+      {
+       "key": "ANZ_ExtendLinesToSurface",
+       "help": "29831",
+       "type": "ButtonTool",
+       "enabled": true,
+       "caption": "Extend to Surface"
+      }
+     ],
+     "type": "PopupGalleryTool",
+     "enabled": true,
+     "caption": "Trim Extend"
+    },
+    {
+     "key": "DivideLine",
+     "help": "21668",
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Divide Lines"
+    },
+    {
+     "key": "BreakLine",
+     "help": "5966",
+     "children": [
+      {
+       "key": "ANZ_ExplodeLines",
+       "help": "29825",
+       "type": "ButtonTool",
+       "enabled": true,
+       "caption": "Explode Lines"
+      }
+     ],
+     "type": "PopupGalleryTool",
+     "enabled": true,
+     "caption": "Break"
+    },
+    {
+     "key": "JoinLines",
+     "help": "6154",
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Join"
+    },
+    {
+     "key": "ClipLines",
+     "help": "9307",
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Clip"
+    },
+    {
+     "key": "ANZ_InsertDeleteNodes",
+     "help": "29853",
+     "children": [
+      {
+       "key": "StandardInsertLineSegment",
+       "help": "22996",
+       "type": "ButtonTool",
+       "enabled": true,
+       "caption": "Insert Segment"
+      },
+      {
+       "key": "ANZ_SegmentCount",
+       "help": "30007",
+       "type": "ButtonTool",
+       "enabled": true,
+       "caption": "Segment Count"
+      },
+      {
+       "key": "DeleteLineSegment",
+       "help": "6175",
+       "type": "ButtonTool",
+       "enabled": true,
+       "caption": "Delete"
+      }
+     ],
+     "type": "PopupGalleryTool",
+     "enabled": true,
+     "caption": "Insert/Delete Nodes"
+    },
+    {
+     "key": "ANZ_SimplifyLineStrings",
+     "help": "30013",
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Simplify"
+    },
+    {
+     "key": "ANZ_InsertVerticesFromPoints",
+     "help": "29870",
+     "children": [
+      {
+       "key": "GeometryPointIntegrateCmd",
+       "help": "27530",
+       "type": "ButtonTool",
+       "enabled": true,
+       "caption": "Integrate to Geometry"
+      }
+     ],
+     "type": "PopupGalleryTool",
+     "enabled": true,
+     "caption": "Insert Vertices"
+    },
+    {
+     "key": "ANZ_UnlinkLinestrings",
+     "help": "30035",
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Unlink"
+    },
+    {
+     "key": "ANZ_EditLinestringElevation",
+     "help": "29805",
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Edit Elevation"
+    },
+    {
+     "key": "SetLineElevation",
+     "help": "6156",
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Set Line Elevation"
+    },
+    {
+     "key": "ANZ_AdjustProfile",
+     "help": "29676",
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Adjust Profile"
+    }
+   ],
+   "group": "Edit"
+  },
+  {
+   "tools": [
+    {
+     "key": "ANZ_LineNodeCleanup",
+     "help": "29892",
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Node Cleanup"
+    },
+    {
+     "key": "ANZ_CompareLines",
+     "help": "29774",
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Compare Lines"
+    },
+    {
+     "key": "ANZ_InspectLineNodes",
+     "help": "29885",
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Inspect Line Nodes"
+    },
+    {
+     "key": "ANZ_CheckLineDeflections",
+     "help": "29719",
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Check Deflections"
+    }
+   ],
+   "group": "Check"
+  },
+  {
+   "tools": [
+    {
+     "key": "ANZ_AdjustArea",
+     "help": "29661",
+     "children": [
+      {
+       "key": "DivideArea",
+       "help": "27507",
+       "type": "ButtonTool",
+       "enabled": true,
+       "caption": "Divide Area"
+      }
+     ],
+     "type": "PopupGalleryTool",
+     "enabled": true,
+     "caption": "Adjust Area"
+    }
+   ],
+   "group": "Divide Area"
+  },
+  {
+   "tools": [
+    {
+     "key": "CreateCompositeGeometry",
+     "help": "28033",
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Composite Geometry"
+    },
+    {
+     "key": "TrackRegionOutline",
+     "help": "7389",
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Track Region"
+    },
+    {
+     "key": "CrossingGeometry",
+     "help": "23314",
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Detect Crossing Geometry"
+    },
+    {
+     "key": "ANZ_CreateXLines",
+     "help": "29796",
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Create XLines"
+    }
+   ],
+   "group": "Advanced"
+  }
+ ],
+ "tbc_version": "2026.10",
+ "tbc_build": "44.0.9666.28609"
+}

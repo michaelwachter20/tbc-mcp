@@ -1,0 +1,21 @@
+{
+ "_intro": [
+  "- 47 tools; 39 licensed on the surveyed machine. The 8 ANZ Toolbox tools (Convert To MText, Explode Text, Find and Replace, Alignment/Excel/Legend Table, Create Slope Markers) need ANZToolbox. Check yours with `tbc_license`.",
+  "- No tool acts immediately: each opens a panel, a dialog or a separate editor first. Print commands only print after you press Print in Windows' Print dialog; never press it unless the user asks.",
+  "- **Line Type Editor and Symbol Editor start a separate program (PEDITOR.exe)** with its own window. Close it when done (its window's X / CloseMainWindow).",
+  "- Just opening **Dimension Style Manager** and cancelling marked the project as modified (TBC adds default style data).",
+  "- Prerequisites shown as popups: Edit Text needs exactly one text object selected; Custom Sheet needs a custom sheet set selected; Print Plan Set needs a plan set with sheets."
+ ],
+ "EditText": "needs one text object selected ('Select one text object.')",
+ "CreateCustomSheet": "needs a custom sheet set selected first",
+ "PrintPlanSet": "needs a plan set with sheets ('No plan set was found ...')",
+ "LineTypeEditor": "starts PEDITOR.exe (separate 'Line Type Editor' window)",
+ "SymbolEditor": "starts PEDITOR.exe (separate 'Symbol Editor' window)",
+ "DraftingTemplates": "no panel appeared with nothing selected",
+ "DimensionStyleManager": "opening it marks the project modified",
+ "PurgeBlocks": "Apply deletes the checked unused block definitions",
+ "PrintPlanView": "panel creates a plotbox; printing happens only from Windows' Print dialog",
+ "PrintBySelection": "printing happens only from Windows' Print dialog",
+ "tbc_version": "2026.10",
+ "tbc_build": "44.0.9666.28609"
+}

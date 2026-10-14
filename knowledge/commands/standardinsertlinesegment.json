@@ -1,0 +1,28 @@
+{
+ "key": "StandardInsertLineSegment",
+ "caption": "Insert Line Segment",
+ "last_seen": "2026-10-13T16:19:14",
+ "fields": [
+  {
+   "id": "ClientAreaTextBox",
+   "label": "Line",
+   "kind": "text"
+  },
+  {
+   "id": "ClientAreaTextBox#2",
+   "label": "Location",
+   "kind": "text"
+  },
+  {
+   "id": "ClientAreaTextBox#3",
+   "label": "Elevation",
+   "kind": "text"
+  }
+ ],
+ "buttons": [
+  "Insert",
+  "Close"
+ ],
+ "notes": [],
+ "tbc_version": "2026.10"
+}

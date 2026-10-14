@@ -1,0 +1,30 @@
+{
+ "caption": "Import",
+ "last_seen": "2026-10-14T10:07:42",
+ "fields": [
+  {
+   "id": "Import_Folder",
+   "label": "Import Folder",
+   "kind": "choice",
+   "options": "project data (not recorded)"
+  },
+  {
+   "id": "Filter",
+   "label": "Filter",
+   "kind": "text"
+  },
+  {
+   "id": "Close_command_after_import",
+   "label": "Close command after import",
+   "kind": "bool"
+  }
+ ],
+ "buttons": [
+  "Import",
+  "Close",
+  "..."
+ ],
+ "key": "Import",
+ "tbc_version": "2026.10",
+ "notes": []
+}

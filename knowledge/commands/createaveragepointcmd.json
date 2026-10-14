@@ -1,0 +1,41 @@
+{
+ "key": "CreateAveragePointCmd",
+ "caption": "Average Points",
+ "last_seen": "2026-10-13T12:29:36",
+ "fields": [
+  {
+   "id": "promptAttributesBox",
+   "label": "Prompt for feature attributes",
+   "kind": "bool"
+  },
+  {
+   "id": "featureCodeBox",
+   "label": "Feature code",
+   "kind": "text"
+  },
+  {
+   "id": "layerComboBox",
+   "label": "Layer",
+   "kind": "choice",
+   "options": "project data (not recorded)"
+  },
+  {
+   "id": "selectPoint",
+   "label": "Point ID",
+   "kind": "entity"
+  },
+  {
+   "id": "SelectedEntities",
+   "label": null,
+   "kind": "text"
+  }
+ ],
+ "buttons": [
+  "Remove",
+  "Add",
+  "Close",
+  "Compute"
+ ],
+ "notes": [],
+ "tbc_version": "2026.10"
+}

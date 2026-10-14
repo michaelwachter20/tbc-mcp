@@ -1,0 +1,73 @@
+{
+ "key": "DescriptionWriter",
+ "caption": "Legal Description Writer",
+ "last_seen": "2026-10-13T14:47:02",
+ "fields": [
+  {
+   "id": "misclosureCriteriaCheckBox",
+   "label": "Use only node-to-node misclosures (preferred)",
+   "kind": "bool"
+  },
+  {
+   "id": "templateComboBox",
+   "label": "Template file",
+   "kind": "choice",
+   "options": "project data (not recorded)"
+  },
+  {
+   "id": "selectPointEntity",
+   "label": "Select starting points",
+   "kind": "entity"
+  },
+  {
+   "id": "selectLineEntity",
+   "label": "Select path segments",
+   "kind": "entity"
+  },
+  {
+   "id": "selectPolygonEntity",
+   "label": "Select parcels",
+   "kind": "entity"
+  },
+  {
+   "id": "rtfPageBreakRadioButton",
+   "label": "RTF file with page breaks",
+   "kind": "radio"
+  },
+  {
+   "id": "outputFileTextBox",
+   "label": "Current gap tolerance = 0.000 ft",
+   "kind": "text"
+  },
+  {
+   "id": "rtfRadioButton",
+   "label": "RTF file",
+   "kind": "radio"
+  },
+  {
+   "id": "txtRadioButton",
+   "label": "TXT file",
+   "kind": "radio"
+  },
+  {
+   "id": "ccwRadioButton",
+   "label": "Counterclockwise",
+   "kind": "radio"
+  },
+  {
+   "id": "cwRadioButton",
+   "label": "Clockwise",
+   "kind": "radio"
+  }
+ ],
+ "buttons": [
+  "Show Calculated Path",
+  "Edit / Preview",
+  "...",
+  "Close",
+  "Apply",
+  "..."
+ ],
+ "notes": [],
+ "tbc_version": "2026.10"
+}

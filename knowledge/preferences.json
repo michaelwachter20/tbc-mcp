@@ -1,0 +1,45 @@
+[
+ {
+  "id": 1,
+  "topic": "tidiness",
+  "text": "Close the Layer Manager when you are done with it, and likewise every command panel and pane you opened (run_command layermanager toggles Layer Manager; command_ui_close for panels). Clear selections you made. Leave TBC the way you found it unless the user asks to see the result.",
+  "added": "2026-10-13T11:40:00"
+ },
+ {
+  "id": 2,
+  "topic": "points",
+  "text": "Point IDs are plain numbers (next free number after the highest numeric ID in the project unless the user says otherwise). Put the description in the Feature code box (e.g. EP, TOE, GRID), never in the point ID (no names like GRD001). create_points does this automatically: omit 'name' to get numeric IDs, pass 'feature_code' to set codes.",
+  "added": "2026-10-13T11:40:00"
+ },
+ {
+  "id": 3,
+  "topic": "pacing",
+  "text": "TBC is slow to open commands but quick once a panel is open. Do not open commands back to back: let each panel finish loading before filling it (command_ui_open waits for this), keep a panel open while doing repeated work in it, and pause between opening different commands.",
+  "added": "2026-10-13T11:40:00"
+ },
+ {
+  "id": 4,
+  "topic": "pacing",
+  "text": "TBC recomputes the project after many changes (Compute Project / Computing the project window) and that can take a while. Always wait until it has finished before doing anything else (the tools do this via wait_idle; use tbc_wait_idle after other changes). Never press Cancel on a progress window.",
+  "added": "2026-10-13T12:11:59"
+ },
+ {
+  "id": 5,
+  "topic": "online",
+  "text": "The user does not use Send to RTX-PP, Processing Services (opens a web browser) or Internet Download (CORS/orbit data). Do not run them; document only.",
+  "added": "2026-10-13T12:12:28"
+ },
+ {
+  "id": 6,
+  "topic": "general",
+  "text": "When TBC crashes: record it in knowledge/memory/crash_log.md (time, what the MCP was doing, crash module) and work out whether the MCP caused it. If the cause can't be found and the same step does not crash again when retried, drop it - TBC is finicky. Only turn a crash into a lesson or skill note when it is reproducible and caused by the MCP. Always tell the user, wait for them to restart TBC, then carry on.",
+  "added": "2026-10-13T15:12:10",
+  "updated": "2026-10-13T15:17:10"
+ },
+ {
+  "id": 7,
+  "topic": "versions",
+  "text": "Everything in the knowledge base (skills, lessons, command layouts, scripts) is verified on TBC 2026.10 (build 44.0.9666). When a newer TBC release behaves differently, ADD documentation for that release (a '## TBC <release>' section, a new lesson, a new script version) - never delete or rewrite the 2026.10 (or any older release's) information. Scripts are versioned: saving again bumps script_version and archives the previous file.",
+  "added": "2026-10-14T09:46:24"
+ }
+]

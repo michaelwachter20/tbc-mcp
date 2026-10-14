@@ -1,0 +1,39 @@
+{
+ "key": "createrectangle",
+ "caption": "Create Rectangle",
+ "last_seen": "2026-10-13T16:15:38",
+ "fields": [
+  {
+   "id": "Name",
+   "label": "Name",
+   "kind": "text"
+  },
+  {
+   "id": "ComboBox",
+   "label": "Layer",
+   "kind": "choice",
+   "options": "project data (not recorded)"
+  },
+  {
+   "id": "ClientAreaTextBox",
+   "label": "Elevation",
+   "kind": "text"
+  },
+  {
+   "id": "ClientAreaTextBox#2",
+   "label": "Corner one",
+   "kind": "text"
+  },
+  {
+   "id": "ClientAreaTextBox#3",
+   "label": "Corner two",
+   "kind": "text"
+  }
+ ],
+ "buttons": [
+  "OK",
+  "Cancel"
+ ],
+ "notes": [],
+ "tbc_version": "2026.10"
+}

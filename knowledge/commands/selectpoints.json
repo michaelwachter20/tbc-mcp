@@ -1,0 +1,99 @@
+{
+ "caption": "Select Points",
+ "last_seen": "2026-10-14T10:35:57",
+ "fields": [
+  {
+   "id": "cboLayer",
+   "label": "Layer",
+   "kind": "choice",
+   "options": "project data (not recorded)"
+  },
+  {
+   "id": "cboAttrValue",
+   "label": "Attribute value",
+   "kind": "choice"
+  },
+  {
+   "id": "ObservedFromPointID",
+   "label": "Observed from",
+   "kind": "text"
+  },
+  {
+   "id": "SelectedPointID",
+   "label": "Point ID",
+   "kind": "text"
+  },
+  {
+   "id": "cboAttrName",
+   "label": "Attribute name",
+   "kind": "choice",
+   "options": "project data (not recorded)"
+  },
+  {
+   "id": "txtFieldCode",
+   "label": "Feature code",
+   "kind": "text"
+  },
+  {
+   "id": "cbFeatureStatus",
+   "label": "Locked",
+   "kind": "choice",
+   "options": "project data (not recorded)"
+  },
+  {
+   "id": "clbHeightQuality",
+   "label": "Height quality",
+   "kind": "list",
+   "options_sample": [
+    "Fixed in Adjustment",
+    "Adjusted",
+    "Control",
+    "Survey",
+    "Mapping",
+    "Unknown"
+   ],
+   "option_count": 6
+  },
+  {
+   "id": "clbElevationQuality",
+   "label": "Elevation quality",
+   "kind": "list",
+   "options_sample": [
+    "Fixed in Adjustment",
+    "Adjusted",
+    "Control",
+    "Survey",
+    "Mapping",
+    "Unknown"
+   ],
+   "option_count": 6
+  },
+  {
+   "id": "clbHorizontalQuality",
+   "label": "Horizontal quality",
+   "kind": "list",
+   "options_sample": [
+    "Fixed in Adjustment",
+    "Adjusted",
+    "Control",
+    "Survey",
+    "Mapping",
+    "Unknown"
+   ],
+   "option_count": 6
+  },
+  {
+   "id": "chkAddToCurrentSelection",
+   "label": "Add to current selection",
+   "kind": "bool"
+  }
+ ],
+ "buttons": [
+  "Cancel",
+  "OK",
+  "Apply"
+ ],
+ "key": "SelectPoints",
+ "tbc_version": "2026.10",
+ "notes": []
+}

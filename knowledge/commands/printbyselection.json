@@ -1,0 +1,12 @@
+{
+ "key": "PrintBySelection",
+ "caption": "Print By Selection",
+ "last_seen": "2026-10-13T16:47:37",
+ "fields": [],
+ "buttons": [
+  "Cancel",
+  "Apply"
+ ],
+ "notes": [],
+ "tbc_version": "2026.10"
+}

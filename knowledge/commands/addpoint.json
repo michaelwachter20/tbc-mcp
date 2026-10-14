@@ -1,0 +1,76 @@
+{
+ "caption": "Create Point",
+ "last_seen": "2026-10-14T10:37:46",
+ "fields": [
+  {
+   "id": "MeasureCodesCheckBox",
+   "label": "Measure Codes mode",
+   "kind": "bool"
+  },
+  {
+   "id": "m_Layer",
+   "label": "Layer",
+   "kind": "choice",
+   "options": "project data (not recorded)"
+  },
+  {
+   "id": "m_tbFieldCode",
+   "label": "Feature code",
+   "kind": "text"
+  },
+  {
+   "id": "m_tbPointID",
+   "label": "Point ID",
+   "kind": "text"
+  },
+  {
+   "id": "m_cbStatus",
+   "label": "Status",
+   "kind": "choice",
+   "options_sample": [
+    "Enabled",
+    "Enabled as check",
+    "Disabled"
+   ],
+   "option_count": 3
+  },
+  {
+   "id": "m_tbHeight2",
+   "label": "Height",
+   "kind": "text"
+  },
+  {
+   "id": "m_tbPlanar1",
+   "label": "Northing",
+   "kind": "text"
+  },
+  {
+   "id": "m_tbPlanar2",
+   "label": "Easting",
+   "kind": "text"
+  },
+  {
+   "id": "m_tbHeight1",
+   "label": "Elevation",
+   "kind": "text"
+  },
+  {
+   "id": "m_cbCoordSystem",
+   "label": "Coordinate type",
+   "kind": "choice",
+   "options_sample": [
+    "Grid",
+    "Local",
+    "Global"
+   ],
+   "option_count": 3
+  }
+ ],
+ "buttons": [
+  "Close",
+  "Add"
+ ],
+ "key": "AddPoint",
+ "tbc_version": "2026.10",
+ "notes": []
+}

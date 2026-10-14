@@ -1,0 +1,93 @@
+{
+ "key": "CreateQuickProfile",
+ "caption": "Create Quick Profile",
+ "last_seen": "2026-10-14T09:05:34",
+ "fields": [
+  {
+   "id": "TextBox",
+   "label": null,
+   "kind": "text"
+  },
+  {
+   "id": "ComboBox",
+   "label": "Surfaces (for profile table)",
+   "kind": "choice",
+   "options": "project data (not recorded)"
+  },
+  {
+   "id": "ComboBox#2",
+   "label": null,
+   "kind": "choice",
+   "options": "project data (not recorded)"
+  },
+  {
+   "id": "ComboBox#3",
+   "label": null,
+   "kind": "choice",
+   "options": "project data (not recorded)"
+  },
+  {
+   "id": "createNew",
+   "label": "Define",
+   "kind": "radio"
+  },
+  {
+   "id": "ClientAreaTextBox",
+   "label": "From",
+   "kind": "text"
+  },
+  {
+   "id": "ClientAreaTextBox#2",
+   "label": "To",
+   "kind": "text"
+  },
+  {
+   "id": "ComboBox#4",
+   "label": "Text style",
+   "kind": "choice",
+   "options": "project data (not recorded)"
+  },
+  {
+   "id": "limitToLine",
+   "label": "Use existing line",
+   "kind": "radio"
+  },
+  {
+   "id": "ClientAreaTextBox#3",
+   "label": null,
+   "kind": "text"
+  },
+  {
+   "id": "ClientAreaTextBox#4",
+   "label": "Quick profile name",
+   "kind": "text"
+  },
+  {
+   "id": "ComboBox#5",
+   "label": "Layer",
+   "kind": "choice",
+   "options": "project data (not recorded)"
+  },
+  {
+   "id": "ClientAreaTextBox#5",
+   "label": "Quick profile location",
+   "kind": "text"
+  },
+  {
+   "id": "ComboBox#6",
+   "label": "Settings",
+   "kind": "choice",
+   "options_sample": [
+    "New definition"
+   ],
+   "option_count": 1
+  }
+ ],
+ "buttons": [
+  "OK",
+  "Cancel",
+  "Options"
+ ],
+ "notes": [],
+ "tbc_version": "2026.10"
+}

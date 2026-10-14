@@ -1,0 +1,50 @@
+{
+ "key": "CreateDynaView",
+ "caption": "Create Dynaview",
+ "last_seen": "2026-10-13T16:47:43",
+ "fields": [
+  {
+   "id": "selectEntity1",
+   "label": "Frame (on a Plan View)",
+   "kind": "entity"
+  },
+  {
+   "id": "comboBox1_ViewFilter",
+   "label": "View filter",
+   "kind": "choice",
+   "options": "project data (not recorded)"
+  },
+  {
+   "id": "angularEdit1",
+   "label": "Rotation",
+   "kind": "text"
+  },
+  {
+   "id": "numericEdit1",
+   "label": "Scale",
+   "kind": "text"
+  },
+  {
+   "id": "coordinateEdit1",
+   "label": "Location (on a sheet)",
+   "kind": "text"
+  },
+  {
+   "id": "layer1",
+   "label": "Layer",
+   "kind": "choice",
+   "options": "project data (not recorded)"
+  },
+  {
+   "id": "textBox_Name",
+   "label": "Name (optional)",
+   "kind": "text"
+  }
+ ],
+ "buttons": [
+  "Close",
+  "OK"
+ ],
+ "notes": [],
+ "tbc_version": "2026.10"
+}

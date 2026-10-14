@@ -1,0 +1,70 @@
+{
+ "key": "LocalSiteSettings",
+ "caption": "Local Site Settings",
+ "last_seen": "2026-10-13T13:50:24",
+ "fields": [
+  {
+   "id": "m_cbCoordSystem",
+   "label": "Coordinate type",
+   "kind": "choice",
+   "options_sample": [
+    "Grid",
+    "Local",
+    "Global"
+   ],
+   "option_count": 3
+  },
+  {
+   "id": "m_tbHeight1",
+   "label": "Elevation",
+   "kind": "text"
+  },
+  {
+   "id": "m_tbPlanar2",
+   "label": "Easting",
+   "kind": "text"
+  },
+  {
+   "id": "m_tbPlanar1",
+   "label": "Northing",
+   "kind": "text"
+  },
+  {
+   "id": "m_cbGroundOrigin",
+   "label": null,
+   "kind": "choice",
+   "options": "project data (not recorded)"
+  },
+  {
+   "id": "chkUseGroundCoordinates",
+   "label": null,
+   "kind": "ultra"
+  },
+  {
+   "id": "txtScaleFactor",
+   "label": "Ground scale factor",
+   "kind": "text"
+  },
+  {
+   "id": "chkComputeScaleFactor",
+   "label": "Ground scale factor",
+   "kind": "ultra"
+  },
+  {
+   "id": "txtFalseEasting",
+   "label": "False easting offset",
+   "kind": "text"
+  },
+  {
+   "id": "txtFalseNorthing",
+   "label": "False northing offset",
+   "kind": "text"
+  }
+ ],
+ "buttons": [
+  "Cancel",
+  "OK"
+ ],
+ "notes": [],
+ "tbc_version": "2026.10"
+}

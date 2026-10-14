@@ -1,0 +1,9 @@
+# What goes into the release zip (one path per line, relative to the repo root; folders are copied whole).
+# Used by tools/make_release.ps1 and .github/workflows/release.yml. Tests, dev tools and per-machine logs stay out.
+README.md
+LICENSE
+install_macro.ps1
+mcp_config_example.json
+mcp_server
+tbc_macro
+knowledge

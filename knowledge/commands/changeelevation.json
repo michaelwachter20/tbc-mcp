@@ -1,0 +1,48 @@
+{
+ "key": "ChangeElevation",
+ "caption": "Change Elevation",
+ "last_seen": "2026-10-13T11:40:31",
+ "fields": [
+  {
+   "id": "SelectedEntities",
+   "label": "Objects to elevate",
+   "kind": "text"
+  },
+  {
+   "id": "m_RelativeElevationBtn",
+   "label": "Delta elevation",
+   "kind": "radio"
+  },
+  {
+   "id": "m_AbsoluteElevationBtn",
+   "label": "Absolute elevation",
+   "kind": "radio"
+  },
+  {
+   "id": "m_NoElevationBtn",
+   "label": "Undefined elevation",
+   "kind": "radio"
+  },
+  {
+   "id": "m_ElevateBySurface",
+   "label": "Surface elevation",
+   "kind": "radio"
+  },
+  {
+   "id": "rbRelativeToPoint",
+   "label": "Relative to point",
+   "kind": "radio"
+  },
+  {
+   "id": "m_NewElevation",
+   "label": "Elevation",
+   "kind": "text"
+  }
+ ],
+ "buttons": [
+  "Close",
+  "Apply"
+ ],
+ "notes": [],
+ "tbc_version": "2026.10"
+}

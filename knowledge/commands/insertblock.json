@@ -1,0 +1,70 @@
+{
+ "key": "InsertBlock",
+ "caption": "Insert Block",
+ "last_seen": "2026-10-14T09:03:13",
+ "fields": [
+  {
+   "id": "blkComboBox1",
+   "label": "Block",
+   "kind": "choice",
+   "options": "project data (not recorded)"
+  },
+  {
+   "id": "layer1",
+   "label": "Layer",
+   "kind": "choice",
+   "options": "project data (not recorded)"
+  },
+  {
+   "id": "Location1",
+   "label": "Location 1",
+   "kind": "text"
+  },
+  {
+   "id": "Location2",
+   "label": "Location 2 (not available for this block)",
+   "kind": "text"
+  },
+  {
+   "id": "Location3",
+   "label": "Location 3 (not available for this block)",
+   "kind": "text"
+  },
+  {
+   "id": "Elevation",
+   "label": "Elevation",
+   "kind": "text"
+  },
+  {
+   "id": "InsertAsNorthArrowCheckBox",
+   "label": "Insert as north arrow",
+   "kind": "bool"
+  },
+  {
+   "id": "Rotation",
+   "label": "Rotation",
+   "kind": "text"
+  },
+  {
+   "id": "ScaleX",
+   "label": "Scale X",
+   "kind": "text"
+  },
+  {
+   "id": "ScaleY",
+   "label": "Scale Y",
+   "kind": "text"
+  },
+  {
+   "id": "ScaleZ",
+   "label": "Scale Z",
+   "kind": "text"
+  }
+ ],
+ "buttons": [
+  "Close",
+  "Insert"
+ ],
+ "notes": [],
+ "tbc_version": "2026.10"
+}

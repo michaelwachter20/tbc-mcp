@@ -1,0 +1,83 @@
+{
+ "key": "CreatePolygon",
+ "caption": "Create Polygon",
+ "last_seen": "2026-10-14T09:05:45",
+ "fields": [
+  {
+   "id": "LinestringName",
+   "label": "Name",
+   "kind": "text"
+  },
+  {
+   "id": "Layer",
+   "label": "Layer",
+   "kind": "choice",
+   "options": "project data (not recorded)"
+  },
+  {
+   "id": "LineStyle",
+   "label": "Border line style",
+   "kind": "choice",
+   "options": "project data (not recorded)"
+  },
+  {
+   "id": "LineStyleScale",
+   "label": "Border line style scale",
+   "kind": "text"
+  },
+  {
+   "id": "LineColor",
+   "label": "Border color",
+   "kind": "choice",
+   "options_sample": [
+    "By Layer",
+    "By Block / Feature",
+    "Aquamarine",
+    "Black",
+    "Blue",
+    "Brown",
+    "Cyan",
+    "Gray"
+   ],
+   "option_count": 18
+  },
+  {
+   "id": "ExtendVertical",
+   "label": "Extend vertical",
+   "kind": "bool"
+  },
+  {
+   "id": "Sharpness",
+   "label": "Surface sharpness",
+   "kind": "choice",
+   "options": "project data (not recorded)"
+  },
+  {
+   "id": "FillColor",
+   "label": "Fill color",
+   "kind": "choice",
+   "options_sample": [
+    "By Layer",
+    "By Block / Feature",
+    "Aquamarine",
+    "Black",
+    "Blue",
+    "Brown",
+    "Cyan",
+    "Gray"
+   ],
+   "option_count": 18
+  },
+  {
+   "id": "FillTransparency",
+   "label": "Fill transparency",
+   "kind": "text"
+  }
+ ],
+ "buttons": [
+  "Cancel",
+  "OK"
+ ],
+ "notes": [],
+ "tbc_version": "2026.10"
+}

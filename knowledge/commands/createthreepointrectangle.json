@@ -1,0 +1,44 @@
+{
+ "key": "CreateThreePointRectangle",
+ "caption": "Create Three-Point Rectangle",
+ "last_seen": "2026-10-13T16:13:13",
+ "fields": [
+  {
+   "id": "m_offsetEdit",
+   "label": "Width",
+   "kind": "text"
+  },
+  {
+   "id": "m_Name",
+   "label": "Name",
+   "kind": "text"
+  },
+  {
+   "id": "m_Point2",
+   "label": "Corner two",
+   "kind": "text"
+  },
+  {
+   "id": "m_Layer",
+   "label": "Layer",
+   "kind": "choice",
+   "options": "project data (not recorded)"
+  },
+  {
+   "id": "m_Point1",
+   "label": "Corner one",
+   "kind": "text"
+  },
+  {
+   "id": "m_ElevationEdit",
+   "label": "Elevation",
+   "kind": "text"
+  }
+ ],
+ "buttons": [
+  "Close",
+  "Apply"
+ ],
+ "notes": [],
+ "tbc_version": "2026.10"
+}

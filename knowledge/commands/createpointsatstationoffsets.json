@@ -1,0 +1,84 @@
+{
+ "key": "createpointsatstationoffsets",
+ "caption": "Create at Station Offset",
+ "last_seen": "2026-10-13T12:58:52",
+ "fields": [
+  {
+   "id": "Name",
+   "label": "Name",
+   "kind": "text"
+  },
+  {
+   "id": "ClientAreaTextBox",
+   "label": "Start point",
+   "kind": "text"
+  },
+  {
+   "id": "ClientAreaTextBox#2",
+   "label": "Station (X) start point",
+   "kind": "text"
+  },
+  {
+   "id": "ClientAreaTextBox#3",
+   "label": "Offset (Y) start point",
+   "kind": "text"
+  },
+  {
+   "id": "ClientAreaTextBox#4",
+   "label": "End point",
+   "kind": "text"
+  },
+  {
+   "id": "ClientAreaTextBox#5",
+   "label": "Distance SE",
+   "kind": "text"
+  },
+  {
+   "id": "ClientAreaTextBox#6",
+   "label": "Station (X) end point",
+   "kind": "text"
+  },
+  {
+   "id": "ClientAreaTextBox#7",
+   "label": "Offset (Y) end point",
+   "kind": "text"
+  },
+  {
+   "id": "ClientAreaTextBox#8",
+   "label": "Difference (input - calculated)",
+   "kind": "text"
+  },
+  {
+   "id": "Error_adjustment",
+   "label": "Error adjustment",
+   "kind": "choice",
+   "options_sample": [
+    "No adjustment",
+    "Adjust along the line",
+    "Adjust along the line and offset"
+   ],
+   "option_count": 3
+  },
+  {
+   "id": "ClientAreaTextBox#9",
+   "label": "Delete",
+   "kind": "text"
+  },
+  {
+   "id": "ClientAreaTextBox#10",
+   "label": null,
+   "kind": "text"
+  },
+  {
+   "id": "text",
+   "label": null,
+   "kind": "text"
+  }
+ ],
+ "buttons": [
+  "OK",
+  "Cancel"
+ ],
+ "notes": [],
+ "tbc_version": "2026.10"
+}

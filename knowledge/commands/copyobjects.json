@@ -1,0 +1,23 @@
+{
+ "key": "CopyObjects",
+ "caption": "Copy Objects",
+ "last_seen": "2026-10-13T11:41:24",
+ "fields": [
+  {
+   "id": "UseRelayerChk",
+   "label": "Relayer copied objects",
+   "kind": "bool"
+  },
+  {
+   "id": "SelectedEntities",
+   "label": "Objects to copy",
+   "kind": "text"
+  }
+ ],
+ "buttons": [
+  "Close",
+  "Apply"
+ ],
+ "notes": [],
+ "tbc_version": "2026.10"
+}

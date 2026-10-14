@@ -1,0 +1,452 @@
+[
+ {
+  "group": "Field Data",
+  "caption": "Process Feature Codes",
+  "key": "ProcessFeatureCodes",
+  "enabled": true,
+  "help_topic": "5001",
+  "help_title": "Process Feature Codes",
+  "tooltip": "",
+  "help_first": "You must process the feature codes in your project to display feature data correctly in the software and to export the data to CAD systems and geographic information system (GIS). To process the feature codes, you will use the feature definitions contained in "
+ },
+ {
+  "group": "Field Data",
+  "caption": "Feature",
+  "key": "NewFeatureSpreadsheetCmd",
+  "enabled": true,
+  "help_topic": "11097",
+  "help_title": "Feature Spreadsheet",
+  "tooltip": "",
+  "help_first": "The Feature Spreadsheet allows you to view properties for all of the processed features contained in your project, and make changes to attribute values as necessary. "
+ },
+ {
+  "group": "Field Data",
+  "caption": "New Feature Library",
+  "key": "NewFeatureLibrary",
+  "enabled": true,
+  "help_topic": "23518",
+  "help_title": "Create a Feature Library",
+  "tooltip": "",
+  "help_first": "As an alternative to importing a Feature Definition (.fxl) file into your project to populate (define) the project's Feature Library for feature code processing, you can use the Create Feature Library command to create a new Feature Library from \"scratch.\" Aft"
+ },
+ {
+  "group": "Field Data",
+  "caption": "Convert CSV to FXL",
+  "key": "ConvertCSVtoFXL",
+  "enabled": true,
+  "help_topic": "23809",
+  "help_title": "Import (Convert) Feature Definitions from a Custom CSV (.csv) File",
+  "tooltip": "",
+  "help_first": "Import (Convert) Feature Definitions from a Custom CSV (.csv) File"
+ },
+ {
+  "group": "Field Data",
+  "caption": "Write FXL to CSV",
+  "key": "WriteFXLtoCSV",
+  "enabled": false,
+  "help_topic": "23810",
+  "help_title": "Export (Write) Feature Definitions to a Custom CSV (.csv) File",
+  "tooltip": "",
+  "help_first": "Export (Write) Feature Definitions to a Custom CSV (.csv) File"
+ },
+ {
+  "group": "Field Data",
+  "caption": "Merge Survey Projects",
+  "key": "MergeSurveyProjects",
+  "enabled": true,
+  "help_topic": "19997",
+  "help_title": "Merge Survey Projects",
+  "tooltip": "",
+  "help_first": "Use the Merge Survey Projects command to merge (import) edited survey data from one or more VCE (.vce) projects into a single \"master\" VCE project. "
+ },
+ {
+  "group": "Field Data",
+  "caption": "Reorder By Selection",
+  "key": "ANZ_ReorderBySelectionOrder",
+  "enabled": true,
+  "help_topic": "29999",
+  "help_title": "Reorder by Selection Order",
+  "tooltip": "",
+  "help_first": " The Reorder by Selection Order command enables you to reorder the point IDs by tracing a line over the points. It re-orders the point numbers so they increase in the same order in which they were selected."
+ },
+ {
+  "group": "Field Data",
+  "caption": "Reorder By Proximity",
+  "key": "ANZ_ReorderByProximity",
+  "enabled": true,
+  "help_topic": "29998",
+  "help_title": "Reorder by Proximity",
+  "tooltip": "",
+  "help_first": " The Reorder by Proximity command enables you to reorder point IDs based on the shortest distance to the next point. After selecting the first point in the string, the command reorders the point numbers based on the next nearest point. This can be filtered by "
+ },
+ {
+  "group": "GNSS",
+  "caption": "Internet Download",
+  "key": "InternetDownload",
+  "enabled": true,
+  "help_topic": "1098",
+  "help_title": "Download and Import Internet Data",
+  "tooltip": "",
+  "help_first": "After you have imported raw data and processed the baselines, download and import additional data from various Internet resources. To find data relevant to your project, the Internet Download command:"
+ },
+ {
+  "group": "GNSS",
+  "caption": "Processing Services",
+  "key": "ExternalProcessingServices",
+  "enabled": true,
+  "help_topic": "13283",
+  "help_title": "Use External Processing Services",
+  "tooltip": "",
+  "help_first": "Use the External Processing Services command to process data files using an external (third-party) processing service (for example, OPUS, CRSR, or AUSPOS). Also, convert a Trimble Access or Trimble Survey Controller file to a newer version."
+ },
+ {
+  "group": "GNSS",
+  "caption": "Send to RTX-PP",
+  "key": "SendToRTX",
+  "enabled": true,
+  "help_topic": "12388",
+  "help_title": "Compute Positions Using RTX Post-Processing",
+  "tooltip": "",
+  "help_first": "Compute Positions Using RTX Post-Processing"
+ },
+ {
+  "group": "GNSS",
+  "caption": "Process Baselines",
+  "key": "GNSSProcessBaselines",
+  "enabled": false,
+  "help_topic": "385",
+  "help_title": "Process Baselines",
+  "tooltip": "",
+  "help_first": "Process baselines to determine and promote the highest quality coordinates for each point in your project. Vectors are created from baselines using these points. You can process all of your project's baselines at once or select a subset to process."
+ },
+ {
+  "group": "GNSS",
+  "caption": "Clear Processing",
+  "key": "ClearProcessingResults",
+  "enabled": false,
+  "help_topic": "385",
+  "help_title": "Process Baselines",
+  "tooltip": "",
+  "help_first": "Process baselines to determine and promote the highest quality coordinates for each point in your project. Vectors are created from baselines using these points. You can process all of your project's baselines at once or select a subset to process."
+ },
+ {
+  "group": "GNSS",
+  "caption": "Time-Based View",
+  "key": "TimeBasedView",
+  "enabled": true,
+  "help_topic": "1087",
+  "help_title": "Time-Based View",
+  "tooltip": "",
+  "help_first": "The Time-Based View displays your GNSS data in a chronological format that makes it easy to visualize how session and occupation times relate to each other, helping you check for valid sessions."
+ },
+ {
+  "group": "GNSS",
+  "caption": "Session Editor",
+  "key": "SessionEditor",
+  "enabled": false,
+  "help_topic": "1605",
+  "help_title": "Edit Sessions",
+  "tooltip": "",
+  "help_first": "Visually analyze the quality of the raw satellite data in your sessions, and use the Session Editor to:"
+ },
+ {
+  "group": "GNSS",
+  "caption": "Loop Closure",
+  "key": "LoopClosure",
+  "enabled": true,
+  "help_topic": "381",
+  "help_title": "Run a GNSS Loop Closure Results Report",
+  "tooltip": "",
+  "help_first": "After all the baselines in your project have been processed and saved, run GNSS Loop Closure to generate a GNSS Loop Closure Results report to identify any bad vectors. To ensure that the loop closure results are useful, structure your network so that the base"
+ },
+ {
+  "group": "GNSS",
+  "caption": "Occupation",
+  "key": "OccupationView",
+  "enabled": true,
+  "help_topic": "3961",
+  "help_title": "Occupation Spreadsheet",
+  "tooltip": "",
+  "help_first": "The Occupation Spreadsheet view lists the GNSS occupations in the current project, enabling you to easily edit the data. The Plan View and the Properties pane reflect all changes made to data in the spreadsheet view. "
+ },
+ {
+  "group": "GNSS",
+  "caption": "Vector ",
+  "key": "VectorView",
+  "enabled": true,
+  "help_topic": "256",
+  "help_title": "Vector Spreadsheet",
+  "tooltip": "",
+  "help_first": "The Vector Spreadsheet lists the vectors in the current project. The data can be sorted by clicking at the top of any column. The Plan View and the Properties pane reflect all changes made to data in the spreadsheet view. For details on columns in the vector s"
+ },
+ {
+  "group": "Optical",
+  "caption": "Adjust Traverse",
+  "key": "AdjustTraverse",
+  "enabled": true,
+  "help_topic": "1927",
+  "help_title": "Create, Edit, and Adjust a Traverse",
+  "tooltip": "",
+  "help_first": "A surveyed traverse may or may not have been adjusted in the field. If it was not adjusted in the field, you can use the Adjust Traverse command to select the stations for the traverse, specify adjustment properties, and compute the adjustment. If it was adjus"
+ },
+ {
+  "group": "Optical",
+  "caption": "Total Station Editor",
+  "key": "TotalStationEditor",
+  "enabled": true,
+  "help_topic": "17790",
+  "help_title": "Import Keyed-In Total Station Data",
+  "tooltip": "",
+  "help_first": "This topic explains how to use the Total Station Editor to do the following:"
+ },
+ {
+  "group": "Optical",
+  "caption": "Mean Angle Residuals",
+  "key": "MTAResiduals",
+  "enabled": false,
+  "help_topic": "5852",
+  "help_title": "View and Edit Mean Angle Residuals",
+  "tooltip": "",
+  "help_first": "A mean angle represents the combining and averaging of redundant observations to the same point. You can view residuals for each observation used to calculate a mean angle using the Mean Angle Residuals dialog. If a residual for an observation exceeds toleranc"
+ },
+ {
+  "group": "Optical",
+  "caption": "Disable Redundant BS",
+  "key": "DisableRedundantBacksights",
+  "enabled": true,
+  "help_topic": "25991",
+  "help_title": "Disable Redundant Backsight Observations Imported from Trimble Access",
+  "tooltip": "",
+  "help_first": "Disable Redundant Backsight Observations Imported from Trimble Access"
+ },
+ {
+  "group": "Optical",
+  "caption": "Optical",
+  "key": "OpticalView",
+  "enabled": true,
+  "help_topic": "8273",
+  "help_title": "Optical Spreadsheet",
+  "tooltip": "",
+  "help_first": "The Optical Spreadsheet lists the total station and laser rangefinder observations in the project, along with computed values and station and target information. The data can be sorted by clicking at the top of any column. The Plan View and the Properties pane"
+ },
+ {
+  "group": "Optical",
+  "caption": "Level Editor",
+  "key": "LevelEditor",
+  "enabled": true,
+  "help_topic": "5589",
+  "help_title": "View and Edit Level Data",
+  "tooltip": "",
+  "help_first": "The Level Editor dialog is displayed automatically immediately after you import level data into your proejct. You can also display it any time after import by right-clicking the level data file in the Project Explorer pane and selecting Level Editor from the c"
+ },
+ {
+  "group": "Optical",
+  "caption": "Combine Level",
+  "key": "CombineLevelBags",
+  "enabled": true,
+  "help_topic": "22222",
+  "help_title": "Combine Level Files",
+  "tooltip": "",
+  "help_first": "Use the Combine Level Files command to combine the data contained in two or more level files included in your project into a single combined file that displays in its entirety in the Level Editor. This allows you to easily combine and adjust level runs previou"
+ },
+ {
+  "group": "Network",
+  "caption": "Adjust Network",
+  "key": "AdjustProjectTerraNet",
+  "enabled": true,
+  "help_topic": "3338",
+  "help_title": "Network Adjustment Options",
+  "tooltip": "",
+  "help_first": "Use these options located in the command pane tool bar to fix control points, apply error estimate scalars, and adjust a network of vectors. They are available on the three tabs of the Adjust Network command pane."
+ },
+ {
+  "group": "Network",
+  "caption": "Clear Adjustment Results",
+  "key": "ClearAdjustmentResults",
+  "enabled": false,
+  "help_topic": "396",
+  "help_title": "Adjust a Network",
+  "tooltip": "",
+  "help_first": "Adjust your network or subnetworks (two or more networks in your project with unconnected observations) after you have processed the baselines and reviewed the GNSS Loop Closure Results report to ensure the quality of your project. "
+ },
+ {
+  "group": "Network",
+  "caption": "Site Calibration",
+  "key": "SiteCalibrationCalculation",
+  "enabled": true,
+  "help_topic": "2826",
+  "help_title": "Calibrate a Site",
+  "tooltip": "",
+  "help_first": "You can calibrate a site to minimize residuals between global coordinate data collected in the field and local control coordinates. To perform a site calibration, you associate GNSS points with grid points at the same positions. These point pairs are used to c"
+ },
+ {
+  "group": "Network",
+  "caption": "Clear Site Calibration",
+  "key": "RemoveSiteCalibrationCalculation",
+  "enabled": false,
+  "help_topic": "2826",
+  "help_title": "Calibrate a Site",
+  "tooltip": "",
+  "help_first": "You can calibrate a site to minimize residuals between global coordinate data collected in the field and local control coordinates. To perform a site calibration, you associate GNSS points with grid points at the same positions. These point pairs are used to c"
+ },
+ {
+  "group": "Network",
+  "caption": "Local Site Settings",
+  "key": "LocalSiteSettings",
+  "enabled": true,
+  "help_topic": "304",
+  "help_title": "Specify Local Site Settings",
+  "tooltip": "",
+  "help_first": "Enter local site settings to create a ground coordinate system to accommodate elevation differences between your site and the ellipsoid. The scale factor can be calculated for you. Use the options to project grid coordinates onto locally surveyed ground coordi"
+ },
+ {
+  "group": "Network",
+  "caption": "Geoid Sub-Gridding",
+  "key": "GeoidSubGrid",
+  "enabled": true,
+  "help_topic": "3240",
+  "help_title": "Define a Geoid Sub-Grid",
+  "tooltip": "",
+  "help_first": "If the geoid file you want to use for data collection is too large, define a subsection of the area (sub-grid) to use before uploading to a field device. This saves upload time and field device memory. "
+ },
+ {
+  "group": "Network",
+  "caption": "Datum Gridding",
+  "key": "DatumGrid",
+  "enabled": true,
+  "help_topic": "383",
+  "help_title": "Create a Datum Grid File",
+  "tooltip": "",
+  "help_first": "If you have chosen a coordinate system for your project that uses a datum, and the datum has not been defined yet, you must create it before uploading to a field device."
+ },
+ {
+  "group": "COGO",
+  "caption": "Transform Survey Points",
+  "key": "TransformSurveyPoints",
+  "enabled": true,
+  "help_topic": "16010",
+  "help_title": "Transform Survey Points",
+  "tooltip": "",
+  "help_first": "Transform survey points by moving, rotating, and/or scaling them using either of the following methods:"
+ },
+ {
+  "group": "COGO",
+  "caption": "Move Survey Point",
+  "key": "MoveSurveyPoint",
+  "enabled": true,
+  "help_topic": "20403",
+  "help_title": "Move Survey Points",
+  "tooltip": "",
+  "help_first": "Use the Move Survey Points command to graphically add an office-entered coordinate to move a survey point to a new location. This will keep your original survey observations intact and provide traceability of your survey while allowing you to change grid posit"
+ },
+ {
+  "group": "COGO",
+  "caption": "Rename Points",
+  "key": "RenamePoints",
+  "enabled": true,
+  "help_topic": "365",
+  "help_title": "Rename Points",
+  "tooltip": "",
+  "help_first": "Rename points to ensure all the points in your project are unique. For example, if two rovers are set to automatic point numbering and contain identical points, use the Rename Points command to renumber one set of points. Points to be renamed can be selected b"
+ },
+ {
+  "group": "COGO",
+  "caption": "Average Points",
+  "key": "CreateAveragePointCmd",
+  "enabled": true,
+  "help_topic": "15505",
+  "help_title": "Create and Edit an Averaged Point",
+  "tooltip": "",
+  "help_first": "Create a point in your project whose position is computed by the simple averaging of the 1D, 2D, and 3D coordinates of existing reference points. If the position of one or more of the reference points subsequently changes (for example, due to a network adjustm"
+ },
+ {
+  "group": "COGO",
+  "caption": "Create Point",
+  "key": "AddPoint",
+  "enabled": true,
+  "help_topic": "364",
+  "help_title": "Create and Edit Points",
+  "tooltip": "",
+  "help_first": "You can create a point in your project when, for example, you need to include a point for control or stakeout that was not observed in the field or otherwise recorded and imported in a points file. When you create a point (see \"Create a Point\" below), in addit"
+ },
+ {
+  "group": "COGO",
+  "caption": "Create at Station Offset",
+  "key": "createpointsatstationoffsets",
+  "enabled": true,
+  "help_topic": "27540",
+  "help_title": "Create Points at Station Offsets",
+  "tooltip": "",
+  "help_first": "The Create Points at Station Offsets command enables you to quickly and easily create multiple points along a user-defined baseline by first specifying the station and offset for each point you want to create and then running the command to create them all at "
+ },
+ {
+  "group": "COGO",
+  "caption": "Integrate to Geometry",
+  "key": "GeometryPointIntegrateCmd",
+  "enabled": true,
+  "help_topic": "27530",
+  "help_title": "Integrate Points into Geometry",
+  "tooltip": "",
+  "help_first": "Use the Integrate Points into Geometry command to automatically convert vertex coordinates for linestring-based polygonal objects and COGO parcels into points."
+ },
+ {
+  "group": "COGO",
+  "caption": "Explode Points",
+  "key": "ExplodePointCmd",
+  "enabled": true,
+  "help_topic": "15932",
+  "help_title": "Explode Merged Points",
+  "tooltip": "",
+  "help_first": "If your project includes a point that is the result of merging multiple points in the field (by making multiple side-shot observations to the same point ID) or in Trimble Business Center (by using the Merge Points command or by renaming points), you can explod"
+ },
+ {
+  "group": "COGO",
+  "caption": "Merge Points",
+  "key": "MergePoints",
+  "enabled": true,
+  "help_topic": "1953",
+  "help_title": "Merge Points",
+  "tooltip": "",
+  "help_first": "If necessary, you can merge two or more points into a single point. This might be useful if, for example, you have duplicate points in your project. When you select points to merge, you can specify which of the selected points is kept in the project as the fin"
+ },
+ {
+  "group": "COGO",
+  "caption": "Create COGO",
+  "key": "CreateCOGO",
+  "enabled": true,
+  "help_topic": "20413",
+  "help_title": "Create COGO Collections and Compute Parcels",
+  "tooltip": "",
+  "help_first": "Create COGO Collections and Compute Parcels"
+ },
+ {
+  "group": "COGO",
+  "caption": "Legal Description",
+  "key": "DescriptionWriter",
+  "enabled": true,
+  "help_topic": "21113",
+  "help_title": "Create Legal Descriptions",
+  "tooltip": "",
+  "help_first": "Use the Legal Description Writer command to automatically generate a collection of textual legal descriptions for cadastral survey projects that include parcels (created with the Create COGO command) and/or polygons, or closed linework (see following note). Th"
+ },
+ {
+  "group": "COGO",
+  "caption": "Single Proportioning",
+  "key": "SingleProportioning",
+  "enabled": true,
+  "help_topic": "21608",
+  "help_title": "Create Points Using Single Proportioning",
+  "tooltip": "",
+  "help_first": "The Single Proportioning command enables you to create one or more points that are equally proportioned along a line between two known points. Following are a couple of examples of how the command might be used."
+ },
+ {
+  "group": "COGO",
+  "caption": "Double Proportioning",
+  "key": "DoubleProportioning",
+  "enabled": true,
+  "help_topic": "21609",
+  "help_title": "Create Points Using Double Proportioning",
+  "tooltip": "",
+  "help_first": "The Double Proportioning command enables you to determine the location of a missing position marker based on record distances (grid or ground) and bearings from four known positions located at cardinal points around the missing marker. After calculating the po"
+ }
+]

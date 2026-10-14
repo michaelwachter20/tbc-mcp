@@ -1,0 +1,48 @@
+{
+ "key": "CreateBlock",
+ "caption": "Create Block",
+ "last_seen": "2026-10-14T09:03:00",
+ "fields": [
+  {
+   "id": "textBox1",
+   "label": "Select objects",
+   "kind": "text"
+  },
+  {
+   "id": "BlockName",
+   "label": "Name",
+   "kind": "text"
+  },
+  {
+   "id": "coordinateEdit1",
+   "label": "Location 1",
+   "kind": "text"
+  },
+  {
+   "id": "coordinateEdit2",
+   "label": "Location 2 (optional)",
+   "kind": "text"
+  },
+  {
+   "id": "coordinateEdit3",
+   "label": "Location 3 (optional)",
+   "kind": "text"
+  },
+  {
+   "id": "elevationEdit1",
+   "label": "Elevation",
+   "kind": "text"
+  },
+  {
+   "id": "memberSelection1",
+   "label": "Select objects",
+   "kind": "text"
+  }
+ ],
+ "buttons": [
+  "Close",
+  "Create"
+ ],
+ "notes": [],
+ "tbc_version": "2026.10"
+}

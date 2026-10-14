@@ -1,0 +1,91 @@
+{
+ "key": "CreateFromCAD",
+ "caption": "Create Points from CAD",
+ "last_seen": "2026-10-13T11:23:04",
+ "fields": [
+  {
+   "id": "PointQuality",
+   "label": "Point quality",
+   "kind": "choice",
+   "options_sample": [
+    "Control",
+    "Survey",
+    "Mapping",
+    "Unknown"
+   ],
+   "option_count": 4
+  },
+  {
+   "id": "memberSelection1",
+   "label": "Selection",
+   "kind": "text"
+  },
+  {
+   "id": "CreateGridOnlyPoints",
+   "label": "Create grid-only points",
+   "kind": "bool"
+  },
+  {
+   "id": "OP_Centroid",
+   "label": "Centroids of closed lines",
+   "kind": "bool"
+  },
+  {
+   "id": "OP_SegmentEndPoint",
+   "label": "Segment end points",
+   "kind": "bool"
+  },
+  {
+   "id": "OP_Intersection",
+   "label": "Intersections",
+   "kind": "bool"
+  },
+  {
+   "id": "OP_Insertion",
+   "label": "Insertion points",
+   "kind": "bool"
+  },
+  {
+   "id": "OP_CadPoint",
+   "label": "CAD points and mesh vertices",
+   "kind": "bool"
+  },
+  {
+   "id": "OP_Center",
+   "label": "Arc/circle centers",
+   "kind": "bool"
+  },
+  {
+   "id": "OP_MidPoint",
+   "label": "Line mid points",
+   "kind": "bool"
+  },
+  {
+   "id": "OP_EndPoint",
+   "label": "Line end points",
+   "kind": "bool"
+  },
+  {
+   "id": "StartName",
+   "label": "Starting point ID",
+   "kind": "text"
+  },
+  {
+   "id": "layer1",
+   "label": "Layer",
+   "kind": "choice",
+   "options": "project data (not recorded)"
+  },
+  {
+   "id": "featureCodesEdit1",
+   "label": "Feature code",
+   "kind": "text"
+  }
+ ],
+ "buttons": [
+  "Close",
+  "Apply"
+ ],
+ "notes": [],
+ "tbc_version": "2026.10"
+}

@@ -1,0 +1,40 @@
+{
+ "key": "DrapeObjectsOnSurface",
+ "caption": "Drape Objects On Surface",
+ "last_seen": "2026-10-13T11:42:48",
+ "fields": [
+  {
+   "id": "cb_DoMultiple",
+   "label": "Select multiple",
+   "kind": "bool"
+  },
+  {
+   "id": "SurfaceSharpnessComboBox",
+   "label": "Surface sharpness",
+   "kind": "choice",
+   "options": "project data (not recorded)"
+  },
+  {
+   "id": "ReferenceLineSelectEntity",
+   "label": "Reference line/point",
+   "kind": "entity"
+  },
+  {
+   "id": "SurfaceComboBoxEntityPicker",
+   "label": "Surface",
+   "kind": "text"
+  },
+  {
+   "id": "m_Layer",
+   "label": "Layer",
+   "kind": "choice",
+   "options": "project data (not recorded)"
+  }
+ ],
+ "buttons": [
+  "Close",
+  "Apply"
+ ],
+ "notes": [],
+ "tbc_version": "2026.10"
+}

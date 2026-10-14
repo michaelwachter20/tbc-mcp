@@ -1,0 +1,368 @@
+{
+ "tab": "Survey",
+ "groups": [
+  {
+   "tools": [
+    {
+     "key": "ProcessFeatureCodes",
+     "help": "5001",
+     "children": [
+      {
+       "key": "NewFeatureSpreadsheetCmd",
+       "help": "11097",
+       "type": "ButtonTool",
+       "enabled": true,
+       "caption": "Feature"
+      }
+     ],
+     "type": "PopupGalleryTool",
+     "enabled": true,
+     "caption": "Process Feature Codes"
+    },
+    {
+     "key": "NewFeatureLibrary",
+     "help": "23518",
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "New Feature Library"
+    },
+    {
+     "key": "ConvertCSVtoFXL",
+     "help": "23809",
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Convert CSV to FXL"
+    },
+    {
+     "key": "WriteFXLtoCSV",
+     "help": "23810",
+     "type": "ButtonTool",
+     "enabled": false,
+     "caption": "Write FXL to CSV"
+    },
+    {
+     "key": "MergeSurveyProjects",
+     "help": "19997",
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Merge Survey Projects"
+    },
+    {
+     "key": "ANZ_ReorderBySelectionOrder",
+     "help": "29999",
+     "children": [
+      {
+       "key": "ANZ_ReorderByProximity",
+       "help": "29998",
+       "type": "ButtonTool",
+       "enabled": true,
+       "caption": "Reorder By Proximity"
+      }
+     ],
+     "type": "PopupGalleryTool",
+     "enabled": true,
+     "caption": "Reorder By Selection"
+    }
+   ],
+   "group": "Field Data"
+  },
+  {
+   "tools": [
+    {
+     "key": "InternetDownload",
+     "help": "1098",
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Internet Download"
+    },
+    {
+     "key": "ExternalProcessingServices",
+     "help": "13283",
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Processing Services"
+    },
+    {
+     "key": "SendToRTX",
+     "help": "12388",
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Send to RTX-PP"
+    },
+    {
+     "key": "GNSSProcessBaselines",
+     "help": "385",
+     "type": "ButtonTool",
+     "enabled": false,
+     "caption": "Process Baselines"
+    },
+    {
+     "key": "ClearProcessingResults",
+     "help": "385",
+     "type": "ButtonTool",
+     "enabled": false,
+     "caption": "Clear Processing"
+    },
+    {
+     "key": "TimeBasedView",
+     "help": "1087",
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Time-Based View"
+    },
+    {
+     "key": "SessionEditor",
+     "help": "1605",
+     "type": "ButtonTool",
+     "enabled": false,
+     "caption": "Session Editor"
+    },
+    {
+     "key": "LoopClosure",
+     "help": "381",
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Loop Closure"
+    },
+    {
+     "key": "OccupationView",
+     "help": "3961",
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Occupation"
+    },
+    {
+     "key": "VectorView",
+     "help": "256",
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Vector "
+    }
+   ],
+   "group": "GNSS"
+  },
+  {
+   "tools": [
+    {
+     "key": "AdjustTraverse",
+     "help": "1927",
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Adjust Traverse"
+    },
+    {
+     "key": "TotalStationEditor",
+     "help": "17790",
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Total Station Editor"
+    },
+    {
+     "key": "MTAResiduals",
+     "help": "5852",
+     "type": "ButtonTool",
+     "enabled": false,
+     "caption": "Mean Angle Residuals"
+    },
+    {
+     "key": "DisableRedundantBacksights",
+     "help": "25991",
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Disable Redundant BS"
+    },
+    {
+     "key": "OpticalView",
+     "help": "8273",
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Optical"
+    },
+    {
+     "key": "LevelEditor",
+     "help": "5589",
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Level Editor"
+    },
+    {
+     "key": "CombineLevelBags",
+     "help": "22222",
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Combine Level"
+    }
+   ],
+   "group": "Optical"
+  },
+  {
+   "tools": [
+    {
+     "key": "AdjustProjectTerraNet",
+     "help": "3338",
+     "children": [
+      {
+       "key": "LabelTool5",
+       "type": "LabelTool",
+       "caption": "LabelTool5",
+       "enabled": true
+      },
+      {
+       "key": "ClearAdjustmentResults",
+       "help": "396",
+       "type": "ButtonTool",
+       "enabled": false,
+       "caption": "Clear Adjustment Results"
+      }
+     ],
+     "type": "PopupMenuTool",
+     "enabled": true,
+     "caption": "Adjust Network"
+    },
+    {
+     "key": "SiteCalibrationCalculation",
+     "help": "2826",
+     "children": [
+      {
+       "key": "LabelTool6",
+       "type": "LabelTool",
+       "caption": "LabelTool6",
+       "enabled": true
+      },
+      {
+       "key": "RemoveSiteCalibrationCalculation",
+       "help": "2826",
+       "type": "ButtonTool",
+       "enabled": false,
+       "caption": "Clear Site Calibration"
+      }
+     ],
+     "type": "PopupMenuTool",
+     "enabled": true,
+     "caption": "Site Calibration"
+    },
+    {
+     "key": "LocalSiteSettings",
+     "help": "304",
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Local Site Settings"
+    },
+    {
+     "key": "GeoidSubGrid",
+     "help": "3240",
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Geoid Sub-Gridding"
+    },
+    {
+     "key": "DatumGrid",
+     "help": "383",
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Datum Gridding"
+    }
+   ],
+   "group": "Network"
+  },
+  {
+   "tools": [
+    {
+     "key": "TransformSurveyPoints",
+     "help": "16010",
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Transform Survey Points"
+    },
+    {
+     "key": "MoveSurveyPoint",
+     "help": "20403",
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Move Survey Point"
+    },
+    {
+     "key": "RenamePoints",
+     "help": "365",
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Rename Points"
+    },
+    {
+     "key": "CreateAveragePointCmd",
+     "help": "15505",
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Average Points"
+    },
+    {
+     "key": "AddPoint",
+     "help": "364",
+     "children": [],
+     "type": "PopupGalleryTool",
+     "enabled": true,
+     "caption": "Create Point"
+    },
+    {
+     "key": "createpointsatstationoffsets",
+     "help": "27540",
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Create at Station Offset"
+    },
+    {
+     "key": "GeometryPointIntegrateCmd",
+     "help": "27530",
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Integrate to Geometry"
+    },
+    {
+     "key": "ExplodePointCmd",
+     "help": "15932",
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Explode Points"
+    },
+    {
+     "key": "MergePoints",
+     "help": "1953",
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Merge Points"
+    },
+    {
+     "key": "CreateCOGO",
+     "help": "20413",
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Create COGO"
+    },
+    {
+     "key": "DescriptionWriter",
+     "help": "21113",
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Legal Description"
+    },
+    {
+     "key": "SingleProportioning",
+     "help": "21608",
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Single Proportioning"
+    },
+    {
+     "key": "DoubleProportioning",
+     "help": "21609",
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Double Proportioning"
+    }
+   ],
+   "group": "COGO"
+  }
+ ],
+ "tbc_version": "2026.10",
+ "tbc_build": "44.0.9666.28609"
+}

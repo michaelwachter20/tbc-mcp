@@ -1,0 +1,45 @@
+{
+ "key": "SendToRTX",
+ "caption": "Send to RTX-PP",
+ "last_seen": "2026-10-13T11:56:05",
+ "fields": [
+  {
+   "id": "tectonicPlateComboBox",
+   "label": "Tectonic plate",
+   "kind": "choice",
+   "options_sample": [
+    "Automatic Selection",
+    "Aegean",
+    "Altipano",
+    "Amurian",
+    "Anatolia",
+    "Antarctica",
+    "Arabia",
+    "Australia"
+   ],
+   "option_count": 57
+  },
+  {
+   "id": "coordinateSystemComboBox",
+   "label": "Coordinate system",
+   "kind": "choice",
+   "options_sample": [
+    "Automatic Selection",
+    "ITRF1988",
+    "ITRF1989",
+    "ITRF1990",
+    "ITRF1991",
+    "ITRF1992",
+    "ITRF1993",
+    "ITRF1994"
+   ],
+   "option_count": 34
+  }
+ ],
+ "buttons": [
+  "Cancel",
+  "Send"
+ ],
+ "notes": [],
+ "tbc_version": "2026.10"
+}

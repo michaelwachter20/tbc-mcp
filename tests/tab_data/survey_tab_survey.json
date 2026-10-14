@@ -1,0 +1,1049 @@
+{
+ "tab": "Survey",
+ "start": [
+  true,
+  7364,
+  7259
+ ],
+ "end": [
+  true,
+  7364,
+  7259
+ ],
+ "results": [
+  {
+   "group": "Field Data",
+   "caption": "Process Feature Codes",
+   "key": "ProcessFeatureCodes",
+   "type": "PopupGalleryTool",
+   "help_topic": "5001",
+   "help_title": "Process Feature Codes",
+   "help_summary": "You must process the feature codes in your project to display feature data correctly in the software and to export the data to CAD systems and geographic information system (GIS). To process the feature codes, you will use the feature definitions contained in your project's Feature Definition Library (see Import Feature Definition (.fxl) Files). Typically, these definitions are imported from the s",
+   "outcome": "panel",
+   "panel": "Process Feature Codes",
+   "fields": [
+    "Close command after processing [bool]",
+    "Allow editing of processed feature codes [bool]"
+   ],
+   "buttons": [
+    "Close"
+   ],
+   "panes": [
+    "Process Feature Codes"
+   ],
+   "modified_after": true
+  },
+  {
+   "group": "Field Data",
+   "caption": "Feature",
+   "key": "NewFeatureSpreadsheetCmd",
+   "type": "ButtonTool",
+   "help_topic": "11097",
+   "help_title": "Feature Spreadsheet",
+   "help_summary": "The Feature Spreadsheet allows you to view properties for all of the processed features contained in your project, and make changes to attribute values as necessary.",
+   "outcome": "opens a view window",
+   "windows": [
+    "Feature Spreadsheet"
+   ],
+   "modified_after": true
+  },
+  {
+   "group": "Field Data",
+   "caption": "New Feature Library",
+   "key": "NewFeatureLibrary",
+   "type": "ButtonTool",
+   "help_topic": "23518",
+   "help_title": "Create a Feature Library",
+   "help_summary": "As an alternative to importing a Feature Definition (.fxl) file into your project to populate (define) the project's Feature Library for feature code processing, you can use the Create Feature Library command to create a new Feature Library from \"scratch.\" After you complete populating the Feature Library, you can, if necessary, export its contents to an FXL file that can be shared with field crew",
+   "outcome": "panel",
+   "panel": "New Feature Library",
+   "fields": [
+    "Library name [text]"
+   ],
+   "buttons": [
+    "Cancel",
+    "OK"
+   ],
+   "panes": [
+    "New Feature Library"
+   ],
+   "modified_after": true
+  },
+  {
+   "group": "Field Data",
+   "caption": "Convert CSV to FXL",
+   "key": "ConvertCSVtoFXL",
+   "type": "ButtonTool",
+   "help_topic": "23809",
+   "help_title": "Import (Convert) Feature Definitions from a Custom CSV (.csv) File",
+   "help_summary": "Import (Convert) Feature Definitions from a Custom CSV (.csv) File",
+   "outcome": "dialog",
+   "dialogs": [
+    {
+     "title": "Feature Library Missing",
+     "message": "Your project must include a Feature Library. Please import an existing FXL file or create a new Feature Library.",
+     "fields": [],
+     "buttons": [
+      "OK",
+      "New Feature Library"
+     ],
+     "native": false
+    }
+   ],
+   "dismissed": [
+    {
+     "dialog": "Feature Library Missing",
+     "action": "closed with X",
+     "license": false
+    }
+   ],
+   "modified_after": true
+  },
+  {
+   "group": "Field Data",
+   "caption": "Write FXL to CSV",
+   "key": "WriteFXLtoCSV",
+   "type": "ButtonTool",
+   "help_topic": "23810",
+   "help_title": "Export (Write) Feature Definitions to a Custom CSV (.csv) File",
+   "help_summary": "Export (Write) Feature Definitions to a Custom CSV (.csv) File",
+   "outcome": "disabled on ribbon in this project"
+  },
+  {
+   "group": "Field Data",
+   "caption": "Merge Survey Projects",
+   "key": "MergeSurveyProjects",
+   "type": "ButtonTool",
+   "help_topic": "19997",
+   "help_title": "Merge Survey Projects",
+   "help_summary": "Use the Merge Survey Projects command to merge (import) edited survey data from one or more VCE (.vce) projects into a single \"master\" VCE project.",
+   "outcome": "panel",
+   "panel": "Merge Survey Projects",
+   "fields": [],
+   "buttons": [
+    "Cancel",
+    "OK"
+   ],
+   "panes": [
+    "Merge Survey Projects"
+   ],
+   "modified_after": true
+  },
+  {
+   "group": "Field Data",
+   "caption": "Reorder By Selection",
+   "key": "ANZ_ReorderBySelectionOrder",
+   "type": "PopupGalleryTool",
+   "help_topic": "29999",
+   "help_title": "Reorder by Selection Order",
+   "help_summary": "The Reorder by Selection Order command enables you to reorder the point IDs by tracing a line over the points. It re-orders the point numbers so they increase in the same order in which they were selected.",
+   "outcome": "not licensed (needs one of ['ANZToolbox', 'SurveyAdvancedJapan'])"
+  },
+  {
+   "group": "Field Data",
+   "caption": "Reorder By Proximity",
+   "key": "ANZ_ReorderByProximity",
+   "type": "ButtonTool",
+   "help_topic": "29998",
+   "help_title": "Reorder by Proximity",
+   "help_summary": "The Reorder by Proximity command enables you to reorder point IDs based on the shortest distance to the next point. After selecting the first point in the string, the command reorders the point numbers based on the next nearest point. This can be filtered by search masks on the feature code or point IDs.",
+   "outcome": "not licensed (needs one of ['ANZToolbox', 'SurveyAdvancedJapan'])"
+  },
+  {
+   "group": "GNSS",
+   "caption": "Internet Download",
+   "key": "InternetDownload",
+   "type": "ButtonTool",
+   "help_topic": "1098",
+   "help_title": "Download and Import Internet Data",
+   "help_summary": "After you have imported raw data and processed the baselines, download and import additional data from various Internet resources. To find data relevant to your project, the Internet Download command:",
+   "outcome": "panel",
+   "panel": "Internet Download",
+   "fields": [],
+   "buttons": [
+    "Manual",
+    "Automatic",
+    "Close"
+   ],
+   "panes": [
+    "Internet Download"
+   ],
+   "modified_after": true
+  },
+  {
+   "group": "GNSS",
+   "caption": "Processing Services",
+   "key": "ExternalProcessingServices",
+   "type": "ButtonTool",
+   "help_topic": "13283",
+   "help_title": "Use External Processing Services",
+   "help_summary": "Use the External Processing Services command to process data files using an external (third-party) processing service (for example, OPUS, CRSR, or AUSPOS). Also, convert a Trimble Access or Trimble Survey Controller file to a newer version.",
+   "outcome": "excluded (acts immediately or not safe to open; see help)"
+  },
+  {
+   "group": "GNSS",
+   "caption": "Send to RTX-PP",
+   "key": "SendToRTX",
+   "type": "ButtonTool",
+   "help_topic": "12388",
+   "help_title": "Compute Positions Using RTX Post-Processing",
+   "help_summary": "Compute Positions Using RTX Post-Processing",
+   "outcome": "panel",
+   "panel": "Send to RTX-PP",
+   "fields": [
+    "Tectonic plate [choice]",
+    "Coordinate system [choice]"
+   ],
+   "buttons": [
+    "Cancel",
+    "Send"
+   ],
+   "panes": [
+    "Send to RTX-PP"
+   ],
+   "modified_after": true
+  },
+  {
+   "group": "GNSS",
+   "caption": "Process Baselines",
+   "key": "GNSSProcessBaselines",
+   "type": "ButtonTool",
+   "help_topic": "385",
+   "help_title": "Process Baselines",
+   "help_summary": "Process baselines to determine and promote the highest quality coordinates for each point in your project. Vectors are created from baselines using these points. You can process all of your project's baselines at once or select a subset to process.",
+   "outcome": "disabled on ribbon in this project"
+  },
+  {
+   "group": "GNSS",
+   "caption": "Clear Processing",
+   "key": "ClearProcessingResults",
+   "type": "ButtonTool",
+   "help_topic": "385",
+   "help_title": "Process Baselines",
+   "help_summary": "Process baselines to determine and promote the highest quality coordinates for each point in your project. Vectors are created from baselines using these points. You can process all of your project's baselines at once or select a subset to process.",
+   "outcome": "disabled on ribbon in this project"
+  },
+  {
+   "group": "GNSS",
+   "caption": "Time-Based View",
+   "key": "TimeBasedView",
+   "type": "ButtonTool",
+   "help_topic": "1087",
+   "help_title": "Time-Based View",
+   "help_summary": "The Time-Based View displays your GNSS data in a chronological format that makes it easy to visualize how session and occupation times relate to each other, helping you check for valid sessions.",
+   "outcome": "opens a view window",
+   "windows": [
+    "Time-Based View"
+   ],
+   "modified_after": true
+  },
+  {
+   "group": "GNSS",
+   "caption": "Session Editor",
+   "key": "SessionEditor",
+   "type": "ButtonTool",
+   "help_topic": "1605",
+   "help_title": "Edit Sessions",
+   "help_summary": "Visually analyze the quality of the raw satellite data in your sessions, and use the Session Editor to:",
+   "outcome": "disabled on ribbon in this project"
+  },
+  {
+   "group": "GNSS",
+   "caption": "Loop Closure",
+   "key": "LoopClosure",
+   "type": "ButtonTool",
+   "help_topic": "381",
+   "help_title": "Run a GNSS Loop Closure Results Report",
+   "help_summary": "After all the baselines in your project have been processed and saved, run GNSS Loop Closure to generate a GNSS Loop Closure Results report to identify any bad vectors. To ensure that the loop closure results are useful, structure your network so that the baselines create small closed figures. If all the baselines in a loop are from the same session, station setup errors that are common to all the",
+   "outcome": "excluded (acts immediately or not safe to open; see help)"
+  },
+  {
+   "group": "GNSS",
+   "caption": "Occupation",
+   "key": "OccupationView",
+   "type": "ButtonTool",
+   "help_topic": "3961",
+   "help_title": "Occupation Spreadsheet",
+   "help_summary": "The Occupation Spreadsheet view lists the GNSS occupations in the current project, enabling you to easily edit the data. The Plan View and the Properties pane reflect all changes made to data in the spreadsheet view.",
+   "outcome": "opens a view window",
+   "windows": [
+    "Occupation Spreadsheet"
+   ],
+   "modified_after": true
+  },
+  {
+   "group": "GNSS",
+   "caption": "Vector ",
+   "key": "VectorView",
+   "type": "ButtonTool",
+   "help_topic": "256",
+   "help_title": "Vector Spreadsheet",
+   "help_summary": "The Vector Spreadsheet lists the vectors in the current project. The data can be sorted by clicking at the top of any column. The Plan View and the Properties pane reflect all changes made to data in the spreadsheet view. For details on columns in the vector spreadsheet, see View Settings.",
+   "outcome": "opens a view window",
+   "windows": [
+    "Vector Spreadsheet"
+   ],
+   "modified_after": true
+  },
+  {
+   "group": "Optical",
+   "caption": "Adjust Traverse",
+   "key": "AdjustTraverse",
+   "type": "ButtonTool",
+   "help_topic": "1927",
+   "help_title": "Create, Edit, and Adjust a Traverse",
+   "help_summary": "A surveyed traverse may or may not have been adjusted in the field. If it was not adjusted in the field, you can use the Adjust Traverse command to select the stations for the traverse, specify adjustment properties, and compute the adjustment. If it was adjusted in the field, you can use the Adjust Traverse command to, as necessary, make edits to the traverse stations list, edit adjustment proper",
+   "outcome": "panel",
+   "panel": "Adjust Traverse",
+   "fields": [
+    "Traverse name [text]",
+    "stationComboBox [choice]",
+    "Status [choice]",
+    "Mode [choice]",
+    "Adjust horizontal [choice]",
+    "Adjust vertical [choice]",
+    "Adjust angles [choice]",
+    "All available backsights [radio]",
+    "Azimuth [text]",
+    "lastForesightComboBox [choice]",
+    "Single foresight [radio]",
+    "All available backsights [radio]",
+    "firstBacksightComboBox [choice]",
+    "Azimuth [text]",
+    "Single backsight [radio]"
+   ],
+   "buttons": [
+    "Cancel",
+    "Clear",
+    "Close",
+    "Apply"
+   ],
+   "panes": [
+    "Adjust Traverse"
+   ],
+   "modified_after": true
+  },
+  {
+   "group": "Optical",
+   "caption": "Total Station Editor",
+   "key": "TotalStationEditor",
+   "type": "ButtonTool",
+   "help_topic": "17790",
+   "help_title": "Import Keyed-In Total Station Data",
+   "help_summary": "This topic explains how to use the Total Station Editor to do the following:",
+   "outcome": "dialog",
+   "dialogs": [
+    {
+     "title": "Select Total Station Files",
+     "message": "",
+     "fields": [],
+     "buttons": [
+      "OK",
+      "Cancel"
+     ],
+     "native": false
+    }
+   ],
+   "dismissed": [
+    {
+     "dialog": "Select Total Station Files",
+     "action": "pressed Cancel",
+     "license": false
+    }
+   ],
+   "modified_after": true
+  },
+  {
+   "group": "Optical",
+   "caption": "Mean Angle Residuals",
+   "key": "MTAResiduals",
+   "type": "ButtonTool",
+   "help_topic": "5852",
+   "help_title": "View and Edit Mean Angle Residuals",
+   "help_summary": "A mean angle represents the combining and averaging of redundant observations to the same point. You can view residuals for each observation used to calculate a mean angle using the Mean Angle Residuals dialog. If a residual for an observation exceeds tolerances specified in the Computations > Mean Angles tab in Project Settings, the observation includes a red flag. The observation is deemed an \"o",
+   "outcome": "disabled on ribbon in this project"
+  },
+  {
+   "group": "Optical",
+   "caption": "Disable Redundant BS",
+   "key": "DisableRedundantBacksights",
+   "type": "ButtonTool",
+   "help_topic": "25991",
+   "help_title": "Disable Redundant Backsight Observations Imported from Trimble Access",
+   "help_summary": "Disable Redundant Backsight Observations Imported from Trimble Access",
+   "outcome": "excluded (acts immediately or not safe to open; see help)"
+  },
+  {
+   "group": "Optical",
+   "caption": "Optical",
+   "key": "OpticalView",
+   "type": "ButtonTool",
+   "help_topic": "8273",
+   "help_title": "Optical Spreadsheet",
+   "help_summary": "The Optical Spreadsheet lists the total station and laser rangefinder observations in the project, along with computed values and station and target information. The data can be sorted by clicking at the top of any column. The Plan View and the Properties pane reflect all changes made to data in the spreadsheet view.",
+   "outcome": "opens a view window",
+   "windows": [
+    "Optical Spreadsheet"
+   ],
+   "modified_after": true
+  },
+  {
+   "group": "Optical",
+   "caption": "Level Editor",
+   "key": "LevelEditor",
+   "type": "ButtonTool",
+   "help_topic": "5589",
+   "help_title": "View and Edit Level Data",
+   "help_summary": "The Level Editor dialog is displayed automatically immediately after you import level data into your proejct. You can also display it any time after import by right-clicking the level data file in the Project Explorer pane and selecting Level Editor from the context menu. The Level Editor dialog enables you to do the following:",
+   "outcome": "dialog",
+   "dialogs": [
+    {
+     "title": "Level Editor - ",
+     "message": "- Creates control coordinates - Creates ∆ elevations",
+     "fields": [
+      "Ignored [radio]",
+      "Create Feature Codes [radio]",
+      "Create Field Notes [radio]",
+      "Distance [bool]",
+      "Height of Instrument [bool]",
+      "Description [bool]",
+      "Raw Elevation [bool]",
+      "Side Shot [bool]",
+      "∆ Elevation [bool]",
+      "Prevent further adjustment [radio]",
+      "Allow network adjustment [radio]"
+     ],
+     "buttons": [
+      "Cancel",
+      "OK",
+      "Reset",
+      "Show Bad Runs",
+      "Add Run",
+      "Delete Run",
+      "Insert Station Setup",
+      "Delete Station Setup",
+      "Insert Side Shot",
+      "Delete Side Shot",
+      "Adjust Runs...",
+      "Merge Runs...",
+      "Split Run Selection",
+      "Split Run"
+     ],
+     "native": false
+    },
+    {
+     "title": "Create New Run",
+     "message": "",
+     "fields": [
+      "Select the style or pattern used to measure backsights and foresights. Each station setup will be pre-populated with the selected number of measurements in the selected order. [choice]",
+      "Enter the number of station setups in the new run. You can add or delete setups later. [number]"
+     ],
+     "buttons": [
+      "OK",
+      "Cancel"
+     ],
+     "native": false
+    }
+   ],
+   "dismissed": [
+    {
+     "dialog": "Level Editor - ",
+     "action": "pressed Cancel",
+     "license": false
+    },
+    {
+     "dialog": "Create New Run",
+     "action": "pressed Cancel",
+     "license": false
+    }
+   ],
+   "modified_after": true
+  },
+  {
+   "group": "Optical",
+   "caption": "Combine Level",
+   "key": "CombineLevelBags",
+   "type": "ButtonTool",
+   "help_topic": "22222",
+   "help_title": "Combine Level Files",
+   "help_summary": "Use the Combine Level Files command to combine the data contained in two or more level files included in your project into a single combined file that displays in its entirety in the Level Editor. This allows you to easily combine and adjust level runs previously contained in different files, even if the data was captured with a different field device or keyed in. This means, for example, if a fie",
+   "outcome": "no panel/dialog/window (acts directly or needs a selection)",
+   "modified_after": true
+  },
+  {
+   "group": "Network",
+   "caption": "Adjust Network",
+   "key": "AdjustProjectTerraNet",
+   "type": "PopupMenuTool",
+   "help_topic": "3338",
+   "help_title": "Network Adjustment Options",
+   "help_summary": "Use these options located in the command pane tool bar to fix control points, apply error estimate scalars, and adjust a network of vectors. They are available on the three tabs of the Adjust Network command pane.",
+   "outcome": "panel",
+   "panel": "Adjust Network",
+   "fields": [
+    "Subnetwork name [choice]"
+   ],
+   "buttons": [
+    "Adjust",
+    "Cancel",
+    "OK"
+   ],
+   "panes": [
+    "Adjust Network"
+   ],
+   "modified_after": true
+  },
+  {
+   "group": "Network",
+   "caption": "Clear Adjustment Results",
+   "key": "ClearAdjustmentResults",
+   "type": "ButtonTool",
+   "help_topic": "396",
+   "help_title": "Adjust a Network",
+   "help_summary": "Adjust your network or subnetworks (two or more networks in your project with unconnected observations) after you have processed the baselines and reviewed the GNSS Loop Closure Results report to ensure the quality of your project.",
+   "outcome": "disabled on ribbon in this project"
+  },
+  {
+   "group": "Network",
+   "caption": "Site Calibration",
+   "key": "SiteCalibrationCalculation",
+   "type": "PopupMenuTool",
+   "help_topic": "2826",
+   "help_title": "Calibrate a Site",
+   "help_summary": "You can calibrate a site to minimize residuals between global coordinate data collected in the field and local control coordinates. To perform a site calibration, you associate GNSS points with grid points at the same positions. These point pairs are used to compute and apply mathematic transformations (using least squares) to determine the transformation that provides adjustment parameters that b",
+   "outcome": "dialog",
+   "dialogs": [
+    {
+     "title": "Site Calibration",
+     "message": "GNSS base points [27, 64, 101, RTCM0405, 100, S_301, 205, 7070, 7007, 117007, 117001, 7080, 9004, 1007] are not derived from global GNSS positions; therefore, GNSS points measured from these base points are not available for the site calibration.\nIf the points are derived from local coordinates, one",
+     "fields": [],
+     "buttons": [
+      "Yes",
+      "No"
+     ],
+     "native": false
+    }
+   ],
+   "dismissed": [
+    {
+     "dialog": "Site Calibration",
+     "action": "pressed No",
+     "license": false
+    }
+   ],
+   "modified_after": true
+  },
+  {
+   "group": "Network",
+   "caption": "Clear Site Calibration",
+   "key": "RemoveSiteCalibrationCalculation",
+   "type": "ButtonTool",
+   "help_topic": "2826",
+   "help_title": "Calibrate a Site",
+   "help_summary": "You can calibrate a site to minimize residuals between global coordinate data collected in the field and local control coordinates. To perform a site calibration, you associate GNSS points with grid points at the same positions. These point pairs are used to compute and apply mathematic transformations (using least squares) to determine the transformation that provides adjustment parameters that b",
+   "outcome": "disabled on ribbon in this project"
+  },
+  {
+   "group": "Network",
+   "caption": "Local Site Settings",
+   "key": "LocalSiteSettings",
+   "type": "ButtonTool",
+   "help_topic": "304",
+   "help_title": "Specify Local Site Settings",
+   "help_summary": "Enter local site settings to create a ground coordinate system to accommodate elevation differences between your site and the ellipsoid. The scale factor can be calculated for you. Use the options to project grid coordinates onto locally surveyed ground coordinates so that grid distance matches ground distance.",
+   "outcome": "panel",
+   "panel": "Local Site Settings",
+   "fields": [
+    "Coordinate type [choice]",
+    "Elevation [text]",
+    "Easting [text]",
+    "Northing [text]",
+    "m_cbGroundOrigin [choice]",
+    "chkUseGroundCoordinates [ultra]",
+    "Ground scale factor [text]",
+    "Ground scale factor [ultra]",
+    "False easting offset [text]",
+    "False northing offset [text]"
+   ],
+   "buttons": [
+    "Cancel",
+    "OK"
+   ],
+   "panes": [
+    "Local Site Settings"
+   ],
+   "modified_after": true
+  },
+  {
+   "group": "Network",
+   "caption": "Geoid Sub-Gridding",
+   "key": "GeoidSubGrid",
+   "type": "ButtonTool",
+   "help_topic": "3240",
+   "help_title": "Define a Geoid Sub-Grid",
+   "help_summary": "If the geoid file you want to use for data collection is too large, define a subsection of the area (sub-grid) to use before uploading to a field device. This saves upload time and field device memory.",
+   "outcome": "panel",
+   "panel": "Geoid Sub-Gridding",
+   "fields": [],
+   "buttons": [
+    "Create Sub-Grid",
+    "Close",
+    "Upload"
+   ],
+   "panes": [
+    "Geoid Sub-Gridding"
+   ],
+   "modified_after": true
+  },
+  {
+   "group": "Network",
+   "caption": "Datum Gridding",
+   "key": "DatumGrid",
+   "type": "ButtonTool",
+   "help_topic": "383",
+   "help_title": "Create a Datum Grid File",
+   "help_summary": "If you have chosen a coordinate system for your project that uses a datum, and the datum has not been defined yet, you must create it before uploading to a field device.",
+   "outcome": "panel",
+   "panel": "Datum Gridding",
+   "fields": [],
+   "buttons": [
+    "Create ...",
+    "Close",
+    "Upload"
+   ],
+   "panes": [
+    "Datum Gridding"
+   ],
+   "modified_after": true
+  },
+  {
+   "group": "COGO",
+   "caption": "Transform Survey Points",
+   "key": "TransformSurveyPoints",
+   "type": "ButtonTool",
+   "help_topic": "16010",
+   "help_title": "Transform Survey Points",
+   "help_summary": "Transform survey points by moving, rotating, and/or scaling them using either of the following methods:",
+   "outcome": "panel",
+   "panel": "Transform Survey Points",
+   "fields": [
+    "H. Residual [text]",
+    "V. Residual [text]",
+    "enableCheckBox [bool]",
+    "fromPoint [text]",
+    "toPoint [text]",
+    "Fix vertical scale at 1.00 [bool]",
+    "Objects to transform [text]",
+    "X Rotation [bool]",
+    "Objects to transform [text]",
+    "Y Rotation [bool]",
+    "First \"From point\" [radio]",
+    "Centroid [radio]",
+    "Delta Northing [bool]",
+    "Objects to transform [text]",
+    "Delta Easting [bool]",
+    "Objects to transform [text]",
+    "Objects to transform [text]",
+    "Objects to transform [text]",
+    "Delta elevation [bool]",
+    "Objects to transform [text]",
+    "Z Rotation (delta azimuth) [bool]",
+    "Horizontal scale [bool]",
+    "Objects to transform [text]",
+    "Least squares [radio]",
+    "Helmert [radio]"
+   ],
+   "buttons": [
+    "Close",
+    "Apply"
+   ],
+   "panes": [
+    "Transform Survey Points"
+   ],
+   "modified_after": true
+  },
+  {
+   "group": "COGO",
+   "caption": "Move Survey Point",
+   "key": "MoveSurveyPoint",
+   "type": "ButtonTool",
+   "help_topic": "20403",
+   "help_title": "Move Survey Points",
+   "help_summary": "Use the Move Survey Points command to graphically add an office-entered coordinate to move a survey point to a new location. This will keep your original survey observations intact and provide traceability of your survey while allowing you to change grid position of the surveyed point. Your feature coding and linework will be updated accordingly.",
+   "outcome": "panel",
+   "panel": "Move Survey Point",
+   "fields": [
+    "Result [text]",
+    "Point ID [entity]",
+    "Elevation [text]",
+    "To [text]"
+   ],
+   "buttons": [
+    "Cancel",
+    "OK"
+   ],
+   "panes": [
+    "Move Survey Point"
+   ],
+   "modified_after": true
+  },
+  {
+   "group": "COGO",
+   "caption": "Rename Points",
+   "key": "RenamePoints",
+   "type": "ButtonTool",
+   "help_topic": "365",
+   "help_title": "Rename Points",
+   "help_summary": "Rename points to ensure all the points in your project are unique. For example, if two rovers are set to automatic point numbering and contain identical points, use the Rename Points command to renumber one set of points. Points to be renamed can be selected before the command starts or within the command.",
+   "outcome": "panel",
+   "panel": "Rename Points",
+   "fields": [
+    "chkReport [ultra]",
+    "parameterBox [text]",
+    "Rename from [radio]",
+    "Add prefix [radio]",
+    "Add suffix [radio]",
+    "Add constant [radio]",
+    "SelectedEntities [text]"
+   ],
+   "buttons": [
+    "Unselect All",
+    "Close",
+    "OK"
+   ],
+   "panes": [
+    "Rename Points"
+   ],
+   "modified_after": true
+  },
+  {
+   "group": "COGO",
+   "caption": "Average Points",
+   "key": "CreateAveragePointCmd",
+   "type": "ButtonTool",
+   "help_topic": "15505",
+   "help_title": "Create and Edit an Averaged Point",
+   "help_summary": "Create a point in your project whose position is computed by the simple averaging of the 1D, 2D, and 3D coordinates of existing reference points. If the position of one or more of the reference points subsequently changes (for example, due to a network adjustment), the position of the averaged point is automatically recomputed based on the new positions of the reference points.",
+   "outcome": "panel",
+   "panel": "Average Points",
+   "fields": [
+    "Prompt for feature attributes [bool]",
+    "Feature code [text]",
+    "Layer [choice]",
+    "Point ID [entity]",
+    "SelectedEntities [text]"
+   ],
+   "buttons": [
+    "Remove",
+    "Add",
+    "Close",
+    "Compute"
+   ],
+   "panes": [
+    "Average Points"
+   ],
+   "modified_after": true
+  },
+  {
+   "group": "COGO",
+   "caption": "Create Point",
+   "key": "AddPoint",
+   "type": "PopupGalleryTool",
+   "help_topic": "364",
+   "help_title": "Create and Edit Points",
+   "help_summary": "You can create a point in your project when, for example, you need to include a point for control or stakeout that was not observed in the field or otherwise recorded and imported in a points file. When you create a point (see \"Create a Point\" below), in addition to the new point object, a coordinate object named Office entered is created and is represented by a node that displays nested beneath t",
+   "outcome": "panel",
+   "panel": "Create Point",
+   "fields": [
+    "Measure Codes mode [bool]",
+    "Layer [choice]",
+    "Feature code [text]",
+    "Point ID [text]",
+    "Status [choice]",
+    "Height [text]",
+    "Northing [text]",
+    "Easting [text]",
+    "Elevation [text]",
+    "Coordinate type [choice]"
+   ],
+   "buttons": [
+    "Close",
+    "Add"
+   ],
+   "panes": [
+    "Create Point"
+   ],
+   "modified_after": true
+  },
+  {
+   "group": "COGO",
+   "caption": "Create at Station Offset",
+   "key": "createpointsatstationoffsets",
+   "type": "ButtonTool",
+   "help_topic": "27540",
+   "help_title": "Create Points at Station Offsets",
+   "help_summary": "The Create Points at Station Offsets command enables you to quickly and easily create multiple points along a user-defined baseline by first specifying the station and offset for each point you want to create and then running the command to create them all at once automatically. You specify the point ID and feature code for each of the points, which are organized into collections in the Project Ex",
+   "outcome": "panel",
+   "panel": "Create at Station Offset",
+   "fields": [
+    "Name [text]",
+    "Start point [text]",
+    "Station (X) start point [text]",
+    "Offset (Y) start point [text]",
+    "End point [text]",
+    "Distance SE [text]",
+    "Station (X) end point [text]",
+    "Offset (Y) end point [text]",
+    "Difference (input - calculated) [text]",
+    "Error adjustment [choice]",
+    "Delete [text]",
+    "ClientAreaTextBox#10 [text]",
+    "text [text]"
+   ],
+   "buttons": [
+    "OK",
+    "Cancel"
+   ],
+   "panes": [
+    "Create at Station Offset"
+   ],
+   "modified_after": true
+  },
+  {
+   "group": "COGO",
+   "caption": "Integrate to Geometry",
+   "key": "GeometryPointIntegrateCmd",
+   "type": "ButtonTool",
+   "help_topic": "27530",
+   "help_title": "Integrate Points into Geometry",
+   "help_summary": "Use the Integrate Points into Geometry command to automatically convert vertex coordinates for linestring-based polygonal objects and COGO parcels into points.",
+   "outcome": "panel",
+   "panel": "Integrate to Geometry",
+   "fields": [
+    "Select points and geometry [text]",
+    "Starting point ID [text]"
+   ],
+   "buttons": [
+    "Close",
+    "Options",
+    "Process",
+    "Clear"
+   ],
+   "panes": [
+    "Integrate to Geometry"
+   ],
+   "modified_after": true
+  },
+  {
+   "group": "COGO",
+   "caption": "Explode Points",
+   "key": "ExplodePointCmd",
+   "type": "ButtonTool",
+   "help_topic": "15932",
+   "help_title": "Explode Merged Points",
+   "help_summary": "If your project includes a point that is the result of merging multiple points in the field (by making multiple side-shot observations to the same point ID) or in Trimble Business Center (by using the Merge Points command or by renaming points), you can explode the merged point to re-create the component points used in the merge. This can be helpful if, for example, you want to identify and elimin",
+   "outcome": "panel",
+   "panel": "Explode Points",
+   "fields": [
+    "suffixTextBox [text]",
+    "Automatically center the Plan View [bool]",
+    "Create an averaged point [bool]",
+    "Add suffix to component point names [bool]",
+    "SelectedEntities [text]"
+   ],
+   "buttons": [
+    "Remove",
+    "Find Explodable Points",
+    "Close",
+    "Explode"
+   ],
+   "panes": [
+    "Explode Points"
+   ],
+   "modified_after": true
+  },
+  {
+   "group": "COGO",
+   "caption": "Merge Points",
+   "key": "MergePoints",
+   "type": "ButtonTool",
+   "help_topic": "1953",
+   "help_title": "Merge Points",
+   "help_summary": "If necessary, you can merge two or more points into a single point. This might be useful if, for example, you have duplicate points in your project. When you select points to merge, you can specify which of the selected points is kept in the project as the final \"merged\" point. Any feature codes assigned to the points used in a merge operation are assigned to the final point.",
+   "outcome": "panel",
+   "panel": "Merge Points",
+   "fields": [
+    "SelectedEntities [text]",
+    "Identical [radio]",
+    "Ignored [radio]",
+    "MinimumDistance [text]",
+    "chkSelectPointsWithin [ultra]",
+    "ultra [ultra]"
+   ],
+   "buttons": [
+    "Apply",
+    "Close",
+    "OK"
+   ],
+   "panes": [
+    "Merge Points"
+   ],
+   "modified_after": true
+  },
+  {
+   "group": "COGO",
+   "caption": "Create COGO",
+   "key": "CreateCOGO",
+   "type": "ButtonTool",
+   "help_topic": "20413",
+   "help_title": "Create COGO Collections and Compute Parcels",
+   "help_summary": "Create COGO Collections and Compute Parcels",
+   "outcome": "panel",
+   "panel": "Create COGO",
+   "fields": [
+    "Automatically create lines [bool]",
+    "Z rotation [text]",
+    "Azimuths point to the south [bool]",
+    "Numeric keypad mode (*code; \"+\" = \",\") [bool]",
+    "Delta angle [radio]",
+    "Chord length [radio]",
+    "Arc Length [radio]",
+    "Positions have elevations (3D) [bool]",
+    "Points layer [choice]",
+    "Starting point [text]",
+    "Automatically create points at vertices [bool]",
+    "Ground [radio]",
+    "Grid [radio]",
+    "Scale factor [text]",
+    "COGO layer [choice]",
+    "Collection name [text]"
+   ],
+   "buttons": [
+    "Calculate",
+    "Create",
+    "Close",
+    "OK"
+   ],
+   "panes": [
+    "Create COGO"
+   ],
+   "modified_after": true
+  },
+  {
+   "group": "COGO",
+   "caption": "Legal Description",
+   "key": "DescriptionWriter",
+   "type": "ButtonTool",
+   "help_topic": "21113",
+   "help_title": "Create Legal Descriptions",
+   "help_summary": "Use the Legal Description Writer command to automatically generate a collection of textual legal descriptions for cadastral survey projects that include parcels (created with the Create COGO command) and/or polygons, or closed linework (see following note). The command is capable of describing complex geometry for multiple parcels and polygons using multiple starting points and paths. A fully cust",
+   "outcome": "panel",
+   "panel": "Legal Description Writer",
+   "fields": [
+    "Use only node-to-node misclosures (preferred) [bool]",
+    "Template file [choice]",
+    "Select starting points [entity]",
+    "Select path segments [entity]",
+    "Select parcels [entity]",
+    "RTF file with page breaks [radio]",
+    "Current gap tolerance = 0.000 ft [text]",
+    "RTF file [radio]",
+    "TXT file [radio]",
+    "Counterclockwise [radio]",
+    "Clockwise [radio]"
+   ],
+   "buttons": [
+    "Show Calculated Path",
+    "Edit / Preview",
+    "...",
+    "Close",
+    "Apply",
+    "..."
+   ],
+   "panes": [
+    "Legal Description Writer"
+   ],
+   "modified_after": true
+  },
+  {
+   "group": "COGO",
+   "caption": "Single Proportioning",
+   "key": "SingleProportioning",
+   "type": "ButtonTool",
+   "help_topic": "21608",
+   "help_title": "Create Points Using Single Proportioning",
+   "help_summary": "The Single Proportioning command enables you to create one or more points that are equally proportioned along a line between two known points. Following are a couple of examples of how the command might be used.",
+   "outcome": "panel",
+   "panel": "Single Proportioning",
+   "fields": [
+    "Create report [bool]",
+    "Create points at start/end positions [bool]",
+    "Select segments (optional) [entity]",
+    "Select starting position [text]",
+    "Select ending position [text]",
+    "Create lines [bool]",
+    "Layer [choice]",
+    "Starting point ID [text]",
+    "Feature code [text]",
+    "Geodetic (global) [radio]",
+    "Planar (grid) [radio]",
+    "Ground [radio]",
+    "Grid [radio]",
+    "Scale factor [text]",
+    "distanceEdit [text]",
+    "Fixed [bool]"
+   ],
+   "buttons": [
+    "Reverse Direction",
+    "Calculate",
+    "Close",
+    "Apply"
+   ],
+   "panes": [
+    "Single Proportioning"
+   ],
+   "modified_after": true
+  },
+  {
+   "group": "COGO",
+   "caption": "Double Proportioning",
+   "key": "DoubleProportioning",
+   "type": "ButtonTool",
+   "help_topic": "21609",
+   "help_title": "Create Points Using Double Proportioning",
+   "help_summary": "The Double Proportioning command enables you to determine the location of a missing position marker based on record distances (grid or ground) and bearings from four known positions located at cardinal points around the missing marker. After calculating the position of the missing marker, a point is created at the position for which you can specify the point ID, layer, and feature code. In additio",
+   "outcome": "panel",
+   "panel": "Double Proportioning",
+   "fields": [
+    "Planar [radio]",
+    "Geodetic [radio]",
+    "- OR - Select segment #1 [entity]",
+    "Azimuth #1 [text]",
+    "Distance #1 [text]",
+    "Northern known position [text]",
+    "Create report [bool]",
+    "Create points at known positions [bool]",
+    "Create lines [bool]",
+    "Layer [choice]",
+    "Starting point ID [text]",
+    "Feature code [text]",
+    "West [radio]",
+    "North [radio]",
+    "East [radio]",
+    "South [radio]",
+    "Ground [radio]",
+    "Grid [radio]"
+   ],
+   "buttons": [
+    "Close",
+    "Apply"
+   ],
+   "panes": [
+    "Double Proportioning"
+   ],
+   "modified_after": true
+  }
+ ],
+ "tbc_version": "2026.10",
+ "tbc_build": "44.0.9666.28609"
+}

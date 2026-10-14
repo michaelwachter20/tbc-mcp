@@ -1,0 +1,51 @@
+{
+ "key": "CreateLeaderLines",
+ "caption": "Leader Lines",
+ "last_seen": "2026-10-14T09:02:51",
+ "fields": [
+  {
+   "id": "cboLeaderPosition",
+   "label": "Leader position",
+   "kind": "choice",
+   "options_sample": [
+    "Top",
+    "Middle",
+    "Bottom"
+   ],
+   "option_count": 3
+  },
+  {
+   "id": "chkAdjustHorizontally",
+   "label": "Display label horizontally",
+   "kind": "bool"
+  },
+  {
+   "id": "cboLeaderType",
+   "label": "Leader type",
+   "kind": "choice",
+   "options_sample": [
+    "Line with no arrow",
+    "Line with arrow",
+    "Spline with no arrow",
+    "Spline with arrow"
+   ],
+   "option_count": 4
+  },
+  {
+   "id": "selTarget",
+   "label": "Target label",
+   "kind": "entity"
+  },
+  {
+   "id": "cdeInsertionPoint",
+   "label": "Label insertion point",
+   "kind": "text"
+  }
+ ],
+ "buttons": [
+  "Close",
+  "Apply"
+ ],
+ "notes": [],
+ "tbc_version": "2026.10"
+}

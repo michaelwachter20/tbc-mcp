@@ -1,0 +1,418 @@
+{
+ "tab": "Drafting",
+ "groups": [
+  {
+   "tools": [
+    {
+     "key": "CreateText",
+     "help": "9979",
+     "children": [
+      {
+       "key": "EditText",
+       "help": "9979",
+       "type": "ButtonTool",
+       "enabled": true,
+       "caption": "Edit Text"
+      }
+     ],
+     "type": "PopupGalleryTool",
+     "enabled": true,
+     "caption": "Text"
+    },
+    {
+     "key": "textStyleManager",
+     "help": "6671",
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Text Style"
+    }
+   ],
+   "group": "Text"
+  },
+  {
+   "tools": [
+    {
+     "key": "ANZ_ConvertToMultilineText",
+     "help": "29734",
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Convert To MText"
+    },
+    {
+     "key": "ANZ_ExplodeText",
+     "help": "29826",
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Explode Text"
+    },
+    {
+     "key": "ANZ_FindReplaceText",
+     "help": "29835",
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Find and Replace"
+    }
+   ],
+   "group": "Modify Text"
+  },
+  {
+   "tools": [
+    {
+     "key": "CreateLinearDimension",
+     "help": "17849",
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Create Linear"
+    },
+    {
+     "key": "CreateAngularDimension",
+     "help": "17848",
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Create Angular"
+    },
+    {
+     "key": "DimensionStyleManager",
+     "help": "17851",
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Dimension Style"
+    }
+   ],
+   "group": "Dimensions"
+  },
+  {
+   "tools": [
+    {
+     "key": "LabelStyleManager",
+     "help": "18016",
+     "children": [
+      {
+       "key": "PlanarScaleFactor",
+       "help": "22062",
+       "type": "ButtonTool",
+       "enabled": true,
+       "caption": "Labeling Scale Factor"
+      }
+     ],
+     "type": "PopupGalleryTool",
+     "enabled": true,
+     "caption": "Label Style Manager"
+    },
+    {
+     "key": "LabelPoints",
+     "help": "18017",
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Points"
+    },
+    {
+     "key": "LabelLines",
+     "help": "18018",
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Lines"
+    },
+    {
+     "key": "LabelPolygons",
+     "help": "18019",
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Polygons"
+    },
+    {
+     "key": "CreateLeaderLines",
+     "help": "19947",
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Leader Lines"
+    }
+   ],
+   "group": "Labels"
+  },
+  {
+   "tools": [
+    {
+     "key": "CreatePointLabelTable",
+     "help": "18348",
+     "children": [
+      {
+       "key": "CreateLineLabelTable",
+       "help": "18349",
+       "type": "ButtonTool",
+       "enabled": true,
+       "caption": "Lines"
+      },
+      {
+       "key": "CreatePolygonLabelTable",
+       "help": "18350",
+       "type": "ButtonTool",
+       "enabled": true,
+       "caption": "Polygons"
+      },
+      {
+       "key": "LabelTableStyleManager",
+       "help": "18347",
+       "type": "ButtonTool",
+       "enabled": true,
+       "caption": "Label Table Style Manager"
+      }
+     ],
+     "type": "PopupGalleryTool",
+     "enabled": true,
+     "caption": "Points"
+    }
+   ],
+   "group": "Tables"
+  },
+  {
+   "tools": [
+    {
+     "key": "ANZ_InsertAlignmentTable",
+     "help": "29852",
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Alignment Table"
+    },
+    {
+     "key": "ANZ_InsertExcelTable",
+     "help": "29868",
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Excel Table"
+    },
+    {
+     "key": "ANZ_InsertLegendTable",
+     "help": "29869",
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Legend Table"
+    }
+   ],
+   "group": "Plan View Tables"
+  },
+  {
+   "tools": [
+    {
+     "key": "InsertBlock",
+     "help": "15469",
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Insert Block"
+    },
+    {
+     "key": "CreateBlock",
+     "help": "15468",
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Create Block"
+    },
+    {
+     "key": "ImportBlocks",
+     "help": "15467",
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Import Blocks"
+    },
+    {
+     "key": "PurgeBlocks",
+     "help": "15470",
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Purge Blocks"
+    }
+   ],
+   "group": "Blocks"
+  },
+  {
+   "tools": [
+    {
+     "key": "ANZ_CreateSlopeMarkers",
+     "help": "29790",
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Create Slope Markers"
+    },
+    {
+     "key": "createhatch",
+     "help": "17165",
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Create Hatch"
+    },
+    {
+     "key": "CreateQuickProfile",
+     "help": "25028",
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Quick Profile"
+    }
+   ],
+   "group": "Drafting Objects"
+  },
+  {
+   "tools": [
+    {
+     "key": "DraftingTemplates",
+     "help": "13912",
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Drafting Templates"
+    }
+   ],
+   "group": "Templates"
+  },
+  {
+   "tools": [
+    {
+     "key": "PrintPlanView",
+     "help": "",
+     "children": [
+      {
+       "key": "PrintBySelection",
+       "help": "280",
+       "type": "ButtonTool",
+       "enabled": true,
+       "caption": "Print By Selection"
+      }
+     ],
+     "type": "PopupGalleryTool",
+     "enabled": true,
+     "caption": "Print Plan View"
+    }
+   ],
+   "group": "Plan View"
+  },
+  {
+   "tools": [
+    {
+     "key": "CreateDynaView",
+     "help": "15978",
+     "children": [
+      {
+       "key": "CreateDynaViewBoundaryCollection",
+       "help": "17167",
+       "type": "ButtonTool",
+       "enabled": true,
+       "caption": "Create Dynaview Boundary Set"
+      }
+     ],
+     "type": "PopupGalleryTool",
+     "enabled": true,
+     "caption": "Create Dynaview"
+    },
+    {
+     "key": "CreateScaleBar",
+     "help": "19961",
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Create Scale Bar"
+    },
+    {
+     "key": "InsertImage",
+     "help": "18312",
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Insert Image"
+    },
+    {
+     "key": "CopyToSheet",
+     "help": "16401",
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Copy to Sheet"
+    },
+    {
+     "key": "GridStyleManager",
+     "help": "17166",
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Grid Style"
+    }
+   ],
+   "group": "Sheet Layout"
+  },
+  {
+   "tools": [
+    {
+     "key": "CreatePlanSet",
+     "help": "13905",
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Plan Set"
+    },
+    {
+     "key": "CreateSheetSet",
+     "help": "13906",
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Create Sheet Set"
+    },
+    {
+     "key": "CreateCustomSheet",
+     "help": "16292",
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Custom Sheet"
+    }
+   ],
+   "group": "Plan Set"
+  },
+  {
+   "tools": [
+    {
+     "key": "PrintPlanSet",
+     "help": "16339",
+     "children": [
+      {
+       "key": "Create3dPDF",
+       "help": "16056",
+       "type": "ButtonTool",
+       "enabled": true,
+       "caption": "Create 3D PDF"
+      }
+     ],
+     "type": "PopupGalleryTool",
+     "enabled": true,
+     "caption": "Print Plan Set"
+    }
+   ],
+   "group": "Print"
+  },
+  {
+   "tools": [
+    {
+     "key": "LineStyleManager",
+     "help": "3850",
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Line Style Manager"
+    },
+    {
+     "key": "LineTypeEditor",
+     "help": "13858",
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Line Type Editor"
+    },
+    {
+     "key": "SymbolManager",
+     "help": "1591",
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Symbol Manager"
+    },
+    {
+     "key": "SymbolEditor",
+     "help": "16304",
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Symbol Editor"
+    }
+   ],
+   "group": "Advanced"
+  }
+ ],
+ "tbc_version": "2026.10",
+ "tbc_build": "44.0.9666.28609"
+}

@@ -1,0 +1,19 @@
+{
+ "key": "ImageBoundaries",
+ "caption": "Add/Remove Image Boundaries",
+ "last_seen": "2026-10-13T11:24:24",
+ "fields": [
+  {
+   "id": "ClippingEntityPicker",
+   "label": "Clipping boundary",
+   "kind": "text"
+  }
+ ],
+ "buttons": [
+  "Close",
+  "Add",
+  "Remove"
+ ],
+ "notes": [],
+ "tbc_version": "2026.10"
+}

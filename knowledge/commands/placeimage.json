@@ -1,0 +1,64 @@
+{
+ "key": "PlaceImage",
+ "caption": "Place Image",
+ "last_seen": "2026-10-13T11:24:19",
+ "fields": [
+  {
+   "id": "m_cmbGeorefedImages",
+   "label": null,
+   "kind": "choice",
+   "options": "project data (not recorded)"
+  },
+  {
+   "id": "m_beditBearing",
+   "label": "Bearing",
+   "kind": "text"
+  },
+  {
+   "id": "m_coeBearingPickPointB",
+   "label": "To pixel",
+   "kind": "text"
+  },
+  {
+   "id": "m_coeBearingPickPointA",
+   "label": "From pixel",
+   "kind": "text"
+  },
+  {
+   "id": "m_neditDistance",
+   "label": "Distance",
+   "kind": "text"
+  },
+  {
+   "id": "m_coeDistancePickPointB",
+   "label": "To pixel",
+   "kind": "text"
+  },
+  {
+   "id": "m_coeDistancePickPointA",
+   "label": "From pixel",
+   "kind": "text"
+  },
+  {
+   "id": "m_radioKnownDistance",
+   "label": "Known distance",
+   "kind": "radio"
+  },
+  {
+   "id": "m_radio2Point",
+   "label": "Line with distance and bearing",
+   "kind": "radio"
+  },
+  {
+   "id": "m_radio4Point",
+   "label": "Scale bar and known bearing",
+   "kind": "radio"
+  }
+ ],
+ "buttons": [
+  "Close",
+  "Compute"
+ ],
+ "notes": [],
+ "tbc_version": "2026.10"
+}

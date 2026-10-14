@@ -1,0 +1,18 @@
+{
+ "key": "PurgeBlocks",
+ "caption": "Purge Blocks",
+ "last_seen": "2026-10-14T09:06:50",
+ "fields": [
+  {
+   "id": "textBox1",
+   "label": null,
+   "kind": "text"
+  }
+ ],
+ "buttons": [
+  "Close",
+  "Apply"
+ ],
+ "notes": [],
+ "tbc_version": "2026.10"
+}

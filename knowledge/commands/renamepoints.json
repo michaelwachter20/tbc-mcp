@@ -1,0 +1,49 @@
+{
+ "key": "RenamePoints",
+ "caption": "Rename Points",
+ "last_seen": "2026-10-13T12:05:11",
+ "fields": [
+  {
+   "id": "chkReport",
+   "label": null,
+   "kind": "ultra"
+  },
+  {
+   "id": "parameterBox",
+   "label": null,
+   "kind": "text"
+  },
+  {
+   "id": "rdoRenameFrom",
+   "label": "Rename from",
+   "kind": "radio"
+  },
+  {
+   "id": "rdoAddPrefix",
+   "label": "Add prefix",
+   "kind": "radio"
+  },
+  {
+   "id": "rdoAddSuffix",
+   "label": "Add suffix",
+   "kind": "radio"
+  },
+  {
+   "id": "rdoAddConstant",
+   "label": "Add constant",
+   "kind": "radio"
+  },
+  {
+   "id": "SelectedEntities",
+   "label": null,
+   "kind": "text"
+  }
+ ],
+ "buttons": [
+  "Unselect All",
+  "Close",
+  "OK"
+ ],
+ "notes": [],
+ "tbc_version": "2026.10"
+}

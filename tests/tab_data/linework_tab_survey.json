@@ -1,0 +1,1109 @@
+{
+ "tab": "Linework",
+ "start": [
+  false,
+  7364,
+  7259
+ ],
+ "end": [
+  false,
+  7364,
+  7259
+ ],
+ "results": [
+  {
+   "group": "Direction",
+   "caption": "Show Direction",
+   "key": "ANZ_ShowLineDirectionOptions",
+   "type": "PopupGalleryTool",
+   "help_topic": "29943",
+   "help_title": "Show Line Direction Options",
+   "help_summary": "The Show Line Direction Options command shows the direction (plan and 3D view) of selected lines. It does not require a command to be open to operate. The command is used to turn direction arrows on and off, and set their color and size.",
+   "outcome": "not licensed (needs one of ['ANZToolbox', 'SurveyAdvancedJapan'])"
+  },
+  {
+   "group": "Direction",
+   "caption": "Reverse",
+   "key": "ANZ_ReverseLines",
+   "type": "ButtonTool",
+   "help_topic": "30004",
+   "help_title": "Reverse Lines",
+   "help_summary": "The Reverse Lines command enables you to reverse multiple linear objects at the same time.",
+   "outcome": "not licensed (needs one of ['ANZToolbox', 'SurveyAdvancedJapan'])"
+  },
+  {
+   "group": "Direction",
+   "caption": "Set Direction",
+   "key": "ANZ_SetLineDirection",
+   "type": "ButtonTool",
+   "help_topic": "30008",
+   "help_title": "Set Line Direction",
+   "help_summary": "The Set Line Direction command enables you to pick a reference line/alignment, then select linestrings that it will switch to run the same direction as the reference.",
+   "outcome": "not licensed (needs one of ['ANZToolbox', 'SurveyAdvancedJapan'])"
+  },
+  {
+   "group": "Create",
+   "caption": "Polyline",
+   "key": "CreatePolyline",
+   "type": "ButtonTool",
+   "help_topic": "10424",
+   "help_title": "Create a Polyline",
+   "help_summary": "Use the Create Polyline command to create a multi-segment line at a constant elevation by either picking each segment's start and end points or by streaming points. (To create a linestring that has multiple elevations, see Create and Edit a Linestring.)",
+   "outcome": "panel",
+   "panel": "Create Polyline",
+   "fields": [
+    "Elevation [text]",
+    "Automatically close by connecting ends [choice]",
+    "Layer [choice]",
+    "Name [text]",
+    "Stream points [radio]",
+    "Specify individual points [radio]",
+    "Next point [text]"
+   ],
+   "buttons": [
+    "Add Point",
+    "Close",
+    "New"
+   ],
+   "panes": [
+    "Create Polyline"
+   ],
+   "modified_after": false
+  },
+  {
+   "group": "Create",
+   "caption": "Linestring",
+   "key": "CreateLinestring",
+   "type": "PopupGalleryTool",
+   "help_topic": "5444",
+   "help_title": "Create a Linestring",
+   "help_summary": "Create linestrings (versatile single or multi-segmented linear or curvilinear objects) to represent 2D or 3D linear objects. 3D lines can be defined and queried entirely from within the Plan View, and they provide a unique and versatile way of establishing the line's elevation or its vertical alignment. You can create linestrings in this software, or you can convert imported lines, such as CAD pol",
+   "outcome": "panel",
+   "panel": "Create Linestring",
+   "fields": [
+    "Name [text]",
+    "Layer [choice]",
+    "Line style [choice]",
+    "Line style scale [text]",
+    "Color [choice]",
+    "Extend vertical [bool]",
+    "Surface sharpness [choice]",
+    "Auto-close [bool]"
+   ],
+   "buttons": [
+    "Cancel",
+    "OK"
+   ],
+   "panes": [
+    "Create Linestring"
+   ],
+   "modified_after": false
+  },
+  {
+   "group": "Create",
+   "caption": "Boundary",
+   "key": "CreateBoundary",
+   "type": "ButtonTool",
+   "help_topic": "20865",
+   "help_title": "Create a Boundary",
+   "help_summary": "- Create a 2D boundary to delineate a portion of a surface. This is useful if you do not want to send an entire surface to field device firmware; it enables you to include a smaller surface model with your design data. The boundary clips the surface to include only the surface triangles encompassed or crossed by the boundary.",
+   "outcome": "panel",
+   "panel": "Create Boundary",
+   "fields": [
+    "Name [text]",
+    "Layer [choice]",
+    "Usage [choice]",
+    "Alignment corridor [radio]",
+    "Polygon [radio]",
+    "Polygon (from a line) [radio]",
+    "Point [text]",
+    "Additional point [text]"
+   ],
+   "buttons": [
+    "Apply",
+    "Close",
+    "OK"
+   ],
+   "panes": [
+    "Create Boundary"
+   ],
+   "modified_after": false
+  },
+  {
+   "group": "Create",
+   "caption": "Breakline",
+   "key": "CreateBreakLine",
+   "type": "ButtonTool",
+   "help_topic": "1533",
+   "help_title": "Edit a Surface by Creating a Breakline",
+   "help_summary": "3D lines of several types can be designated as members of a surface. They serve to influence the shape of that surface by acting in the classic manner as breaklines. These lines can exhibit complex curvilinear geometry and still serve a breaklines, by employing the breakline approximation parameters as defined in the computational settings for a surface in the Project Settings dialog.",
+   "outcome": "panel",
+   "panel": "Create Breakline",
+   "fields": [
+    "Add to surface [text]",
+    "Surface sharpness [choice]",
+    "Layer [choice]",
+    "Name [text]"
+   ],
+   "buttons": [
+    "Cancel",
+    "OK"
+   ],
+   "panes": [
+    "Create Breakline"
+   ],
+   "modified_after": false
+  },
+  {
+   "group": "Create",
+   "caption": "Polygon",
+   "key": "CreatePolygon",
+   "type": "ButtonTool",
+   "help_topic": "11048",
+   "help_title": "Create a Polygon",
+   "help_summary": "Create polygons to represent 2D or 3D polygonal objects that display in the graphic views. You can create polygons in the software, or you can convert imported polygons, such as CAD polygons and polygon features, and edit as necessary. To create a polygon, you specify the location of each point in the polygon and how the border line segments between them are formed (see note). You also specify the",
+   "outcome": "panel",
+   "panel": "Create Polygon",
+   "fields": [
+    "Name [text]",
+    "Layer [choice]",
+    "Border line style [choice]",
+    "Border line style scale [text]",
+    "Border color [choice]",
+    "Extend vertical [bool]",
+    "Surface sharpness [choice]",
+    "Fill color [choice]",
+    "Fill transparency [text]"
+   ],
+   "buttons": [
+    "Cancel",
+    "OK"
+   ],
+   "panes": [
+    "Create Polygon"
+   ],
+   "modified_after": false
+  },
+  {
+   "group": "Create",
+   "caption": "Outline",
+   "key": "CaptureOutline",
+   "type": "ButtonTool",
+   "help_topic": "29200",
+   "help_title": "Capture Outlines from Measured or Scanned Points",
+   "help_summary": "Capture Outlines from Measured or Scanned Points",
+   "outcome": "panel",
+   "panel": "Capture Outline",
+   "fields": [
+    "Name (optional) [text]",
+    "Feature (optional) [choice]",
+    "Layer [choice]",
+    "Elevation [text]",
+    "Coordinate [text]"
+   ],
+   "buttons": [
+    "Ok",
+    "Cancel",
+    "Undo last coordinate",
+    "Finish outline",
+    "Close outline"
+   ],
+   "panes": [
+    "Capture Outline"
+   ],
+   "modified_after": false
+  },
+  {
+   "group": "Create",
+   "caption": "Create Circle",
+   "key": "CreateCircle",
+   "type": "PopupGalleryTool",
+   "help_topic": "10795",
+   "help_title": "Create a Circle",
+   "help_summary": "Use the Create Circle command to draw a 360° arc at a constant elevation. Using the auto-advance mode, you can quickly create multiple circles with the same radius. Once created, circles can also be copied, moved, or scaled.",
+   "outcome": "panel",
+   "panel": "Create Circle",
+   "fields": [
+    "Name [text]",
+    "Layer [choice]",
+    "Elevation [text]",
+    "Center point [text]",
+    "Radius [text]"
+   ],
+   "buttons": [
+    "Create",
+    "Cancel"
+   ],
+   "panes": [
+    "Create Circle"
+   ],
+   "modified_after": false
+  },
+  {
+   "group": "Create",
+   "caption": "Three-Point Circle",
+   "key": "CreateThreePointCircle",
+   "type": "ButtonTool",
+   "help_topic": "21020",
+   "help_title": "Create a Circle from Three Points",
+   "help_summary": "Use the Create Three-Point Circle command to create a circle by selecting three points and/or coordinates on its circumference. This is especially useful when working with point clouds where you can use a limit box or cutting plane to specify a cross-section of a cylindrical object (for example, a tree trunk or light pole) and then select three points on the circumference to generate the circle. T",
+   "outcome": "panel",
+   "panel": "Create Three-Point Circle",
+   "fields": [
+    "Name [text]",
+    "Layer [choice]",
+    "Elevation [text]",
+    "Point three [text]",
+    "Point two [text]",
+    "Point one [text]"
+   ],
+   "buttons": [
+    "Close",
+    "Apply"
+   ],
+   "panes": [
+    "Create Three-Point Circle"
+   ],
+   "modified_after": false
+  },
+  {
+   "group": "Create",
+   "caption": "Arc",
+   "key": "CreateArc",
+   "type": "ButtonTool",
+   "help_topic": "13280",
+   "help_title": "Create an Arc",
+   "help_summary": "Use the Create Arc command to create an arc at a constant elevation using various creation options. The positive direction for creating an arc (using any of the options) is clockwise.",
+   "outcome": "panel",
+   "panel": "Create Arc",
+   "fields": [
+    "Name [text]",
+    "Layer [choice]",
+    "Elevation [text]",
+    "Create arc using [choice]",
+    "Start point [text]",
+    "Middle point [text]",
+    "End point [text]"
+   ],
+   "buttons": [
+    "Apply",
+    "Close"
+   ],
+   "panes": [
+    "Create Arc"
+   ],
+   "modified_after": false
+  },
+  {
+   "group": "Create",
+   "caption": "Chord",
+   "key": "ANZ_CreateChordLines",
+   "type": "ButtonTool",
+   "help_topic": "29811",
+   "help_title": "Create Chord Lines",
+   "help_summary": "The Create Chord Lines command enables you to select one or more linestrings and set a chord distance to create individual line segments at that length, to be applied in 2D or 3D from the start of the line.",
+   "outcome": "not licensed (needs one of ['ANZToolbox', 'SurveyAdvancedJapan'])"
+  },
+  {
+   "group": "Create",
+   "caption": "Rectangle",
+   "key": "CreateRectangle",
+   "type": "PopupGalleryTool",
+   "help_topic": "14049",
+   "help_title": "Create a Rectangle",
+   "help_summary": "Use the Create Rectangle command to quickly draw rectangular polylines. Using the auto-advance mode, you can quickly create multiple rectangles. Once created, rectangles can also be copied, moved, or scaled.",
+   "outcome": "panel",
+   "panel": "Create Rectangle",
+   "fields": [
+    "Name [text]",
+    "Layer [choice]",
+    "Elevation [text]",
+    "Corner one [text]",
+    "Corner two [text]"
+   ],
+   "buttons": [
+    "OK",
+    "Cancel"
+   ],
+   "panes": [
+    "Create Rectangle"
+   ],
+   "modified_after": false
+  },
+  {
+   "group": "Create",
+   "caption": "Three-Point Rectangle",
+   "key": "CreateThreePointRectangle",
+   "type": "ButtonTool",
+   "help_topic": "21041",
+   "help_title": "Create a Rectangle from Three Points",
+   "help_summary": "Use the Create Three-Point Rectangle command to create a rectangle by selecting three points and/or coordinates. Two points define the corners for one side of the rectangle; the third point defines where to draw the opposite side of the rectangle. This is especially useful when working with point clouds where you can use a limit box or cutting plane to specify a cross-section of an object (for exa",
+   "outcome": "panel",
+   "panel": "Create Three-Point Rectangle",
+   "fields": [
+    "Width [text]",
+    "Name [text]",
+    "Corner two [text]",
+    "Layer [choice]",
+    "Corner one [text]",
+    "Elevation [text]"
+   ],
+   "buttons": [
+    "Close",
+    "Apply"
+   ],
+   "panes": [
+    "Create Three-Point Rectangle"
+   ],
+   "modified_after": false
+  },
+  {
+   "group": "Create",
+   "caption": "Best-Fit Line",
+   "key": "BestFitLine",
+   "type": "PopupGalleryTool",
+   "help_topic": "19745",
+   "help_title": "Create a Best-Fit Line",
+   "help_summary": "Use the Best-Fit Line command to automatically create a straight or curved \"best-fit\" line based on the 2D or 3D survey, CAD, and/or scan points you select. This can be helpful, for example, when working with point clouds and creating curb and gutter linework.",
+   "outcome": "panel",
+   "panel": "Best-Fit Line",
+   "fields": [
+    "Selected points [text]",
+    "Polynomial degree [number]",
+    "Line type [choice]",
+    "memberSelection [text]",
+    "Layer [choice]"
+   ],
+   "buttons": [
+    "Apply",
+    "Cancel",
+    "OK"
+   ],
+   "panes": [
+    "Best-Fit Line"
+   ],
+   "modified_after": false
+  },
+  {
+   "group": "Create",
+   "caption": "Best Fit Circle",
+   "key": "ANZ_BestFitCircle",
+   "type": "ButtonTool",
+   "help_topic": "29735",
+   "help_title": "Create Best Fit Circle",
+   "help_summary": "Create Best Fit Circle enables you to select at least 3 points and fit a circle using the least squares method. A preview is available to check the resulting delta values from the original points to the created circle.",
+   "outcome": "not licensed (needs one of ['ANZToolbox', 'SurveyAdvancedJapan'])"
+  },
+  {
+   "group": "Create",
+   "caption": "Quick Line",
+   "key": "QuickLine",
+   "type": "ButtonTool",
+   "help_topic": "22055",
+   "help_title": null,
+   "help_summary": null,
+   "outcome": "panel",
+   "panel": "_Quick Line",
+   "fields": [
+    "Name [text]",
+    "Layer [choice]",
+    "Coordinate [text]",
+    "Elevation [text]"
+   ],
+   "buttons": [
+    "New",
+    "Apply",
+    "Close"
+   ],
+   "panes": [
+    "_Quick Line"
+   ],
+   "modified_after": false
+  },
+  {
+   "group": "Convert",
+   "caption": "To Linestring",
+   "key": "ANZ_ConvertToLinestring",
+   "type": "PopupGalleryTool",
+   "help_topic": "29729",
+   "help_title": "Convert to Linestring",
+   "help_summary": "Convert to Linestring enables you to convert alignments, polylines, and CAD line objects into Linestring objects. Additionally, it enables you to remove UCS (User Defined Coordinate Systems) from imported CAD objects or from objects created using the Cutting Plane View in TBC.",
+   "outcome": "panel",
+   "panel": "Convert To Linestring",
+   "fields": [
+    "Select entities [text]",
+    "DeleteExisting [bool]",
+    "ConvertAlignments [bool]",
+    "AllowLeaders [bool]",
+    "ConvertUcs [bool]",
+    "Horizontal arc tolerance [text]",
+    "Vertical arc tolerance [text]",
+    "Override layer and color [bool]",
+    "Layer [choice]",
+    "Color [choice]",
+    "Auto convert to linestrings on import [bool]"
+   ],
+   "buttons": [
+    "Apply",
+    "OK",
+    "Close",
+    "Options"
+   ],
+   "panes": [
+    "Convert To Linestring"
+   ],
+   "modified_after": false
+  },
+  {
+   "group": "Convert",
+   "caption": "To Horizontal",
+   "key": "ANZ_ConvertToHorizontalLinestring",
+   "type": "ButtonTool",
+   "help_topic": "29728",
+   "help_title": "Convert to Horizontal Linestring",
+   "help_summary": "The Convert to Horizontal Linestring command enables you to convert linestrings containing vertical data to horizontal data only, by linearising curves using a chord to arc tolerance. It will also add the calculated height at \"?\" values to the linestring.",
+   "outcome": "not licensed (needs one of ['ANZToolbox', 'SurveyAdvancedJapan'])"
+  },
+  {
+   "group": "Convert",
+   "caption": "To Polygon",
+   "key": "ANZ_ConvertToPolygon",
+   "type": "ButtonTool",
+   "help_topic": "29749",
+   "help_title": "Convert to Polygon",
+   "help_summary": "Convert to Polygon enables you to convert closed CAD polylines and Linestrings into Polygons. This command converts horizontal and vertical arc data to straight line segments in the process.",
+   "outcome": "not licensed (needs one of ['ANZToolbox', 'SurveyAdvancedJapan'])"
+  },
+  {
+   "group": "Edit",
+   "caption": "Offset",
+   "key": "OffsetLinestring",
+   "type": "PopupGalleryTool",
+   "help_topic": "7349",
+   "help_title": "Offset a Line",
+   "help_summary": "Use the Offset Line command to create a new linestring offset at a specified distance from an existing line. The line from which you are offsetting can be either 2D (such as a boundary, polyline, circle, or an alignment without a vertical alignment (VAL)) or 3D (such as a 3d linestring or an alignment with a VAL). In addition, the offset can be horizontal, vertical, or both. Line segments offset f",
+   "outcome": "panel",
+   "panel": "Offset Line",
+   "fields": [
+    "Vertical offset [text]",
+    "Name [text]",
+    "Line to offset [entity]",
+    "Offset distance [text]",
+    "Side to offset [text]",
+    "Layer [choice]",
+    "Offset a segment [bool]",
+    "Starting point [text]",
+    "Ending point [text]"
+   ],
+   "buttons": [
+    "Close",
+    "Apply"
+   ],
+   "panes": [
+    "Offset Line"
+   ],
+   "modified_after": false
+  },
+  {
+   "group": "Edit",
+   "caption": "Variable Offset",
+   "key": "VariableOffsetLine",
+   "type": "ButtonTool",
+   "help_topic": "19917",
+   "help_title": "Offset a Line to Variable Distances",
+   "help_summary": "Use the Variable Offset Line command to create a linestring offset at varied distances from an existing line. The line from which you are offsetting can be either 2D or 3D with an elevation or slope.",
+   "outcome": "not licensed (needs one of ['SiteModeling'])"
+  },
+  {
+   "group": "Edit",
+   "caption": "Move",
+   "key": "ANZ_MoveLine",
+   "type": "ButtonTool",
+   "help_topic": "29940",
+   "help_title": "Move Line",
+   "help_summary": "The Move Line command enables you to select a line or multiple lines and move them without needing to copy and offset.",
+   "outcome": "not licensed (needs one of ['ANZToolbox', 'SurveyAdvancedJapan'])"
+  },
+  {
+   "group": "Edit",
+   "caption": "Merge",
+   "key": "ANZ_MergeLines",
+   "type": "PopupGalleryTool",
+   "help_topic": "29935",
+   "help_title": "Merge Lines",
+   "help_summary": "The Merge Lines command enables you to select one linestring and a new linestring, then remove the section of the original line where the new line is located.",
+   "outcome": "not licensed (needs one of ['ANZToolbox', 'SurveyAdvancedJapan'])"
+  },
+  {
+   "group": "Edit",
+   "caption": "Append Tracked",
+   "key": "AppendTrackedLine",
+   "type": "ButtonTool",
+   "help_topic": "13279",
+   "help_title": "Create Linestring Segments from a Tracked Line",
+   "help_summary": "Create Linestring Segments from a Tracked Line",
+   "outcome": "panel",
+   "panel": "Append Tracked Line",
+   "fields": [
+    "End clip [text]",
+    "Start clip [text]",
+    "Line to append [entity]",
+    "Base line [entity]"
+   ],
+   "buttons": [
+    null,
+    null,
+    "Close",
+    "Append"
+   ],
+   "panes": [
+    "Append Tracked Line"
+   ],
+   "modified_after": false
+  },
+  {
+   "group": "Edit",
+   "caption": "Fillet Chamfer",
+   "key": "FilletChamfer",
+   "type": "ButtonTool",
+   "help_topic": "19946",
+   "help_title": "Create Fillets and Chamfers",
+   "help_summary": "Use the Fillet/Chamfer command to create a fillet line segment or chamfer line segment for two non-parallel line or arc segments.",
+   "outcome": "panel",
+   "panel": "Fillet Chamfer",
+   "fields": [
+    "Apply to entire line [bool]",
+    "Fillet radius [text]",
+    "Target line segments [entity]",
+    "Target line segments [entity]",
+    "Trim object [bool]",
+    "Chamfer [radio]",
+    "Fillet [radio]"
+   ],
+   "buttons": [
+    "Close",
+    "Apply"
+   ],
+   "panes": [
+    "Fillet Chamfer"
+   ],
+   "modified_after": false
+  },
+  {
+   "group": "Edit",
+   "caption": "Trim Extend",
+   "key": "TrimExtendLines",
+   "type": "PopupGalleryTool",
+   "help_topic": "8240",
+   "help_title": "Trim and Extend Lines",
+   "help_summary": "- Lengthen (1 below) or shorten (2) selected lines to their planimetric intersection with a specified bounding line (in yellow).",
+   "outcome": "panel",
+   "panel": "Trim/Extend Lines",
+   "fields": [
+    "Multiple lines to bounding lines [radio]",
+    "One line to bounding lines [radio]",
+    "One line by distance [radio]",
+    "Trim/extend shortest distance [radio]",
+    "Bounding lines [text]",
+    "Extend [radio]",
+    "Trim [radio]",
+    "Line to trim or extend [entity]"
+   ],
+   "buttons": [
+    "Close",
+    "Apply"
+   ],
+   "panes": [
+    "Trim/Extend Lines"
+   ],
+   "modified_after": false
+  },
+  {
+   "group": "Edit",
+   "caption": "Extend to Surface",
+   "key": "ANZ_ExtendLinesToSurface",
+   "type": "ButtonTool",
+   "help_topic": "29831",
+   "help_title": "Extend Lines to Surface",
+   "help_summary": "The Extend Lines to Surface command enables you to select one or multiple lines and extend them on grade to intersect a surface, extend to a set Elevation, or extend by a slope distance.",
+   "outcome": "not licensed (needs one of ['ANZToolbox', 'SurveyAdvancedJapan'])"
+  },
+  {
+   "group": "Edit",
+   "caption": "Divide Lines",
+   "key": "DivideLine",
+   "type": "ButtonTool",
+   "help_topic": "21668",
+   "help_title": "Divide an Existing Line into Multiple Segments",
+   "help_summary": "Divide an Existing Line into Multiple Segments",
+   "outcome": "panel",
+   "panel": "Divide Lines",
+   "fields": [
+    "Slope length [radio]",
+    "Horizontal length [radio]",
+    "dedDivideLength [text]",
+    "numUpDownDivideNum [number]",
+    "Divide by length [radio]",
+    "Divide by number of separated objects [radio]",
+    "Select a segment to divide [entity]",
+    "Multi-select lines to divide [text]"
+   ],
+   "buttons": [
+    "Close",
+    "Apply"
+   ],
+   "panes": [
+    "Divide Lines"
+   ],
+   "modified_after": false
+  },
+  {
+   "group": "Edit",
+   "caption": "Break",
+   "key": "BreakLine",
+   "type": "PopupGalleryTool",
+   "help_topic": "5966",
+   "help_title": "Break a Line",
+   "help_summary": "Break a line to split it into two separate linestrings at the point you specify. The linestrings remain coincidental at the break point, but must be edited separately thereafter.",
+   "outcome": "panel",
+   "panel": "Break Line",
+   "fields": [
+    "Line [entity]",
+    "Distance along [text]"
+   ],
+   "buttons": [
+    "Close",
+    "Break"
+   ],
+   "panes": [
+    "Break Line"
+   ],
+   "modified_after": false
+  },
+  {
+   "group": "Edit",
+   "caption": "Explode Lines",
+   "key": "ANZ_ExplodeLines",
+   "type": "ButtonTool",
+   "help_topic": "29825",
+   "help_title": "Explode Lines",
+   "help_summary": "The Explode Lines command enables you to explode any linework into ether all segment elements or segments based on user defined deflection angle.",
+   "outcome": "panel",
+   "panel": "Explode Lines",
+   "fields": [
+    "Lines [text]",
+    "CheckBoxRelayer [bool]",
+    "ComboBox [choice]",
+    "Delete existing [bool]",
+    "Every segment [radio]",
+    "Large deflections [radio]",
+    "Max angle [text]"
+   ],
+   "buttons": [
+    "Apply",
+    "Close",
+    "Options"
+   ],
+   "panes": [
+    "Explode Lines"
+   ],
+   "modified_after": false
+  },
+  {
+   "group": "Edit",
+   "caption": "Join",
+   "key": "JoinLines",
+   "type": "ButtonTool",
+   "help_topic": "6154",
+   "help_title": "Join Lines",
+   "help_summary": "Join two or more contiguous lines into individual linestrings using manual and automated methods. When lines are joined, they are converted into linestrings, thereby increasing their versatility. The resulting linestring's direction and properties are determined by the first (base) line that you choose.",
+   "outcome": "panel",
+   "panel": "Join Lines",
+   "fields": [
+    "Lines to join [text]",
+    "All selected lines [radio]",
+    "Lines to join [text]",
+    "Base line [entity]",
+    "One line to selection [radio]",
+    "Two lines [radio]",
+    "Line to join [entity]",
+    "Base line [entity]"
+   ],
+   "buttons": [
+    null,
+    null,
+    null,
+    "Close",
+    "Join"
+   ],
+   "panes": [
+    "Join Lines"
+   ],
+   "modified_after": false
+  },
+  {
+   "group": "Edit",
+   "caption": "Clip",
+   "key": "ClipLines",
+   "type": "ButtonTool",
+   "help_topic": "9307",
+   "help_title": "Clip Lines or Break Lines at Bounding Lines",
+   "help_summary": "Clip Lines or Break Lines at Bounding Lines",
+   "outcome": "panel",
+   "panel": "Clip Lines",
+   "fields": [
+    "Break lines at crossing lines [radio]",
+    "Remove lines outside bounding lines [radio]",
+    "Remove lines inside bounding lines [radio]",
+    "Lines to clip [text]",
+    "Closed bounding lines [text]"
+   ],
+   "buttons": [
+    "Close",
+    "Apply"
+   ],
+   "panes": [
+    "Clip Lines"
+   ],
+   "modified_after": false
+  },
+  {
+   "group": "Edit",
+   "caption": "Insert/Delete Nodes",
+   "key": "ANZ_InsertDeleteNodes",
+   "type": "PopupGalleryTool",
+   "help_topic": "29853",
+   "help_title": "Insert/Delete Nodes",
+   "help_summary": "The Insert/Delete Nodes command enables you to adjust linestring geometry by inserting and deleting nodes at defined locations.",
+   "outcome": "not licensed (needs one of ['ANZToolbox', 'SurveyAdvancedJapan'])"
+  },
+  {
+   "group": "Edit",
+   "caption": "Insert Segment",
+   "key": "StandardInsertLineSegment",
+   "type": "ButtonTool",
+   "help_topic": "22996",
+   "help_title": "Insert a Segment into a Linestring or Polyline",
+   "help_summary": "Insert a Segment into a Linestring or Polyline",
+   "outcome": "panel",
+   "panel": "Insert Line Segment",
+   "fields": [
+    "Line [text]",
+    "Location [text]",
+    "Elevation [text]"
+   ],
+   "buttons": [
+    "Insert",
+    "Close"
+   ],
+   "panes": [
+    "Insert Line Segment"
+   ],
+   "modified_after": false
+  },
+  {
+   "group": "Edit",
+   "caption": "Segment Count",
+   "key": "ANZ_SegmentCount",
+   "type": "ButtonTool",
+   "help_topic": "30007",
+   "help_title": "Segment Count",
+   "help_summary": "The Segment Count command enables you to count the total number of horizontal segments in the selected lines. This is useful for checking the segment numbers of avoidance zone polygons, which have a maximum number allowed in Earthworks machines.",
+   "outcome": "not licensed (needs one of ['ANZToolbox', 'SurveyAdvancedJapan'])"
+  },
+  {
+   "group": "Edit",
+   "caption": "Delete",
+   "key": "DeleteLineSegment",
+   "type": "ButtonTool",
+   "help_topic": "6175",
+   "help_title": "Delete a Line Segment",
+   "help_summary": "Delete a segment from a multi-segmented line or linestring to form one or two linestrings, depending on whether you delete an interior or an end segment. If a line consists of only one segment, the entire line will be deleted. When you delete a segment from a closed shape, the remaining segments stay joined as a single line.",
+   "outcome": "panel",
+   "panel": "Delete Line Segment",
+   "fields": [
+    "Line [entity]",
+    "list [list]"
+   ],
+   "buttons": [
+    "Close",
+    "Delete"
+   ],
+   "panes": [
+    "Delete Line Segment"
+   ],
+   "modified_after": false
+  },
+  {
+   "group": "Edit",
+   "caption": "Simplify",
+   "key": "ANZ_SimplifyLineStrings",
+   "type": "ButtonTool",
+   "help_topic": "30013",
+   "help_title": "Simplify Linestrings",
+   "help_summary": "The Simplify Linestrings command enables you to select one or more lines to remove unnecessary segments from the lines, and convert horizontally chorded linework to curvilinear linestrings. This is ideal for converting segmented road centerlines into true arc geometry so you can make a clean alignment string.",
+   "outcome": "not licensed (needs one of ['ANZToolbox', 'SurveyAdvancedJapan'])"
+  },
+  {
+   "group": "Edit",
+   "caption": "Insert Vertices",
+   "key": "ANZ_InsertVerticesFromPoints",
+   "type": "PopupGalleryTool",
+   "help_topic": "29870",
+   "help_title": "Insert Vertices from Points",
+   "help_summary": "The Insert Vertices from Points command enables you to select a line and some points to create new vertices (and optionally, points) from points. Depending on the mode selected, the new nodes are created on the line perpendicular to the selected points, or the line is moved to the selected points.",
+   "outcome": "not licensed (needs one of ['ANZToolbox', 'SurveyAdvancedJapan'])"
+  },
+  {
+   "group": "Edit",
+   "caption": "Integrate to Geometry",
+   "key": "GeometryPointIntegrateCmd",
+   "type": "ButtonTool",
+   "help_topic": "27530",
+   "help_title": "Integrate Points into Geometry",
+   "help_summary": "Use the Integrate Points into Geometry command to automatically convert vertex coordinates for linestring-based polygonal objects and COGO parcels into points.",
+   "outcome": "panel",
+   "panel": "Integrate to Geometry",
+   "fields": [
+    "Select points and geometry [text]",
+    "Starting point ID [text]"
+   ],
+   "buttons": [
+    "Close",
+    "Options",
+    "Process",
+    "Clear"
+   ],
+   "panes": [
+    "Integrate to Geometry"
+   ],
+   "modified_after": false
+  },
+  {
+   "group": "Edit",
+   "caption": "Unlink",
+   "key": "ANZ_UnlinkLinestrings",
+   "type": "ButtonTool",
+   "help_topic": "30035",
+   "help_title": "Unlink Linestrings",
+   "help_summary": "The Unlink Linestrings command enables you to convert a linestring using Point IDs for its location into a coordinate-based linestring.",
+   "outcome": "not licensed (needs one of ['ANZToolbox', 'SurveyAdvancedJapan'])"
+  },
+  {
+   "group": "Edit",
+   "caption": "Edit Elevation",
+   "key": "ANZ_EditLinestringElevation",
+   "type": "ButtonTool",
+   "help_topic": "29805",
+   "help_title": "Edit Linestring Elevation",
+   "help_summary": "The Edit Linestring Elevation command enables you to select a linestring, optionally nominate beginning and end chainages, and select one of three modes (none, constant, interpolate) to edit the elevations within that chainage range.",
+   "outcome": "not licensed (needs one of ['ANZToolbox', 'SurveyAdvancedJapan'])"
+  },
+  {
+   "group": "Edit",
+   "caption": "Set Line Elevation",
+   "key": "SetLineElevation",
+   "type": "ButtonTool",
+   "help_topic": "6156",
+   "help_title": "Set a Line Elevation",
+   "help_summary": "Apply a single, constant elevation to a 2D line to make it a 3D linestring. You can also specify a vertical offset from the elevation that you enter and a surface to which the linestring will be added.",
+   "outcome": "panel",
+   "panel": "Set Line Elevation",
+   "fields": [
+    "Elevation [text]",
+    "Line [entity]",
+    "Add to surface [text]",
+    "Vertical offset [text]"
+   ],
+   "buttons": [
+    "Close",
+    "Apply"
+   ],
+   "panes": [
+    "Set Line Elevation"
+   ],
+   "modified_after": false
+  },
+  {
+   "group": "Edit",
+   "caption": "Adjust Profile",
+   "key": "ANZ_AdjustProfile",
+   "type": "ButtonTool",
+   "help_topic": "29676",
+   "help_title": "Adjust Profile",
+   "help_summary": "The Adjust Profile command allows you to select one or many linestrings and apply a vertical adjustment to the profile of the string using serval different methods. This command is particularly useful for creating new strings allowing for Hog adjustment in bridge decks.",
+   "outcome": "not licensed (needs one of ['ANZToolbox', 'SurveyAdvancedJapan'])"
+  },
+  {
+   "group": "Check",
+   "caption": "Node Cleanup",
+   "key": "ANZ_LineNodeCleanup",
+   "type": "ButtonTool",
+   "help_topic": "29892",
+   "help_title": "Line Node Cleanup",
+   "help_summary": "The Line Node Cleanup command enables you to clean up duplicate nodes on a linestring, adjust vertical segments, and remove node heights outside the set range.",
+   "outcome": "not licensed (needs one of ['ANZToolbox', 'SurveyAdvancedJapan'])"
+  },
+  {
+   "group": "Check",
+   "caption": "Compare Lines",
+   "key": "ANZ_CompareLines",
+   "type": "ButtonTool",
+   "help_topic": "29774",
+   "help_title": "Compare Lines",
+   "help_summary": "The Compare Lines command enables you to select original line data and compare it to an imported file to find linework that does not have an identical match. This is useful when receiving revisions of data, to be able to find what has changed and separate it.",
+   "outcome": "not licensed (needs one of ['ANZToolbox', 'SurveyAdvancedJapan'])"
+  },
+  {
+   "group": "Check",
+   "caption": "Inspect Line Nodes",
+   "key": "ANZ_InspectLineNodes",
+   "type": "ButtonTool",
+   "help_topic": "29885",
+   "help_title": "Inspect Line Nodes",
+   "help_summary": "The Inspect Line Nodes command enables you to select a line and report the elevation, chainage, azimuth, and grades for all the nodes along the line. Annotate results to a text layer and create an Excel report.",
+   "outcome": "not licensed (needs one of ['ANZToolbox', 'SurveyAdvancedJapan'])"
+  },
+  {
+   "group": "Check",
+   "caption": "Check Deflections",
+   "key": "ANZ_CheckLineDeflections",
+   "type": "ButtonTool",
+   "help_topic": "29719",
+   "help_title": "Check Line Deflections",
+   "help_summary": "The Check Line Deflections command enables you to search selected lines to find and highlight nodes that exceed a chosen deflection angle. Use this command to find string errors before sending data to the field, or to display deflections as text on screen.",
+   "outcome": "not licensed (needs one of ['ANZToolbox', 'SurveyAdvancedJapan'])"
+  },
+  {
+   "group": "Divide Area",
+   "caption": "Adjust Area",
+   "key": "ANZ_AdjustArea",
+   "type": "PopupGalleryTool",
+   "help_topic": "29661",
+   "help_title": "Adjust Area",
+   "help_summary": "The Adjust Area command enables you to place a new line or polygon that creates a boundary area equal to a value specified. It requires a selection of at least three source lines and a reference line to calculate.",
+   "outcome": "not licensed (needs one of ['ANZToolbox', 'SurveyAdvancedJapan'])"
+  },
+  {
+   "group": "Divide Area",
+   "caption": "Divide Area",
+   "key": "DivideArea",
+   "type": "ButtonTool",
+   "help_topic": "27507",
+   "help_title": "Divide an Area",
+   "help_summary": "Use the Divide Area command to divide the area in a linestring-based polygonal feature into subareas based on any of the following criteria:",
+   "outcome": "panel",
+   "panel": "Divide Area",
+   "fields": [
+    "Area to Divide [text]",
+    "Origin [text]",
+    "End point [text]",
+    "Divide area based on [choice]",
+    "Amount [min. 2] [text]"
+   ],
+   "buttons": [
+    "Divide",
+    "Close"
+   ],
+   "panes": [
+    "Divide Area"
+   ],
+   "modified_after": false
+  },
+  {
+   "group": "Advanced",
+   "caption": "Composite Geometry",
+   "key": "CreateCompositeGeometry",
+   "type": "ButtonTool",
+   "help_topic": "28033",
+   "help_title": "Create Composite Geometry",
+   "help_summary": "Use the Create Composite Geometry command to combine simpler geometry objects, such as lines and/or polygons, into a single multipart geometric object used to represent complex spatial features, including objects with \"holes\" through them, such as bridges and archways.",
+   "outcome": "panel",
+   "panel": "Create Composite Geometry",
+   "fields": [
+    "Name [text]",
+    "Composite type [choice]",
+    "Color [choice]",
+    "Layer [choice]",
+    "Elements to add to composite [text]"
+   ],
+   "buttons": [
+    "Ok",
+    "Cancel",
+    "Options",
+    "Add",
+    "Remove"
+   ],
+   "panes": [
+    "Create Composite Geometry"
+   ],
+   "modified_after": false
+  },
+  {
+   "group": "Advanced",
+   "caption": "Track Region",
+   "key": "TrackRegionOutline",
+   "type": "ButtonTool",
+   "help_topic": "7389",
+   "help_title": "Find the Outline of a Region",
+   "help_summary": "Use the Track Region Outline command to create a 2D or 3D linestring representing the 2D outline of a region from a set of separate (potentially unconnected) lines and/or surface and site improvement edges. The region is derived from portions of the bounding lines/edges that planimetrically intersect (in Plan View) to form an enclosing region surrounding an interior 'seed' point. The region’s area",
+   "outcome": "panel",
+   "panel": "Track Region Outline",
+   "fields": [
+    "Layer [choice]",
+    "Name [text]",
+    "Merge holes to boundary [bool]",
+    "Gap closure tolerance [text]",
+    "Track interior regions [bool]",
+    "Reference point [text]",
+    "Lines [text]"
+   ],
+   "buttons": [
+    "Close",
+    "Apply"
+   ],
+   "panes": [
+    "Track Region Outline"
+   ],
+   "modified_after": false
+  },
+  {
+   "group": "Advanced",
+   "caption": "Detect Crossing Geometry",
+   "key": "CrossingGeometry",
+   "type": "ButtonTool",
+   "help_topic": "23314",
+   "help_title": "Detect and Report on Crossing Geometry",
+   "help_summary": "Use the Detect Crossing Geometry command to identify where lines cross planimetrically (same X and Y coordinate, but at potentially different Z levels, including self-intersecting geometry) and generate a list of the crossings. Crossings can also include end points of lines that fall planimetrically along another object or two end points at the same coordinate. The command detects intersections of",
+   "outcome": "panel",
+   "panel": "Detect Crossing Geometry",
+   "fields": [
+    "Selection [text]",
+    "Vertical tolerance (optional) [text]",
+    "Exclude objects with undefined or 0 elevations [bool]"
+   ],
+   "buttons": [
+    "Close",
+    "Apply",
+    "Report",
+    "Remove All Flags"
+   ],
+   "panes": [
+    "Detect Crossing Geometry"
+   ],
+   "modified_after": false
+  },
+  {
+   "group": "Advanced",
+   "caption": "Create XLines",
+   "key": "ANZ_CreateXLines",
+   "type": "ButtonTool",
+   "help_topic": "29796",
+   "help_title": "Create X Lines",
+   "help_summary": "The Create X Lines command enables you to select a control line and create perpendicular lines at nominated intervals and user defined locations. Nominate the width of the X line either side of the control line, or use secondary lines to control the width. Create points and lines at defined positions along the X lines.",
+   "outcome": "not licensed (needs one of ['ANZToolbox', 'SurveyAdvancedJapan'])"
+  }
+ ],
+ "tbc_version": "2026.10",
+ "tbc_build": "44.0.9666.28609"
+}

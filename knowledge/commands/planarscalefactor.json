@@ -1,0 +1,61 @@
+{
+ "key": "PlanarScaleFactor",
+ "caption": "Labeling Scale Factor",
+ "last_seen": "2026-10-14T09:04:48",
+ "fields": [
+  {
+   "id": "planar2CoordinateEdit",
+   "label": "Easting",
+   "kind": "text"
+  },
+  {
+   "id": "useGeodeticsRadioButton",
+   "label": "Use geodetics",
+   "kind": "radio"
+  },
+  {
+   "id": "planar1CoordinateEdit",
+   "label": "Northing",
+   "kind": "text"
+  },
+  {
+   "id": "useFixedPositionRadioButton",
+   "label": "Use a fixed position",
+   "kind": "radio"
+  },
+  {
+   "id": "heightCoordinateEdit",
+   "label": "Elevation",
+   "kind": "text"
+  },
+  {
+   "id": "scaleFactorTextBox",
+   "label": "Define a scale factor for labeling ground distances.",
+   "kind": "text"
+  },
+  {
+   "id": "coordSystemComboBox",
+   "label": "Coordinate type",
+   "kind": "choice",
+   "options_sample": [
+    "Grid",
+    "Local",
+    "Global"
+   ],
+   "option_count": 3
+  },
+  {
+   "id": "useFixedScaleRadioButton",
+   "label": "Use a fixed scale factor",
+   "kind": "radio"
+  }
+ ],
+ "buttons": [
+  "Calculate from Selection",
+  "Calculate from Selection",
+  "Close",
+  "Apply"
+ ],
+ "notes": [],
+ "tbc_version": "2026.10"
+}

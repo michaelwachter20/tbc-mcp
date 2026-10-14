@@ -1,0 +1,24 @@
+{
+ "key": "ProcessFeatureCodes",
+ "caption": "Process Feature Codes",
+ "last_seen": "2026-10-13T13:08:13",
+ "fields": [
+  {
+   "id": "closeCheckBox",
+   "label": "Close command after processing",
+   "kind": "bool"
+  },
+  {
+   "id": "editProcessedFeatureCodesCheckbox",
+   "label": "Allow editing of processed feature codes",
+   "kind": "bool"
+  }
+ ],
+ "buttons": [
+  "Close",
+  "Process Source(s)",
+  "Remove Processing"
+ ],
+ "notes": [],
+ "tbc_version": "2026.10"
+}

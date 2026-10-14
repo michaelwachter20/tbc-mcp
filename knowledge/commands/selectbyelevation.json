@@ -1,0 +1,39 @@
+{
+ "caption": "Select by Elevation Range",
+ "last_seen": "2026-10-14T10:36:13",
+ "fields": [
+  {
+   "id": "m_AddToSelectionCheckbox",
+   "label": "Add to current selection",
+   "kind": "bool"
+  },
+  {
+   "id": "m_MinElevationValue",
+   "label": "Min elevation",
+   "kind": "text"
+  },
+  {
+   "id": "m_MaxElevationValue",
+   "label": "Max elevation",
+   "kind": "text"
+  },
+  {
+   "id": "m_PartiallyWithinRangeRadio",
+   "label": "Partially within range",
+   "kind": "radio"
+  },
+  {
+   "id": "m_EntirelyWithinRangeRadio",
+   "label": "Entirely within range",
+   "kind": "radio"
+  }
+ ],
+ "buttons": [
+  "Apply",
+  "Cancel",
+  "OK"
+ ],
+ "key": "SelectByElevation",
+ "tbc_version": "2026.10",
+ "notes": []
+}

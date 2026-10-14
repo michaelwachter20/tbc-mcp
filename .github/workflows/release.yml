@@ -1,0 +1,49 @@
+# Builds the download package and publishes a GitHub Release whenever a version tag (v0.3.0, v0.4.0 ...) is pushed.
+# The zip contains exactly the paths listed in release_files.txt (no tests, dev tools or per-machine logs).
+name: Release package
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write   # needed to create the release and upload the zip
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the tagged code
+        uses: actions/checkout@v4
+
+      - name: Build the zip from release_files.txt
+        run: |
+          name="tbc-mcp-${GITHUB_REF_NAME}"
+          mkdir -p "dist/${name}"
+          grep -v '^\s*#' release_files.txt | sed '/^\s*$/d' | while read -r item; do
+            cp -r "$item" "dist/${name}/"
+          done
+          find "dist/${name}" -name '__pycache__' -prune -exec rm -rf {} +
+          find "dist/${name}" \( -name '*.pyc' -o -name 'crash_log.md' -o -name 'tbc_errors.log' -o -name '*.tmp' \) -delete
+          rm -rf "dist/${name}/knowledge/license"
+          (cd dist && zip -qr "${name}.zip" "${name}")
+          echo "Built dist/${name}.zip with $(find "dist/${name}" -type f | wc -l) files"
+
+      - name: Publish the GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cat > notes.md <<EOF
+          **Built for Trimble Business Center 2026.10** (build 44.0.9666.28609). See the README's *TBC versions* section
+          before using it on another release.
+
+          **Install:** download \`tbc-mcp-${GITHUB_REF_NAME}.zip\` below, unzip it somewhere permanent and follow
+          *How to install* in the README (re-run \`install_macro.ps1\` if the bridge macro changed in this release).
+          EOF
+          if gh release view "${GITHUB_REF_NAME}" > /dev/null 2>&1; then
+            gh release upload "${GITHUB_REF_NAME}" "dist/tbc-mcp-${GITHUB_REF_NAME}.zip" --clobber
+          else
+            gh release create "${GITHUB_REF_NAME}" "dist/tbc-mcp-${GITHUB_REF_NAME}.zip" \
+              --title "TBC MCP ${GITHUB_REF_NAME} (for TBC 2026.10)" --notes-file notes.md --generate-notes
+          fi

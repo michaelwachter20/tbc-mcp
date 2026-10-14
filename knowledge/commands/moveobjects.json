@@ -1,0 +1,48 @@
+{
+ "key": "MoveObjects",
+ "caption": "Move Objects",
+ "last_seen": "2026-10-13T11:40:06",
+ "fields": [
+  {
+   "id": "deltaElevation",
+   "label": "Delta elevation",
+   "kind": "text"
+  },
+  {
+   "id": "SelectedEntities",
+   "label": "Objects to move",
+   "kind": "text"
+  },
+  {
+   "id": "ceFrom",
+   "label": "From",
+   "kind": "text"
+  },
+  {
+   "id": "ceTo",
+   "label": "To",
+   "kind": "text"
+  },
+  {
+   "id": "UseElevationChk",
+   "label": "3D move",
+   "kind": "bool"
+  },
+  {
+   "id": "UpdateDependentObjects",
+   "label": "Update dependent objects when dragging",
+   "kind": "bool"
+  },
+  {
+   "id": "DragObjectsChk",
+   "label": "Show preview",
+   "kind": "bool"
+  }
+ ],
+ "buttons": [
+  "Close",
+  "Apply"
+ ],
+ "notes": [],
+ "tbc_version": "2026.10"
+}

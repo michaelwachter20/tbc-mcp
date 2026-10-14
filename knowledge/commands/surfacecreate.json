@@ -1,0 +1,46 @@
+{
+ "caption": "Create Surface",
+ "last_seen": "2026-10-14T10:46:32",
+ "fields": [
+  {
+   "id": "m_TrimbleColor",
+   "label": "Color",
+   "kind": "choice",
+   "options_sample": [
+    "Aquamarine",
+    "Black",
+    "Blue",
+    "Brown",
+    "Cyan",
+    "Gray",
+    "DarkGray",
+    "MediumGreen"
+   ],
+   "option_count": 16
+  },
+  {
+   "id": "SurfaceClassification",
+   "label": "Surface classification",
+   "kind": "choice",
+   "options": "project data (not recorded)"
+  },
+  {
+   "id": "SurfaceName",
+   "label": "Name",
+   "kind": "text"
+  },
+  {
+   "id": "SelectedEntities",
+   "label": "Members to form surface",
+   "kind": "text"
+  }
+ ],
+ "buttons": [
+  "Apply",
+  "Cancel",
+  "OK"
+ ],
+ "key": "SurfaceCreate",
+ "tbc_version": "2026.10",
+ "notes": []
+}

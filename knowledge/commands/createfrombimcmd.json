@@ -1,0 +1,92 @@
+{
+ "key": "CreateFromBimCmd",
+ "caption": "Create Points from BIM",
+ "last_seen": "2026-10-13T11:23:07",
+ "fields": [
+  {
+   "id": "TextBox",
+   "label": "Select BIM objects",
+   "kind": "text"
+  },
+  {
+   "id": "Create_from_mesh_centroids",
+   "label": "Create from mesh centroids",
+   "kind": "bool"
+  },
+  {
+   "id": "Use_individual_mesh_centroids",
+   "label": "Use individual mesh centroids",
+   "kind": "radio"
+  },
+  {
+   "id": "Use_BIM_geometry_centroids",
+   "label": "Use BIM geometry centroids",
+   "kind": "radio"
+  },
+  {
+   "id": "Use_BIM_properties",
+   "label": "Use BIM properties",
+   "kind": "radio"
+  },
+  {
+   "id": "Create_from_mesh_faces",
+   "label": "Create from mesh faces",
+   "kind": "bool"
+  },
+  {
+   "id": "Use_all_selected_mesh_faces",
+   "label": "Use all selected mesh faces",
+   "kind": "radio"
+  },
+  {
+   "id": "Use_all_horizontal_mesh_faces",
+   "label": "Use all horizontal mesh faces",
+   "kind": "radio"
+  },
+  {
+   "id": "Use_lowest_horizontal_mesh_faces",
+   "label": "Use lowest horizontal mesh faces",
+   "kind": "radio"
+  },
+  {
+   "id": "Use_pipe/beam_end_faces",
+   "label": "Use pipe/beam end faces",
+   "kind": "radio"
+  },
+  {
+   "id": "Create_grid-only_points",
+   "label": "Create grid-only points",
+   "kind": "bool"
+  },
+  {
+   "id": "Point_quality",
+   "label": "Point quality",
+   "kind": "choice",
+   "options_sample": [
+    "Control",
+    "Survey",
+    "Mapping",
+    "Unknown"
+   ],
+   "option_count": 4
+  },
+  {
+   "id": "Starting_point_ID",
+   "label": "Starting point ID",
+   "kind": "text"
+  },
+  {
+   "id": "ComboBox",
+   "label": "Layer",
+   "kind": "choice",
+   "options": "project data (not recorded)"
+  }
+ ],
+ "buttons": [
+  "Apply",
+  "Close",
+  "Options"
+ ],
+ "notes": [],
+ "tbc_version": "2026.10"
+}

@@ -1,0 +1,47 @@
+{
+ "key": "BestFitLine",
+ "caption": "Best-Fit Line",
+ "last_seen": "2026-10-13T16:14:30",
+ "fields": [
+  {
+   "id": "textBoxSelectedPointsValue",
+   "label": "Selected points",
+   "kind": "text"
+  },
+  {
+   "id": "numericUpDownPolynomialDegreeValue",
+   "label": "Polynomial degree",
+   "kind": "number"
+  },
+  {
+   "id": "comboBoxLineTypeValue",
+   "label": "Line type",
+   "kind": "choice",
+   "options_sample": [
+    "Straight Line 2D (Plan View)",
+    "Straight Line 3D",
+    "Polynomial Curve 2D (Plan View)",
+    "Polynomial Curve 3D"
+   ],
+   "option_count": 4
+  },
+  {
+   "id": "memberSelection",
+   "label": null,
+   "kind": "text"
+  },
+  {
+   "id": "layer",
+   "label": "Layer",
+   "kind": "choice",
+   "options": "project data (not recorded)"
+  }
+ ],
+ "buttons": [
+  "Apply",
+  "Cancel",
+  "OK"
+ ],
+ "notes": [],
+ "tbc_version": "2026.10"
+}

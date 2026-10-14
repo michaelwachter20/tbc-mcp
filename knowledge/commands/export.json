@@ -1,0 +1,40 @@
+{
+ "caption": "Export",
+ "last_seen": "2026-10-14T10:05:56",
+ "fields": [
+  {
+   "id": "FormatList",
+   "label": null,
+   "kind": "list",
+   "options": "project data (not recorded)"
+  },
+  {
+   "id": "TargetFileBox",
+   "label": null,
+   "kind": "text"
+  },
+  {
+   "id": "closeAfterExportBox",
+   "label": "Close command after export",
+   "kind": "bool"
+  },
+  {
+   "id": "_selectAllCheckBox",
+   "label": "Select whole project (all data including sheets)",
+   "kind": "bool"
+  },
+  {
+   "id": "_memberSelection",
+   "label": "Selected objects",
+   "kind": "text"
+  }
+ ],
+ "buttons": [
+  "Close",
+  "Export",
+  "Remote Save"
+ ],
+ "key": "Export",
+ "tbc_version": "2026.10",
+ "notes": []
+}

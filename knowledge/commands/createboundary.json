@@ -1,0 +1,66 @@
+{
+ "key": "CreateBoundary",
+ "caption": "Create Boundary",
+ "last_seen": "2026-10-13T16:14:15",
+ "fields": [
+  {
+   "id": "m_NameCtrl",
+   "label": "Name",
+   "kind": "text"
+  },
+  {
+   "id": "m_LayerCtrl",
+   "label": "Layer",
+   "kind": "choice",
+   "options": "project data (not recorded)"
+  },
+  {
+   "id": "m_UsageCombo",
+   "label": "Usage",
+   "kind": "choice",
+   "options_sample": [
+    "[GenericBoundary, Generic Boundary]",
+    "[BorrowPit, Borrow Pit]",
+    "[DumpZone, Dump Zone]",
+    "[AvoidanceZone, Avoidance Zone]",
+    "[Stockpile, Stockpile]",
+    "[CutZone, Cut Zone]",
+    "[FillZone, Fill Zone]",
+    "[ProjectBoundary, Project Boundary]"
+   ],
+   "option_count": 9
+  },
+  {
+   "id": "m_AlignmentCorridorRadioButton",
+   "label": "Alignment corridor",
+   "kind": "radio"
+  },
+  {
+   "id": "m_PolygonRadioButton",
+   "label": "Polygon",
+   "kind": "radio"
+  },
+  {
+   "id": "m_ctrlExistingEntityRadio",
+   "label": "Polygon (from a line)",
+   "kind": "radio"
+  },
+  {
+   "id": "m_FirstPointCtrl",
+   "label": "Point",
+   "kind": "text"
+  },
+  {
+   "id": "m_AdditionalPointCtrl",
+   "label": "Additional point",
+   "kind": "text"
+  }
+ ],
+ "buttons": [
+  "Apply",
+  "Close",
+  "OK"
+ ],
+ "notes": [],
+ "tbc_version": "2026.10"
+}

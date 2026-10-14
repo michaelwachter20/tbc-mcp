@@ -1,0 +1,44 @@
+{
+ "key": "CreateThreePointCircle",
+ "caption": "Create Three-Point Circle",
+ "last_seen": "2026-10-13T16:12:49",
+ "fields": [
+  {
+   "id": "m_Name",
+   "label": "Name",
+   "kind": "text"
+  },
+  {
+   "id": "m_Layer",
+   "label": "Layer",
+   "kind": "choice",
+   "options": "project data (not recorded)"
+  },
+  {
+   "id": "m_ElevationEdit",
+   "label": "Elevation",
+   "kind": "text"
+  },
+  {
+   "id": "m_Point3",
+   "label": "Point three",
+   "kind": "text"
+  },
+  {
+   "id": "m_Point2",
+   "label": "Point two",
+   "kind": "text"
+  },
+  {
+   "id": "m_Point1",
+   "label": "Point one",
+   "kind": "text"
+  }
+ ],
+ "buttons": [
+  "Close",
+  "Apply"
+ ],
+ "notes": [],
+ "tbc_version": "2026.10"
+}

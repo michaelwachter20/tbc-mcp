@@ -1,0 +1,38 @@
+{
+ "key": "ClipLines",
+ "caption": "Clip Lines",
+ "last_seen": "2026-10-13T16:15:45",
+ "fields": [
+  {
+   "id": "breakRadio",
+   "label": "Break lines at crossing lines",
+   "kind": "radio"
+  },
+  {
+   "id": "outsideRadio",
+   "label": "Remove lines outside bounding lines",
+   "kind": "radio"
+  },
+  {
+   "id": "insideRadio",
+   "label": "Remove lines inside bounding lines",
+   "kind": "radio"
+  },
+  {
+   "id": "lineSelection",
+   "label": "Lines to clip",
+   "kind": "text"
+  },
+  {
+   "id": "clippingBoundariesSelection",
+   "label": "Closed bounding lines",
+   "kind": "text"
+  }
+ ],
+ "buttons": [
+  "Close",
+  "Apply"
+ ],
+ "notes": [],
+ "tbc_version": "2026.10"
+}

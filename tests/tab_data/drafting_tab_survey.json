@@ -1,0 +1,1305 @@
+{
+ "tab": "Drafting",
+ "start": [
+  true,
+  7364,
+  7259
+ ],
+ "end": [
+  true,
+  7364,
+  7259
+ ],
+ "results": [
+  {
+   "group": "Text",
+   "caption": "Text",
+   "key": "CreateText",
+   "type": "PopupGalleryTool",
+   "help_topic": "9979",
+   "help_title": "Create and Edit Text",
+   "help_summary": "Use the Create Text command to add single line or multi-line textual annotations and labels to your data. To create text along a line, see Scenarios below.",
+   "outcome": "panel",
+   "panel": "Create Text",
+   "fields": [
+    "Oblique angle [text]",
+    "Width factor [text]",
+    "Rotation [text]",
+    "Height [text]",
+    "Justification [choice]",
+    "Text insertion point [text]",
+    "richTextBox1 [text]",
+    "Leader type [choice]",
+    "Text style [choice]",
+    "Layer [choice]"
+   ],
+   "buttons": [
+    "Insert Smart Text",
+    "Close",
+    "Apply"
+   ],
+   "panes": [
+    "Create Text"
+   ],
+   "modified_after": true
+  },
+  {
+   "group": "Text",
+   "caption": "Edit Text",
+   "key": "EditText",
+   "type": "ButtonTool",
+   "help_topic": "9979",
+   "help_title": "Create and Edit Text",
+   "help_summary": "Use the Create Text command to add single line or multi-line textual annotations and labels to your data. To create text along a line, see Scenarios below.",
+   "outcome": "dialog",
+   "dialogs": [
+    {
+     "title": "Warning",
+     "message": "Select one text object. More information",
+     "fields": [],
+     "buttons": [
+      "OK"
+     ],
+     "native": false
+    }
+   ],
+   "dismissed": [
+    {
+     "dialog": "Warning",
+     "action": "closed with X",
+     "license": false
+    }
+   ],
+   "modified_after": true
+  },
+  {
+   "group": "Text",
+   "caption": "Text Style",
+   "key": "textStyleManager",
+   "type": "ButtonTool",
+   "help_topic": "6671",
+   "help_title": "Manage Text Styles",
+   "help_summary": "Use the Text Style Manager command to control which styles are available for text in your project and how specific labels in your data appear in graphic views and in printed output. You can select from numerous stroke (vector) fonts that can be smoothly displayed, resized, and plotted to match other CAD programs. AutoCAD shape fonts are converted to stroke fonts when AutoCAD drawings are imported ",
+   "outcome": "dialog",
+   "dialogs": [
+    {
+     "title": "Text Style Manager",
+     "message": "0 1.00  ",
+     "fields": [
+      "White out [bool]",
+      "Auto flip [bool]",
+      "Oblique angle [text]",
+      "Width factor [text]",
+      "Stroke fonts [bool]",
+      "TrueType fonts [bool]",
+      "Justification [choice]",
+      "ExistingList [list]",
+      "Sheet units (Inch) [radio]",
+      "Ground unit [radio]",
+      "Height [text]",
+      "Font [choice]",
+      "Underline [bool]",
+      "Italic [bool]",
+      "Bold [bool]",
+      "Style name [text]"
+     ],
+     "buttons": [
+      "New",
+      "Delete",
+      "Cancel",
+      "OK"
+     ],
+     "native": false
+    }
+   ],
+   "dismissed": [
+    {
+     "dialog": "Text Style Manager",
+     "action": "pressed Cancel",
+     "license": false
+    }
+   ],
+   "modified_after": true
+  },
+  {
+   "group": "Modify Text",
+   "caption": "Convert To MText",
+   "key": "ANZ_ConvertToMultilineText",
+   "type": "ButtonTool",
+   "help_topic": "29734",
+   "help_title": "Convert to Multiline Text",
+   "help_summary": "Convert to Multiline Text enables you to convert CAD text to CAD Multiline text within TBC.",
+   "outcome": "not licensed (needs one of ['ANZToolbox', 'SurveyAdvancedJapan'])"
+  },
+  {
+   "group": "Modify Text",
+   "caption": "Explode Text",
+   "key": "ANZ_ExplodeText",
+   "type": "ButtonTool",
+   "help_topic": "29826",
+   "help_title": "Explode Text",
+   "help_summary": "The Explode Text command enables you to explode any Text item into linework. This allows for better presentation and export for some third-party packages.",
+   "outcome": "not licensed (needs one of ['ANZToolbox', 'SurveyAdvancedJapan'])"
+  },
+  {
+   "group": "Modify Text",
+   "caption": "Find and Replace",
+   "key": "ANZ_FindReplaceText",
+   "type": "ButtonTool",
+   "help_topic": "29835",
+   "help_title": "Find and Replace Text",
+   "help_summary": "The Find and Replace Text command allows you to perform a simple search and replace of text objects and add a prefix or suffix to existing text.",
+   "outcome": "not licensed (needs one of ['ANZToolbox', 'SurveyAdvancedJapan'])"
+  },
+  {
+   "group": "Dimensions",
+   "caption": "Create Linear",
+   "key": "CreateLinearDimension",
+   "type": "ButtonTool",
+   "help_topic": "17849",
+   "help_title": "Create Linear Dimensions",
+   "help_summary": "Create dimensions for lines based on point pairs, line segments, and arc segments.",
+   "outcome": "panel",
+   "panel": "Create Linear Dimension",
+   "fields": [
+    "Dimension style [choice]",
+    "Layer [choice]",
+    "Dimension style [text]",
+    "Edit text [bool]",
+    "Location point [text]",
+    "Location point [text]",
+    "Dimension style [text]",
+    "Two points [radio]",
+    "Line or arc segment [radio]"
+   ],
+   "buttons": [
+    "Close",
+    "Apply"
+   ],
+   "panes": [
+    "Create Linear Dimension"
+   ],
+   "modified_after": true
+  },
+  {
+   "group": "Dimensions",
+   "caption": "Create Angular",
+   "key": "CreateAngularDimension",
+   "type": "ButtonTool",
+   "help_topic": "17848",
+   "help_title": "Create Angular Dimensions",
+   "help_summary": "Create dimensions for angles based on point pairs, line segments, and arc segments.",
+   "outcome": "panel",
+   "panel": "Create Angular Dimension",
+   "fields": [
+    "Dimension style [choice]",
+    "Layer [choice]",
+    "Edit text [bool]",
+    "Location point [text]",
+    "Location point [text]",
+    "Dimension style [entity]",
+    "Two line segments [radio]",
+    "Arc segment [radio]"
+   ],
+   "buttons": [
+    "Close",
+    "Apply"
+   ],
+   "panes": [
+    "Create Angular Dimension"
+   ],
+   "modified_after": true
+  },
+  {
+   "group": "Dimensions",
+   "caption": "Dimension Style",
+   "key": "DimensionStyleManager",
+   "type": "ButtonTool",
+   "help_topic": "17851",
+   "help_title": "Create and Edit Dimension Styles",
+   "help_summary": "Trimble Business Center allows you to create dimensions for both lines (based on point pairs, line segments, and arc segments) and angles (based on either two lines or an arc segment). When creating a dimension, you must specify the dimension style you want to use as a template to format the dimension.",
+   "outcome": "dialog",
+   "dialogs": [
+    {
+     "title": "Dimension Style Manager",
+     "message": "AEC_Civil_Arrow Draw",
+     "fields": [
+      "Style name [list]",
+      "Style name [text]",
+      "Draw lines and arrows [bool]",
+      "Arrow 2 size (Inch) [number]",
+      "Arrow 2 type [choice]",
+      "Arrow 1 size (Inch) [number]",
+      "Arrow 1 type [choice]",
+      "Extension line 1 [bool]",
+      "Extension line 2 [bool]",
+      "Direction [choice]"
+     ],
+     "buttons": [
+      "Delete",
+      "New",
+      "Cancel",
+      "OK"
+     ],
+     "native": false
+    }
+   ],
+   "dismissed": [
+    {
+     "dialog": "Dimension Style Manager",
+     "action": "pressed Cancel",
+     "license": false
+    }
+   ],
+   "modified_after": true
+  },
+  {
+   "group": "Labels",
+   "caption": "Label Style Manager",
+   "key": "LabelStyleManager",
+   "type": "PopupGalleryTool",
+   "help_topic": "18016",
+   "help_title": "Create and Edit Label Styles",
+   "help_summary": "Use the Label Style Manager to create, edit, and delete label styles for points, lines, and polygons. When creating a label, you must specify the label style you want to use as a template to format the label. You can also label individual attributes of a feature code in a label style via keyboard commands.",
+   "outcome": "dialog",
+   "dialogs": [
+    {
+     "title": "Label Style Manager",
+     "message": "Standard 0.098 1.5  0.5  Line spacing",
+     "fields": [
+      "Text style [choice]",
+      "Layer [choice]",
+      "Style name [text]",
+      "Gap (Inch) [text]",
+      "Gap (Inch) [text]",
+      "Rotation [text]",
+      "Align labels to associated line segment [bool]",
+      "LineLabelStyleList [list]",
+      "Flip label to the opposite offset if it overlaps [bool]",
+      "Along [text]",
+      "Label type [choice]",
+      "Offset [choice]",
+      "Display units suffix [choice]",
+      "Prefix [text]",
+      "Precision [choice]",
+      "Angle display [choice]"
+     ],
+     "buttons": [
+      "Define Scale Factor",
+      "New",
+      "Delete",
+      "LineLabelRightButton",
+      "LineLabelLeftButton",
+      "LineLabelDownButton",
+      "LineLabelUpButton",
+      "Remove",
+      "Add",
+      "OK",
+      "Cancel",
+      "Export",
+      "Import"
+     ],
+     "native": false
+    }
+   ],
+   "dismissed": [
+    {
+     "dialog": "Label Style Manager",
+     "action": "pressed Cancel",
+     "license": false
+    }
+   ],
+   "modified_after": true
+  },
+  {
+   "group": "Labels",
+   "caption": "Labeling Scale Factor",
+   "key": "PlanarScaleFactor",
+   "type": "ButtonTool",
+   "help_topic": "22062",
+   "help_title": "Define a Labeling Scale Factor",
+   "help_summary": "Use the Labeling Scale Factor command to define a combined scale factor (referred to in this topic more simply as a scale factor) to be used to convert grid distances to ground distances displayed in line segment labels. Two options allow you to display ground distances that are independent of the earth's curvature either by (1) entering, or using points to calculate, a single fixed scale factor o",
+   "outcome": "panel",
+   "panel": "Labeling Scale Factor",
+   "fields": [
+    "Easting [text]",
+    "Use geodetics [radio]",
+    "Northing [text]",
+    "Use a fixed position [radio]",
+    "Elevation [text]",
+    "Define a scale factor for labeling ground distances. [text]",
+    "Coordinate type [choice]",
+    "Use a fixed scale factor [radio]"
+   ],
+   "buttons": [
+    "Calculate from Selection",
+    "Calculate from Selection",
+    "Close",
+    "Apply"
+   ],
+   "panes": [
+    "Labeling Scale Factor"
+   ],
+   "modified_after": true
+  },
+  {
+   "group": "Labels",
+   "caption": "Points",
+   "key": "LabelPoints",
+   "type": "ButtonTool",
+   "help_topic": "18017",
+   "help_title": "Create Point Labels",
+   "help_summary": "Create single- or multi-line labels for points using predefined point label styles.",
+   "outcome": "panel",
+   "panel": "Label Points",
+   "fields": [
+    "Hide feature code attribute name [bool]",
+    "Align label to associated line segment [bool]",
+    "Rotation [text]",
+    "Select point to label [entity]",
+    "Multi-select points to label [text]",
+    "Symbol code [text]",
+    "Display feature code attributes vertically [bool]",
+    "Symbol size (mm) [text]",
+    "Layer [choice]",
+    "Point label style [text]"
+   ],
+   "buttons": [
+    "Add",
+    "Remove",
+    "...",
+    "Close"
+   ],
+   "panes": [
+    "Label Points"
+   ],
+   "modified_after": true
+  },
+  {
+   "group": "Labels",
+   "caption": "Lines",
+   "key": "LabelLines",
+   "type": "ButtonTool",
+   "help_topic": "18018",
+   "help_title": "Create Line Labels",
+   "help_summary": "Create single- or multi-line labels for line segments using predefined line label styles. Picking a single segment on a line labels that segment. Selecting multiple lines at once labels every segment of each line.",
+   "outcome": "panel",
+   "panel": "Label Lines",
+   "fields": [
+    "Keep line direction placement [bool]",
+    "Minimum line length [text]",
+    "Add small segments to table [bool]",
+    "Select segment to label [entity]",
+    "Minimum line length [text]",
+    "Layer [choice]",
+    "Multi-select lines to label [text]",
+    "Line label style [text]"
+   ],
+   "buttons": [
+    "Remove",
+    "Add",
+    "Close"
+   ],
+   "panes": [
+    "Label Lines"
+   ],
+   "modified_after": true
+  },
+  {
+   "group": "Labels",
+   "caption": "Polygons",
+   "key": "LabelPolygons",
+   "type": "ButtonTool",
+   "help_topic": "18019",
+   "help_title": "Create Polygon Labels",
+   "help_summary": "Create single- or multi-line labels for polygons using predefined polygon label styles.",
+   "outcome": "panel",
+   "panel": "Label Polygons",
+   "fields": [
+    "Polygon label style [text]",
+    "Select polygon to label [entity]",
+    "Layer [choice]",
+    "Rotation [text]",
+    "Multi-select polygons to label [text]"
+   ],
+   "buttons": [
+    "Remove",
+    "Add",
+    "Close"
+   ],
+   "panes": [
+    "Label Polygons"
+   ],
+   "modified_after": true
+  },
+  {
+   "group": "Labels",
+   "caption": "Leader Lines",
+   "key": "CreateLeaderLines",
+   "type": "ButtonTool",
+   "help_topic": "19947",
+   "help_title": "Create Label Leader Lines",
+   "help_summary": "Use the Create Leader Lines command to move a label and simultaneously create a leader line to \"connect\" it to its associated object.",
+   "outcome": "panel",
+   "panel": "Leader Lines",
+   "fields": [
+    "Leader position [choice]",
+    "Display label horizontally [bool]",
+    "Leader type [choice]",
+    "Target label [entity]",
+    "Label insertion point [text]"
+   ],
+   "buttons": [
+    "Close",
+    "Apply"
+   ],
+   "panes": [
+    "Leader Lines"
+   ],
+   "modified_after": true
+  },
+  {
+   "group": "Tables",
+   "caption": "Points",
+   "key": "CreatePointLabelTable",
+   "type": "PopupGalleryTool",
+   "help_topic": "18348",
+   "help_title": "Create Point Label Tables",
+   "help_summary": "Create and display in the Plan View and Sheet View a table from selected points that automatically enumerates their attributes (for example, northing, easting, and elevation) based on the selected label table style.",
+   "outcome": "panel",
+   "panel": "Create Point Label Table",
+   "fields": [
+    "Style [text]",
+    "Layer [choice]",
+    "Title [text]",
+    "LocationCoordinateEdit [text]"
+   ],
+   "buttons": [
+    "Cancel",
+    "OK"
+   ],
+   "panes": [
+    "Create Point Label Table"
+   ],
+   "modified_after": true
+  },
+  {
+   "group": "Tables",
+   "caption": "Lines",
+   "key": "CreateLineLabelTable",
+   "type": "ButtonTool",
+   "help_topic": "18349",
+   "help_title": "Create Line Label Tables",
+   "help_summary": "Create and display in the Plan View and Sheet View a table from selected line segments (linestring and polyline segments, rectangle and polygon segments, and arcs and circles) that automatically enumerates their attributes (for example, length, azimuth or bearing, and slope) based on the selected label table style.",
+   "outcome": "panel",
+   "panel": "Create Line Label Table",
+   "fields": [
+    "Style [text]",
+    "Layer [choice]",
+    "Title [text]",
+    "LocationCoordinateEdit [text]"
+   ],
+   "buttons": [
+    "Cancel",
+    "OK"
+   ],
+   "panes": [
+    "Create Line Label Table"
+   ],
+   "modified_after": true
+  },
+  {
+   "group": "Tables",
+   "caption": "Polygons",
+   "key": "CreatePolygonLabelTable",
+   "type": "ButtonTool",
+   "help_topic": "18350",
+   "help_title": "Create Polygon Label Tables",
+   "help_summary": "Create and display in the Plan View and Sheet View a table from selected polygons, rectangles, and circles that automatically enumerates their attributes (for example, perimeter and area) based on the selected label table style.",
+   "outcome": "panel",
+   "panel": "Create Polygon Label Table",
+   "fields": [
+    "Style [text]",
+    "Layer [choice]",
+    "Title [text]",
+    "LocationCoordinateEdit [text]"
+   ],
+   "buttons": [
+    "Cancel",
+    "OK"
+   ],
+   "panes": [
+    "Create Polygon Label Table"
+   ],
+   "modified_after": true
+  },
+  {
+   "group": "Tables",
+   "caption": "Label Table Style Manager",
+   "key": "LabelTableStyleManager",
+   "type": "ButtonTool",
+   "help_topic": "18347",
+   "help_title": "Create and Edit Label Table Styles",
+   "help_summary": "Trimble Business Center allows you to create and display in the Plan View and Sheet View a table from selected points, lines, and polygons that automatically enumerates their attributes based on the selected label table style. You create, edit, and delete label table styles using the Label Table Style Manager dialog.",
+   "outcome": "dialog",
+   "dialogs": [
+    {
+     "title": "Label Table Style Manager",
+     "message": "Standard (Curve) Name",
+     "fields": [
+      "Style name [list]",
+      "Style name [text]",
+      "Line label table type [choice]",
+      "Text justification [choice]",
+      "Angle display [choice]",
+      "Precision [choice]",
+      "Display units suffix [choice]",
+      "Column text [text]",
+      "Column fields [list]",
+      "Column fields [choice]"
+     ],
+     "buttons": [
+      "Define Scale Factor",
+      "Delete",
+      "New",
+      "＋",
+      "Cancel",
+      "OK"
+     ],
+     "native": false
+    }
+   ],
+   "dismissed": [
+    {
+     "dialog": "Label Table Style Manager",
+     "action": "pressed Cancel",
+     "license": false
+    }
+   ],
+   "modified_after": true
+  },
+  {
+   "group": "Plan View Tables",
+   "caption": "Alignment Table",
+   "key": "ANZ_InsertAlignmentTable",
+   "type": "ButtonTool",
+   "help_topic": "29852",
+   "help_title": "Insert Alignment Table",
+   "help_summary": "The Insert Alignment Table command enables you to create a customizable table that describes the horizontal or vertical geometry that was used to create the selected alignment and display it in the plan view.",
+   "outcome": "not licensed (needs one of ['ANZToolbox', 'SurveyAdvancedJapan'])"
+  },
+  {
+   "group": "Plan View Tables",
+   "caption": "Excel Table",
+   "key": "ANZ_InsertExcelTable",
+   "type": "ButtonTool",
+   "help_topic": "29868",
+   "help_title": "Insert Excel Table",
+   "help_summary": "The Insert Excel Table command enables you to create a table from an excel spreadsheet in csv format and customise the settings for display in the plan view.",
+   "outcome": "not licensed (needs one of ['ANZToolbox', 'SurveyAdvancedJapan'])"
+  },
+  {
+   "group": "Plan View Tables",
+   "caption": "Legend Table",
+   "key": "ANZ_InsertLegendTable",
+   "type": "ButtonTool",
+   "help_topic": "29869",
+   "help_title": "Insert Legend Table",
+   "help_summary": "The Insert Legend Table command enables you to create legend tables for hatches, line styles, and symbols using the definitions set up in an associated Feature library. Select data from the Project view and create a table containing one of each type displayed in the Plan view.",
+   "outcome": "not licensed (needs one of ['ANZToolbox', 'SurveyAdvancedJapan'])"
+  },
+  {
+   "group": "Blocks",
+   "caption": "Insert Block",
+   "key": "InsertBlock",
+   "type": "ButtonTool",
+   "help_topic": "15469",
+   "help_title": "Insert a Block",
+   "help_summary": "Use the Insert Block command to add instances of a block to your model.",
+   "outcome": "panel",
+   "panel": "Insert Block",
+   "fields": [
+    "Block [choice]",
+    "Layer [choice]",
+    "Location 1 [text]",
+    "Location 2 (not available for this block) [text]",
+    "Location 3 (not available for this block) [text]",
+    "Elevation [text]",
+    "Insert as north arrow [bool]",
+    "Rotation [text]",
+    "Scale X [text]",
+    "Scale Y [text]",
+    "Scale Z [text]"
+   ],
+   "buttons": [
+    "Close",
+    "Insert"
+   ],
+   "panes": [
+    "Insert Block"
+   ],
+   "modified_after": true
+  },
+  {
+   "group": "Blocks",
+   "caption": "Create Block",
+   "key": "CreateBlock",
+   "type": "ButtonTool",
+   "help_topic": "15468",
+   "help_title": "Create a Block Definition",
+   "help_summary": "Use the Create Block command to create one or more CAD block definitions (for example, a north arrow) from lines, text, and other objects. You can then insert instances of the blocks (such as a title block) into your model.",
+   "outcome": "panel",
+   "panel": "Create Block",
+   "fields": [
+    "Select objects [text]",
+    "Name [text]",
+    "Location 1 [text]",
+    "Location 2 (optional) [text]",
+    "Location 3 (optional) [text]",
+    "Elevation [text]",
+    "Select objects [text]"
+   ],
+   "buttons": [
+    "Close",
+    "Create"
+   ],
+   "panes": [
+    "Create Block"
+   ],
+   "modified_after": true
+  },
+  {
+   "group": "Blocks",
+   "caption": "Import Blocks",
+   "key": "ImportBlocks",
+   "type": "ButtonTool",
+   "help_topic": "15467",
+   "help_title": "Import Block Definitions",
+   "help_summary": "Use the Import Blocks command to bring one or more block definitions, such as for various north arrows, from CAD files into your project. You can then insert instances of the blocks into your model. Default Trimble blocks that are installed include:",
+   "outcome": "panel",
+   "panel": "Import Blocks",
+   "fields": [
+    "Replace existing blocks [bool]",
+    "My block folder path [text]"
+   ],
+   "buttons": [
+    "Cancel",
+    "Import"
+   ],
+   "panes": [
+    "Import Blocks"
+   ],
+   "modified_after": true
+  },
+  {
+   "group": "Blocks",
+   "caption": "Purge Blocks",
+   "key": "PurgeBlocks",
+   "type": "ButtonTool",
+   "help_topic": "15470",
+   "help_title": "Delete Block Definitions",
+   "help_summary": "Use the Purge Block command to delete unreferenced (unused and unnested) block definitions from your project. A block definition cannot be purged if:",
+   "outcome": "panel",
+   "panel": "Purge Blocks",
+   "fields": [
+    "textBox1 [text]"
+   ],
+   "buttons": [
+    "Close",
+    "Apply"
+   ],
+   "panes": [
+    "Purge Blocks"
+   ],
+   "modified_after": true
+  },
+  {
+   "group": "Drafting Objects",
+   "caption": "Create Slope Markers",
+   "key": "ANZ_CreateSlopeMarkers",
+   "type": "ButtonTool",
+   "help_topic": "29790",
+   "help_title": "Create Slope Markers",
+   "help_summary": "The Create Slope Markers command enables you to select a control line and two other lines, generally the top and toe of an embankment, and create markers between them perpendicular to the control line at nominated intervals.",
+   "outcome": "not licensed (needs one of ['ANZToolbox', 'SurveyAdvancedJapan'])"
+  },
+  {
+   "group": "Drafting Objects",
+   "caption": "Create Hatch",
+   "key": "createhatch",
+   "type": "ButtonTool",
+   "help_topic": "17165",
+   "help_title": "Create and Apply Hatching",
+   "help_summary": "Use the Create Hatch command to create a hatch pattern and apply it to a region in a sheet view to identify the area as having a specific material on screen and on plotted sheets. Once created, you can explode a hatch object into independent object that can be edited or deleted.",
+   "outcome": "panel",
+   "panel": "Create Hatch",
+   "fields": [
+    "Hatch boundaries [text]",
+    "Layer [choice]",
+    "Pattern [choice]",
+    "Scale [text]",
+    "Angle [text]"
+   ],
+   "buttons": [
+    "Preview",
+    "Close",
+    "Apply"
+   ],
+   "panes": [
+    "Create Hatch"
+   ],
+   "modified_after": true
+  },
+  {
+   "group": "Drafting Objects",
+   "caption": "Quick Profile",
+   "key": "CreateQuickProfile",
+   "type": "ButtonTool",
+   "help_topic": "25028",
+   "help_title": "Create and Edit 'Quick Profile' Cross-Sections of a Site",
+   "help_summary": "Create and Edit 'Quick Profile' Cross-Sections of a Site",
+   "outcome": "panel",
+   "panel": "Create Quick Profile",
+   "fields": [
+    "TextBox [text]",
+    "Surfaces (for profile table) [choice]",
+    "ComboBox#2 [choice]",
+    "ComboBox#3 [choice]",
+    "Define [radio]",
+    "From [text]",
+    "To [text]",
+    "Text style [choice]",
+    "Use existing line [radio]",
+    "ClientAreaTextBox#3 [text]",
+    "Quick profile name [text]",
+    "Layer [choice]",
+    "Quick profile location [text]",
+    "Settings [choice]"
+   ],
+   "buttons": [
+    "OK",
+    "Cancel",
+    "Options"
+   ],
+   "panes": [
+    "Create Quick Profile"
+   ],
+   "modified_after": true
+  },
+  {
+   "group": "Templates",
+   "caption": "Drafting Templates",
+   "key": "DraftingTemplates",
+   "type": "ButtonTool",
+   "help_topic": "13912",
+   "help_title": "Open and Save a Drafting Template",
+   "help_summary": "Use the Drafting Templates command import from a variety of pre-defined drafting templates that include a plan set and one or more sheet sets. Any of the settings from these templates or your own plan sets and sheet sets can be edited and saved in a project template and optionally exported as a Project Link file (.vcl). You can work with one template or Project Link file (VCL) that uses your norma",
+   "outcome": "no panel/dialog/window (acts directly or needs a selection)",
+   "modified_after": true
+  },
+  {
+   "group": "Plan View",
+   "caption": "Print Plan View",
+   "key": "PrintPlanView",
+   "type": "PopupGalleryTool",
+   "help_topic": "",
+   "help_title": null,
+   "help_summary": null,
+   "outcome": "panel",
+   "panel": "Print Plan View",
+   "fields": [
+    "Template [choice]",
+    "Name [text]",
+    "Scale [text]",
+    "Location [text]",
+    "Rotation [text]"
+   ],
+   "buttons": [
+    "Create",
+    "Print",
+    "Close"
+   ],
+   "panes": [
+    "Print Plan View"
+   ],
+   "modified_after": true
+  },
+  {
+   "group": "Plan View",
+   "caption": "Print By Selection",
+   "key": "PrintBySelection",
+   "type": "ButtonTool",
+   "help_topic": "280",
+   "help_title": "Print a View or Report",
+   "help_summary": "You can print the contents of a graphic view or a selected plotbox to any Windows-supported printing device. You can also print a report using your default Web browser's print command.",
+   "outcome": "panel",
+   "panel": "Print By Selection",
+   "fields": [],
+   "buttons": [
+    "Cancel",
+    "Apply"
+   ],
+   "panes": [
+    "Print By Selection"
+   ],
+   "modified_after": true
+  },
+  {
+   "group": "Sheet Layout",
+   "caption": "Create Dynaview",
+   "key": "CreateDynaView",
+   "type": "PopupGalleryTool",
+   "help_topic": "15978",
+   "help_title": "Create a Dynaview",
+   "help_summary": "Use the Create Dynaview command to add a frame around a portion of your model to have the frame's contents display at a location in paper space (in a Sheet View). Establish the size and shape of a dynaview by creating a frame (polyline, boundary, circle, rectangle, etc.) in the view around the objects you want to be shown through the dynaview. The frame cannot be placed in the 3D View.",
+   "outcome": "panel",
+   "panel": "Create Dynaview",
+   "fields": [
+    "Frame (on a Plan View) [entity]",
+    "View filter [choice]",
+    "Rotation [text]",
+    "Scale [text]",
+    "Location (on a sheet) [text]",
+    "Layer [choice]",
+    "Name (optional) [text]"
+   ],
+   "buttons": [
+    "Close",
+    "OK"
+   ],
+   "panes": [
+    "Create Dynaview"
+   ],
+   "modified_after": true
+  },
+  {
+   "group": "Sheet Layout",
+   "caption": "Create Dynaview Boundary Set",
+   "key": "CreateDynaViewBoundaryCollection",
+   "type": "ButtonTool",
+   "help_topic": "17167",
+   "help_title": "Create and Edit a Dynaview Boundary Collection",
+   "help_summary": "Create and Edit a Dynaview Boundary Collection",
+   "outcome": "panel",
+   "panel": "Create Dynaview Boundary Set",
+   "fields": [
+    "Rotation [text]",
+    "First sheet origin [text]",
+    "Layer [choice]",
+    "Y overlap [text]",
+    "X overlap [text]",
+    "Rows [number]",
+    "Columns [number]",
+    "Plot scale [text]",
+    "Height on paper [text]",
+    "Width on paper [text]",
+    "Name [text]"
+   ],
+   "buttons": [
+    "Close",
+    "Apply"
+   ],
+   "panes": [
+    "Create Dynaview Boundary Set"
+   ],
+   "modified_after": true
+  },
+  {
+   "group": "Sheet Layout",
+   "caption": "Create Scale Bar",
+   "key": "CreateScaleBar",
+   "type": "ButtonTool",
+   "help_topic": "19961",
+   "help_title": "Create and Edit Scale Bars",
+   "help_summary": "Use the Create Scale Bar command to create a scale line, alternating, or double-alternating scale bar to display in the Plan View or a dynaview in your project.",
+   "outcome": "panel",
+   "panel": "Create Scale Bar",
+   "fields": [
+    "Specify scale [radio]",
+    "Target dynaview [radio]",
+    "Scale bar type [choice]",
+    "Scale bar type [entity]",
+    "Location [text]",
+    "Layer [choice]",
+    "Prefix [text]",
+    "Position [choice]",
+    "Text style [choice]",
+    "Format [choice]",
+    "Display scale label [bool]",
+    "Position [choice]",
+    "Text style [choice]",
+    "Left sheet unit per bar unit [text]",
+    "Number of left divisions [choice]",
+    "Right sheet unit per bar unit [text]",
+    "Number of right divisions [choice]",
+    "Height [text]"
+   ],
+   "buttons": [
+    "Cancel",
+    "OK"
+   ],
+   "panes": [
+    "Create Scale Bar"
+   ],
+   "modified_after": true
+  },
+  {
+   "group": "Sheet Layout",
+   "caption": "Insert Image",
+   "key": "InsertImage",
+   "type": "ButtonTool",
+   "help_topic": "18312",
+   "help_title": "Insert an Image",
+   "help_summary": "Use the Insert Image command to place an image in a Plan View, Sheet View and Profile View. For example, you can insert your company logo on a set of sheets that you want to plot.",
+   "outcome": "panel",
+   "panel": "Insert Image",
+   "fields": [
+    "File name [text]",
+    "Lower corner [text]",
+    "Layer [choice]",
+    "Scale [text]"
+   ],
+   "buttons": [
+    "Close",
+    "Apply"
+   ],
+   "panes": [
+    "Insert Image"
+   ],
+   "modified_after": true
+  },
+  {
+   "group": "Sheet Layout",
+   "caption": "Copy to Sheet",
+   "key": "CopyToSheet",
+   "type": "ButtonTool",
+   "help_topic": "16401",
+   "help_title": "Copy Objects to Paper Space",
+   "help_summary": "Use the Copy to Sheet command to copy objects from any view to a plan set, sheet set, or custom sheet. Doing this can help you:",
+   "outcome": "panel",
+   "panel": "Copy to Sheet",
+   "fields": [
+    "Sheet [text]",
+    "Objects to move [text]"
+   ],
+   "buttons": [
+    "Close",
+    "Apply"
+   ],
+   "panes": [
+    "Copy to Sheet"
+   ],
+   "modified_after": true
+  },
+  {
+   "group": "Sheet Layout",
+   "caption": "Grid Style",
+   "key": "GridStyleManager",
+   "type": "ButtonTool",
+   "help_topic": "17166",
+   "help_title": "Manage Grid Styles",
+   "help_summary": "Use the Grid Style Manager command to create and edit a variety of grid styles to use on dynaviews placed in sheet views. Using grid styles, you can control how gridlines, labels, ticks, and station equations appear on sheets built and plotted from a variety of sheet sets based on plan views, corridor cross-sections, alignment profiles, and mass haul diagrams.",
+   "outcome": "dialog",
+   "dialogs": [
+    {
+     "title": "Grid Style Manager",
+     "message": "              Grid styles",
+     "fields": [
+      "Define grid in paper units [bool]",
+      "Major interval [number]",
+      "Minor interval [text]",
+      "Name [text]",
+      "Template [text]",
+      "Align to sheet [bool]",
+      "Color [choice]",
+      "Draw [bool]",
+      "Text style [choice]",
+      "Layer [choice]",
+      "Label offset [text]",
+      "Template [text]",
+      "Align to sheet [bool]",
+      "Color [choice]",
+      "Draw [bool]",
+      "Text style [choice]",
+      "Layer [choice]",
+      "Label offset [text]",
+      "Weight [choice]",
+      "Draw [bool]",
+      "Color [choice]",
+      "Line style [choice]",
+      "Layer [choice]",
+      "Length [text]",
+      "Weight [choice]"
+     ],
+     "buttons": [
+      "Delete",
+      "New",
+      "Close"
+     ],
+     "native": false
+    }
+   ],
+   "dismissed": [
+    {
+     "dialog": "Grid Style Manager",
+     "action": "pressed Close",
+     "license": false
+    }
+   ],
+   "modified_after": true
+  },
+  {
+   "group": "Plan Set",
+   "caption": "Plan Set",
+   "key": "CreatePlanSet",
+   "type": "ButtonTool",
+   "help_topic": "13905",
+   "help_title": "Create a Plan Set",
+   "help_summary": "To prepare for printing/plotting onto one or more sheets, use the Create Plan Set command to create a top-level collection for your entire set of plans. The plan set is a container for one or more sheet sets. You can also save a plan set as a template exporting its contents to a Project Link file (.vcl).",
+   "outcome": "panel",
+   "panel": "Create Plan Set",
+   "fields": [
+    "Name [text]"
+   ],
+   "buttons": [
+    "Cancel",
+    "OK"
+   ],
+   "panes": [
+    "Create Plan Set"
+   ],
+   "modified_after": true
+  },
+  {
+   "group": "Plan Set",
+   "caption": "Create Sheet Set",
+   "key": "CreateSheetSet",
+   "type": "ButtonTool",
+   "help_topic": "13906",
+   "help_title": "Create and Edit a Sheet Set",
+   "help_summary": "Use the Create Sheet Set command to create a second-level collection (beneath a plan set) that contains elements that you want to appear on every sheet in a common set of sheets. You can create these types of sheets sets:",
+   "outcome": "panel",
+   "panel": "Create Sheet Set",
+   "fields": [
+    "Plan set [text]",
+    "Sheet set name [text]",
+    "Sheet set type [choice]",
+    "Paper size [choice]",
+    "Portrait [radio]",
+    "Landscape [radio]",
+    "Sheet width [text]",
+    "Sheet height [text]",
+    "Corridor [text]"
+   ],
+   "buttons": [
+    "Cancel",
+    "OK"
+   ],
+   "panes": [
+    "Create Sheet Set"
+   ],
+   "modified_after": true
+  },
+  {
+   "group": "Plan Set",
+   "caption": "Custom Sheet",
+   "key": "CreateCustomSheet",
+   "type": "ButtonTool",
+   "help_topic": "16292",
+   "help_title": "Create a Custom Sheet",
+   "help_summary": "Use the Create Custom Sheet command to manually create individual unique sheets, such as a title page or a sheet with objects from other views presented in one or more dynaviews.",
+   "outcome": "dialog",
+   "dialogs": [
+    {
+     "title": "There was a problem adding a custom sheet.",
+     "message": "A custom sheet can  be added only to a custom sheet set.  Select a custom sheet set before running the command. More information",
+     "fields": [],
+     "buttons": [
+      "OK"
+     ],
+     "native": false
+    }
+   ],
+   "dismissed": [
+    {
+     "dialog": "There was a problem adding a custom sheet.",
+     "action": "closed with X",
+     "license": false
+    }
+   ],
+   "modified_after": true
+  },
+  {
+   "group": "Print",
+   "caption": "Print Plan Set",
+   "key": "PrintPlanSet",
+   "type": "PopupGalleryTool",
+   "help_topic": "16339",
+   "help_title": "Print Sheets from a Plan Set",
+   "help_summary": "Use the Print Plan Set command to print/plot one or more sheets from a plan set. You can plot to any of the printing or plotting devices supported by Windows.",
+   "outcome": "dialog",
+   "dialogs": [
+    {
+     "title": "No plan set was found in the current project. Create a plan set and add sheets prior to printing.",
+     "message": "A custom sheet can  be added only to a custom sheet set.  Select a custom sheet set before running the command. More information",
+     "fields": [],
+     "buttons": [
+      "OK"
+     ],
+     "native": false
+    }
+   ],
+   "dismissed": [
+    {
+     "dialog": "No plan set was found in the current project. Create a plan set and add sheets prior to printing.",
+     "action": "closed with X",
+     "license": false
+    }
+   ],
+   "modified_after": true
+  },
+  {
+   "group": "Print",
+   "caption": "Create 3D PDF",
+   "key": "Create3dPDF",
+   "type": "ButtonTool",
+   "help_topic": "16056",
+   "help_title": "Create a 3D Portable Document File (.pdf)",
+   "help_summary": "Create a 3D Portable Document File (.pdf)",
+   "outcome": "panel",
+   "panel": "Create 3D PDF",
+   "fields": [
+    "m_OutputFile [text]",
+    "m_UserName [ultra]",
+    "m_Description [ultra]",
+    "IncludeIcon [ultra]",
+    "ModifyProjectSettings [ultra]",
+    "m_Phone [ultra]",
+    "m_Email [ultra]",
+    "m_Website [ultra]",
+    "m_CompanyName [ultra]"
+   ],
+   "buttons": [
+    "Cancel",
+    "OK",
+    "..."
+   ],
+   "panes": [
+    "Create 3D PDF"
+   ],
+   "modified_after": true
+  },
+  {
+   "group": "Advanced",
+   "caption": "Line Style Manager",
+   "key": "LineStyleManager",
+   "type": "ButtonTool",
+   "help_topic": "3850",
+   "help_title": "Manage Line Styles",
+   "help_summary": "Use the Line Style Manager command to control which line styles are available to apply to lines in your project and how specific lines appear in graphic views and in printed output. You can define line styles and weights for each layer, and once you have applied a line style to a specific line, you can edit the line weight. This ensures more efficient workflows for working with linework as well as",
+   "outcome": "dialog",
+   "dialogs": [
+    {
+     "title": "Line Style Manager",
+     "message": "",
+     "fields": [
+      "Source file to browse [text]",
+      "Ground [radio]",
+      "Sheet [radio]",
+      "English [radio]",
+      "Metric [radio]",
+      "Existing line styles [list]",
+      "Source file line styles [list]"
+     ],
+     "buttons": [
+      "Cancel",
+      "OK",
+      "<<",
+      "<",
+      "X"
+     ],
+     "native": false
+    }
+   ],
+   "dismissed": [
+    {
+     "dialog": "Line Style Manager",
+     "action": "TBC ERROR logged to <repo>\\knowledge\\memory\\tbc_errors.log",
+     "error": ""
+    },
+    {
+     "dialog": "Line Style Manager",
+     "action": "pressed Cancel",
+     "license": false
+    }
+   ],
+   "modified_after": true
+  },
+  {
+   "group": "Advanced",
+   "caption": "Line Type Editor",
+   "key": "LineTypeEditor",
+   "type": "ButtonTool",
+   "help_topic": "13858",
+   "help_title": "Line Type Editor",
+   "help_summary": "Use the Line Type Editor to create and edit line styles that can then be accessed in Trimble Business Center through the Line Style Manager command. The line types that you create and edit in the editor become the line types in the software and Feature Definition Manager utility.",
+   "outcome": "no panel/dialog/window (acts directly or needs a selection)",
+   "modified_after": true
+  },
+  {
+   "group": "Advanced",
+   "caption": "Symbol Manager",
+   "key": "SymbolManager",
+   "type": "ButtonTool",
+   "help_topic": "1591",
+   "help_title": "Manage Symbols",
+   "help_summary": "Control which symbols are available for features in your project and how specific features in your data appear in graphic views and in printed output. You can import symbols from symbol (.sym) files. In addition, you can import blocks as symbols from AutoCAD files (.dxf and .dwg). For more information, see this note.",
+   "outcome": "dialog",
+   "dialogs": [
+    {
+     "title": "Symbol Manager",
+     "message": "",
+     "fields": [
+      "Source file to browse [text]",
+      "Existing symbols [list]",
+      "Source file symbols [list]"
+     ],
+     "buttons": [
+      "Cancel",
+      "OK",
+      "<<",
+      "<",
+      "X"
+     ],
+     "native": false
+    }
+   ],
+   "dismissed": [
+    {
+     "dialog": "Symbol Manager",
+     "action": "TBC ERROR logged to <repo>\\knowledge\\memory\\tbc_errors.log",
+     "error": ""
+    },
+    {
+     "dialog": "Symbol Manager",
+     "action": "pressed Cancel",
+     "license": false
+    }
+   ],
+   "modified_after": true
+  },
+  {
+   "group": "Advanced",
+   "caption": "Symbol Editor",
+   "key": "SymbolEditor",
+   "type": "ButtonTool",
+   "help_topic": "16304",
+   "help_title": "Symbol Editor",
+   "help_summary": "Use the Symbol Editor to create and edit symbols that can then be accessed in Trimble Business Center through the Symbol Manager command. The point symbols that you create and edit become the symbols in the software and Feature Definition Manager utility.",
+   "outcome": "no panel/dialog/window (acts directly or needs a selection)",
+   "modified_after": true
+  }
+ ],
+ "tbc_version": "2026.10",
+ "tbc_build": "44.0.9666.28609"
+}

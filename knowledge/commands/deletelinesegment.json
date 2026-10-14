@@ -1,0 +1,23 @@
+{
+ "key": "DeleteLineSegment",
+ "caption": "Delete Line Segment",
+ "last_seen": "2026-10-13T16:18:50",
+ "fields": [
+  {
+   "id": "m_SelectEntity",
+   "label": "Line",
+   "kind": "entity"
+  },
+  {
+   "id": "list",
+   "label": null,
+   "kind": "list"
+  }
+ ],
+ "buttons": [
+  "Close",
+  "Delete"
+ ],
+ "notes": [],
+ "tbc_version": "2026.10"
+}

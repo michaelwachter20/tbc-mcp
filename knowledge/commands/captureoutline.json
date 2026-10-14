@@ -1,0 +1,42 @@
+{
+ "key": "CaptureOutline",
+ "caption": "Capture Outline",
+ "last_seen": "2026-10-13T15:56:37",
+ "fields": [
+  {
+   "id": "Name_(optional)",
+   "label": "Name (optional)",
+   "kind": "text"
+  },
+  {
+   "id": "Feature_(optional)",
+   "label": "Feature (optional)",
+   "kind": "choice"
+  },
+  {
+   "id": "ComboBox",
+   "label": "Layer",
+   "kind": "choice",
+   "options": "project data (not recorded)"
+  },
+  {
+   "id": "ClientAreaTextBox",
+   "label": "Elevation",
+   "kind": "text"
+  },
+  {
+   "id": "ClientAreaTextBox#2",
+   "label": "Coordinate",
+   "kind": "text"
+  }
+ ],
+ "buttons": [
+  "Ok",
+  "Cancel",
+  "Undo last coordinate",
+  "Finish outline",
+  "Close outline"
+ ],
+ "notes": [],
+ "tbc_version": "2026.10"
+}

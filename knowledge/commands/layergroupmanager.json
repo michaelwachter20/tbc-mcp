@@ -1,0 +1,13 @@
+{
+ "key": "LayerGroupManager",
+ "caption": "Layer Group Manager",
+ "last_seen": "2026-10-13T11:22:49",
+ "fields": [],
+ "buttons": [
+  "Delete",
+  "New",
+  "Close"
+ ],
+ "notes": [],
+ "tbc_version": "2026.10"
+}

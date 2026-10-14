@@ -1,0 +1,40 @@
+{
+ "key": "ExplodePointCmd",
+ "caption": "Explode Points",
+ "last_seen": "2026-10-13T14:03:19",
+ "fields": [
+  {
+   "id": "suffixTextBox",
+   "label": null,
+   "kind": "text"
+  },
+  {
+   "id": "autoCenterCheckBox",
+   "label": "Automatically center the Plan View",
+   "kind": "bool"
+  },
+  {
+   "id": "createAvgPointCheckBox",
+   "label": "Create an averaged point",
+   "kind": "bool"
+  },
+  {
+   "id": "addSuffixCheckBox",
+   "label": "Add suffix to component point names",
+   "kind": "bool"
+  },
+  {
+   "id": "SelectedEntities",
+   "label": null,
+   "kind": "text"
+  }
+ ],
+ "buttons": [
+  "Remove",
+  "Find Explodable Points",
+  "Close",
+  "Explode"
+ ],
+ "notes": [],
+ "tbc_version": "2026.10"
+}

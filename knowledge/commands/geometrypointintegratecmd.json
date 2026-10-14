@@ -1,0 +1,25 @@
+{
+ "key": "GeometryPointIntegrateCmd",
+ "caption": "Integrate to Geometry",
+ "last_seen": "2026-10-13T15:23:01",
+ "fields": [
+  {
+   "id": "TextBox",
+   "label": "Select points and geometry",
+   "kind": "text"
+  },
+  {
+   "id": "Starting_point_ID",
+   "label": "Starting point ID",
+   "kind": "text"
+  }
+ ],
+ "buttons": [
+  "Close",
+  "Options",
+  "Process",
+  "Clear"
+ ],
+ "notes": [],
+ "tbc_version": "2026.10"
+}

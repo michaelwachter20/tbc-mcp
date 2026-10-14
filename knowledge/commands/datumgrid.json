@@ -1,0 +1,19 @@
+{
+ "key": "DatumGrid",
+ "caption": "Datum Gridding",
+ "last_seen": "2026-10-13T13:59:10",
+ "fields": [
+  {
+   "id": "folderBox",
+   "label": null,
+   "kind": "text"
+  }
+ ],
+ "buttons": [
+  "Create ...",
+  "Close",
+  "Upload"
+ ],
+ "notes": [],
+ "tbc_version": "2026.10"
+}

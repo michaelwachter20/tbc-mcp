@@ -1,0 +1,58 @@
+{
+ "key": "RotTransSclObjectsByPoints",
+ "caption": "Move/Rotate/Scale Objects by Points",
+ "last_seen": "2026-10-13T11:23:34",
+ "fields": [
+  {
+   "id": "ceTo1",
+   "label": "Point 1",
+   "kind": "text"
+  },
+  {
+   "id": "ceTo2",
+   "label": "Point 2",
+   "kind": "text"
+  },
+  {
+   "id": "ceFrom1",
+   "label": "Point 1",
+   "kind": "text"
+  },
+  {
+   "id": "ceFrom2",
+   "label": "Point 2",
+   "kind": "text"
+  },
+  {
+   "id": "scaleFactor",
+   "label": "Scale",
+   "kind": "text"
+  },
+  {
+   "id": "aeAngle",
+   "label": "Rotation angle",
+   "kind": "text"
+  },
+  {
+   "id": "deltaElevation",
+   "label": "Delta elevation",
+   "kind": "text"
+  },
+  {
+   "id": "SelectedEntities",
+   "label": "Objects to move",
+   "kind": "text"
+  },
+  {
+   "id": "UseElevationChk",
+   "label": "3D move",
+   "kind": "bool"
+  }
+ ],
+ "buttons": [
+  "Cancel",
+  "OK"
+ ],
+ "notes": [],
+ "tbc_version": "2026.10"
+}

@@ -1,0 +1,32 @@
+# --- Per-user / per-machine data: never commit ---------------------------------
+# License profiles now live in %LOCALAPPDATA%\TBC-MCP\license (outside the repo); this is a safety net
+# in case an older version or TBC_MCP_USER_DIR ever puts them back in here.
+knowledge/license/
+**/license/*.json
+# Error popups and crash investigations from this machine's TBC sessions
+knowledge/memory/tbc_errors.log
+knowledge/memory/crash_log.md
+# Local MCP client config with your own paths
+mcp_config.json
+claude_desktop_config.json
+
+# --- Test run output (contains coordinates from the open project) ---------------
+tests/*_results.json
+tests/*.txt
+tests/*.log
+tests/*.pdf
+tests/*.png
+tests/*.bmp
+tests/mcp_blocks_tmp/
+tests/mcp_export_tmp/
+tests/mcp_import_tmp/
+
+# --- Trimble material: rebuilt locally from each user's own SDK install ----------
+tools/sdkdoc.pkl
+
+# --- Python ---------------------------------------------------------------------
+__pycache__/
+*.pyc
+
+# --- Release packages built locally (tools\make_release.ps1) ------------------------
+dist/

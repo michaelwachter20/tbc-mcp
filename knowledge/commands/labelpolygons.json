@@ -1,0 +1,40 @@
+{
+ "key": "LabelPolygons",
+ "caption": "Label Polygons",
+ "last_seen": "2026-10-14T09:06:06",
+ "fields": [
+  {
+   "id": "Style",
+   "label": "Polygon label style",
+   "kind": "text"
+  },
+  {
+   "id": "SelectPolygonEntity",
+   "label": "Select polygon to label",
+   "kind": "entity"
+  },
+  {
+   "id": "Layer",
+   "label": "Layer",
+   "kind": "choice",
+   "options": "project data (not recorded)"
+  },
+  {
+   "id": "Rotation",
+   "label": "Rotation",
+   "kind": "text"
+  },
+  {
+   "id": "Selection",
+   "label": "Multi-select polygons to label",
+   "kind": "text"
+  }
+ ],
+ "buttons": [
+  "Remove",
+  "Add",
+  "Close"
+ ],
+ "notes": [],
+ "tbc_version": "2026.10"
+}

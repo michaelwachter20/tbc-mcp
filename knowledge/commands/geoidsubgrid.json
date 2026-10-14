@@ -1,0 +1,19 @@
+{
+ "key": "GeoidSubGrid",
+ "caption": "Geoid Sub-Gridding",
+ "last_seen": "2026-10-13T13:59:35",
+ "fields": [
+  {
+   "id": "geoidFolderBox",
+   "label": null,
+   "kind": "text"
+  }
+ ],
+ "buttons": [
+  "Create Sub-Grid",
+  "Close",
+  "Upload"
+ ],
+ "notes": [],
+ "tbc_version": "2026.10"
+}

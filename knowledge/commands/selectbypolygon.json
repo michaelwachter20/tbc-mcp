@@ -1,0 +1,37 @@
+{
+ "caption": "Polygon",
+ "last_seen": "2026-10-14T10:36:36",
+ "fields": [
+  {
+   "id": "m_BoundaryEntity",
+   "label": "Boundary",
+   "kind": "entity"
+  },
+  {
+   "id": "cb_SelectType",
+   "label": "Select by",
+   "kind": "choice",
+   "options_sample": [
+    "Inside boundary",
+    "Outside boundary",
+    "Crossing boundary",
+    "Part of boundary",
+    "Inside or part of boundary"
+   ],
+   "option_count": 5
+  },
+  {
+   "id": "m_AddToSelectionCheckbox",
+   "label": "Add to current selection",
+   "kind": "bool"
+  }
+ ],
+ "buttons": [
+  "Apply",
+  "Cancel",
+  "OK"
+ ],
+ "key": "SelectByPolygon",
+ "tbc_version": "2026.10",
+ "notes": []
+}

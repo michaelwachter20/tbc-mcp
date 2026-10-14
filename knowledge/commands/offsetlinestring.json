@@ -1,0 +1,59 @@
+{
+ "key": "OffsetLinestring",
+ "caption": "Offset Line",
+ "last_seen": "2026-10-13T16:14:52",
+ "fields": [
+  {
+   "id": "VerticalOffsetElevationEdit",
+   "label": "Vertical offset",
+   "kind": "text"
+  },
+  {
+   "id": "EntityNameLbl",
+   "label": "Name",
+   "kind": "text"
+  },
+  {
+   "id": "m_LineSelectEntity",
+   "label": "Line to offset",
+   "kind": "entity"
+  },
+  {
+   "id": "m_OffsetDistanceEdit",
+   "label": "Offset distance",
+   "kind": "text"
+  },
+  {
+   "id": "m_SideToOffset_LeftRightEdit",
+   "label": "Side to offset",
+   "kind": "text"
+  },
+  {
+   "id": "m_Layer",
+   "label": "Layer",
+   "kind": "choice",
+   "options": "project data (not recorded)"
+  },
+  {
+   "id": "cbSpecifyPortion",
+   "label": "Offset a segment",
+   "kind": "bool"
+  },
+  {
+   "id": "BeginStation",
+   "label": "Starting point",
+   "kind": "text"
+  },
+  {
+   "id": "EndStation",
+   "label": "Ending point",
+   "kind": "text"
+  }
+ ],
+ "buttons": [
+  "Close",
+  "Apply"
+ ],
+ "notes": [],
+ "tbc_version": "2026.10"
+}

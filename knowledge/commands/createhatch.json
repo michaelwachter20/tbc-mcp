@@ -1,0 +1,51 @@
+{
+ "key": "CreateHatch",
+ "caption": "Create Hatch",
+ "last_seen": "2026-10-14T09:03:45",
+ "fields": [
+  {
+   "id": "m_SelectedEntities",
+   "label": "Hatch boundaries",
+   "kind": "text"
+  },
+  {
+   "id": "m_oLayerControl",
+   "label": "Layer",
+   "kind": "choice",
+   "options": "project data (not recorded)"
+  },
+  {
+   "id": "cb_Patterns",
+   "label": "Pattern",
+   "kind": "choice",
+   "options_sample": [
+    "ANGLE",
+    "BLOCK",
+    "BLOCK_2_SCALE",
+    "CONC2",
+    "CONCRETE",
+    "CROSS",
+    "CROSS_#2",
+    "CROSS_#3"
+   ],
+   "option_count": 29
+  },
+  {
+   "id": "ne_Scale",
+   "label": "Scale",
+   "kind": "text"
+  },
+  {
+   "id": "be_Predefined",
+   "label": "Angle",
+   "kind": "text"
+  }
+ ],
+ "buttons": [
+  "Preview",
+  "Close",
+  "Apply"
+ ],
+ "notes": [],
+ "tbc_version": "2026.10"
+}

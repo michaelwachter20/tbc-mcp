@@ -1,0 +1,69 @@
+{
+ "key": "CreateDynaviewBoundaryCollection",
+ "caption": "Create Dynaview Boundary Set",
+ "last_seen": "2026-10-14T09:04:57",
+ "fields": [
+  {
+   "id": "rotRotation",
+   "label": "Rotation",
+   "kind": "text"
+  },
+  {
+   "id": "crdOrigin",
+   "label": "First sheet origin",
+   "kind": "text"
+  },
+  {
+   "id": "lyrLayer",
+   "label": "Layer",
+   "kind": "choice",
+   "options": "project data (not recorded)"
+  },
+  {
+   "id": "distOverlapY",
+   "label": "Y overlap",
+   "kind": "text"
+  },
+  {
+   "id": "distOverlapX",
+   "label": "X overlap",
+   "kind": "text"
+  },
+  {
+   "id": "nudRows",
+   "label": "Rows",
+   "kind": "number"
+  },
+  {
+   "id": "nudColumns",
+   "label": "Columns",
+   "kind": "number"
+  },
+  {
+   "id": "numScale",
+   "label": "Plot scale",
+   "kind": "text"
+  },
+  {
+   "id": "distHeight",
+   "label": "Height on paper",
+   "kind": "text"
+  },
+  {
+   "id": "distWidth",
+   "label": "Width on paper",
+   "kind": "text"
+  },
+  {
+   "id": "txtName",
+   "label": "Name",
+   "kind": "text"
+  }
+ ],
+ "buttons": [
+  "Close",
+  "Apply"
+ ],
+ "notes": [],
+ "tbc_version": "2026.10"
+}

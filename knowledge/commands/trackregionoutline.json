@@ -1,0 +1,49 @@
+{
+ "key": "TrackRegionOutline",
+ "caption": "Track Region Outline",
+ "last_seen": "2026-10-13T16:19:33",
+ "fields": [
+  {
+   "id": "m_LayerControl",
+   "label": "Layer",
+   "kind": "choice",
+   "options": "project data (not recorded)"
+  },
+  {
+   "id": "m_NameTextBox",
+   "label": "Name",
+   "kind": "text"
+  },
+  {
+   "id": "m_IncludeHolesCB",
+   "label": "Merge holes to boundary",
+   "kind": "bool"
+  },
+  {
+   "id": "m_GapClosureDistanceEdt",
+   "label": "Gap closure tolerance",
+   "kind": "text"
+  },
+  {
+   "id": "m_TrackInteriorRegionCheckbox",
+   "label": "Track interior regions",
+   "kind": "bool"
+  },
+  {
+   "id": "m_InteriorPtCoord",
+   "label": "Reference point",
+   "kind": "text"
+  },
+  {
+   "id": "m_LinesSelection",
+   "label": "Lines",
+   "kind": "text"
+  }
+ ],
+ "buttons": [
+  "Close",
+  "Apply"
+ ],
+ "notes": [],
+ "tbc_version": "2026.10"
+}

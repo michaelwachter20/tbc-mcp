@@ -1,0 +1,60 @@
+{
+ "key": "CreateLinearDimension",
+ "caption": "Create Linear Dimension",
+ "last_seen": "2026-10-14T09:01:37",
+ "fields": [
+  {
+   "id": "dimensionStyleComboBox1",
+   "label": "Dimension style",
+   "kind": "choice",
+   "options": "project data (not recorded)"
+  },
+  {
+   "id": "Layer",
+   "label": "Layer",
+   "kind": "choice",
+   "options": "project data (not recorded)"
+  },
+  {
+   "id": "Point2CoordinateEdit",
+   "label": "Dimension style",
+   "kind": "text"
+  },
+  {
+   "id": "EditTextCheckBox",
+   "label": "Edit text",
+   "kind": "bool"
+  },
+  {
+   "id": "DimensionXTextEdit1",
+   "label": "Location point",
+   "kind": "text"
+  },
+  {
+   "id": "LocationPointCoordinateEdit",
+   "label": "Location point",
+   "kind": "text"
+  },
+  {
+   "id": "Point1CoordinateEdit",
+   "label": "Dimension style",
+   "kind": "text"
+  },
+  {
+   "id": "LinearSelectTwoPointsModeRatio",
+   "label": "Two points",
+   "kind": "radio"
+  },
+  {
+   "id": "LinearSelectObjectModeRadio",
+   "label": "Line or arc segment",
+   "kind": "radio"
+  }
+ ],
+ "buttons": [
+  "Close",
+  "Apply"
+ ],
+ "notes": [],
+ "tbc_version": "2026.10"
+}

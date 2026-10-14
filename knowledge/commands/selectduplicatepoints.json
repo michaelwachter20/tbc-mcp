@@ -1,0 +1,44 @@
+{
+ "caption": "Select Duplicate Points",
+ "last_seen": "2026-10-14T10:36:04",
+ "fields": [
+  {
+   "id": "chkAddToCurrentSelection",
+   "label": "Add to current selection",
+   "kind": "bool"
+  },
+  {
+   "id": "MinimumDistance",
+   "label": null,
+   "kind": "text"
+  },
+  {
+   "id": "chkSelectPointsWithin",
+   "label": null,
+   "kind": "ultra"
+  },
+  {
+   "id": "rbIdentical",
+   "label": "Identical",
+   "kind": "radio"
+  },
+  {
+   "id": "rbIgnore",
+   "label": "Ignored",
+   "kind": "radio"
+  },
+  {
+   "id": "rbDifferent",
+   "label": "Different",
+   "kind": "radio"
+  }
+ ],
+ "buttons": [
+  "Apply",
+  "Cancel",
+  "OK"
+ ],
+ "key": "SelectDuplicatePoints",
+ "tbc_version": "2026.10",
+ "notes": []
+}

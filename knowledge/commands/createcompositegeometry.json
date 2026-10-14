@@ -1,0 +1,58 @@
+{
+ "key": "createcompositegeometry",
+ "caption": "Create Composite Geometry",
+ "last_seen": "2026-10-13T16:19:23",
+ "fields": [
+  {
+   "id": "Name",
+   "label": "Name",
+   "kind": "text"
+  },
+  {
+   "id": "Composite_type",
+   "label": "Composite type",
+   "kind": "choice",
+   "options_sample": [
+    "Composite polyline",
+    "Composite polygon"
+   ],
+   "option_count": 2
+  },
+  {
+   "id": "ComboBox",
+   "label": "Color",
+   "kind": "choice",
+   "options_sample": [
+    "By Layer",
+    "By Block / Feature",
+    "Aquamarine",
+    "Black",
+    "Blue",
+    "Brown",
+    "Cyan",
+    "Gray"
+   ],
+   "option_count": 18
+  },
+  {
+   "id": "ComboBox#2",
+   "label": "Layer",
+   "kind": "choice",
+   "options": "project data (not recorded)"
+  },
+  {
+   "id": "TextBox",
+   "label": "Elements to add to composite",
+   "kind": "text"
+  }
+ ],
+ "buttons": [
+  "Ok",
+  "Cancel",
+  "Options",
+  "Add",
+  "Remove"
+ ],
+ "notes": [],
+ "tbc_version": "2026.10"
+}

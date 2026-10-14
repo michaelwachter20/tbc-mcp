@@ -1,0 +1,18 @@
+{
+ "caption": "Select by Layer",
+ "last_seen": "2026-10-14T10:36:30",
+ "fields": [
+  {
+   "id": "LayerCheckedListBox",
+   "label": null,
+   "kind": "list",
+   "options": "project data (not recorded)"
+  }
+ ],
+ "buttons": [
+  "Close"
+ ],
+ "key": "SelectByLayer",
+ "tbc_version": "2026.10",
+ "notes": []
+}

@@ -1,0 +1,24 @@
+{
+ "key": "pastespecial",
+ "caption": "Paste special",
+ "last_seen": "2026-10-13T11:24:07",
+ "fields": [
+  {
+   "id": "Paste_method",
+   "label": "Paste method",
+   "kind": "choice",
+   "options_sample": [
+    "Paste selection",
+    "Paste files",
+    "Paste image"
+   ],
+   "option_count": 3
+  }
+ ],
+ "buttons": [
+  "OK",
+  "Cancel"
+ ],
+ "notes": [],
+ "tbc_version": "2026.10"
+}

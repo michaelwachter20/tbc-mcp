@@ -1,0 +1,60 @@
+{
+ "key": "CreateAngularDimension",
+ "caption": "Create Angular Dimension",
+ "last_seen": "2026-10-13T16:53:51",
+ "fields": [
+  {
+   "id": "dimensionStyleComboBox1",
+   "label": "Dimension style",
+   "kind": "choice",
+   "options": "project data (not recorded)"
+  },
+  {
+   "id": "Layer",
+   "label": "Layer",
+   "kind": "choice",
+   "options": "project data (not recorded)"
+  },
+  {
+   "id": "EditTextCheckBox",
+   "label": "Edit text",
+   "kind": "bool"
+  },
+  {
+   "id": "DimensionXTextEdit1",
+   "label": "Location point",
+   "kind": "text"
+  },
+  {
+   "id": "LocationPointCoordinateEdit",
+   "label": "Location point",
+   "kind": "text"
+  },
+  {
+   "id": "Line1SelectEntity",
+   "label": "Dimension style",
+   "kind": "entity"
+  },
+  {
+   "id": "Line2SelectEntity",
+   "label": "Dimension style",
+   "kind": "entity"
+  },
+  {
+   "id": "AngularSelectTwoLineModeRadio",
+   "label": "Two line segments",
+   "kind": "radio"
+  },
+  {
+   "id": "AngularSelectObjectModeRadio",
+   "label": "Arc segment",
+   "kind": "radio"
+  }
+ ],
+ "buttons": [
+  "Close",
+  "Apply"
+ ],
+ "notes": [],
+ "tbc_version": "2026.10"
+}

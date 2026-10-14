@@ -1,0 +1,18 @@
+{
+ "key": "CreateCOGO",
+ "caption": "Create COGO",
+ "last_seen": "2026-10-13T13:03:11",
+ "fields": [
+  {
+   "id": "factoryFileTextBox",
+   "label": "Line commands for MCP_COGO_TEST",
+   "kind": "text"
+  }
+ ],
+ "buttons": [
+  "Close",
+  "OK"
+ ],
+ "notes": [],
+ "tbc_version": "2026.10"
+}

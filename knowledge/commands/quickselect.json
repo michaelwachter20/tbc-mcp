@@ -1,0 +1,84 @@
+{
+ "caption": "Advanced Select",
+ "last_seen": "2026-10-14T10:36:54",
+ "fields": [
+  {
+   "id": "m_rbCurrentReplace",
+   "label": "Current selection",
+   "kind": "radio"
+  },
+  {
+   "id": "m_rbEntireAppend",
+   "label": "All data, and add to current selection",
+   "kind": "radio"
+  },
+  {
+   "id": "m_rbEntireReplace",
+   "label": "All data, and replace the current selection",
+   "kind": "radio"
+  },
+  {
+   "id": "m_cbPrimaryField",
+   "label": "Name",
+   "kind": "choice"
+  },
+  {
+   "id": "m_cbOperator",
+   "label": "That is",
+   "kind": "choice"
+  },
+  {
+   "id": "m_cbProperties",
+   "label": "Data type",
+   "kind": "choice",
+   "options_sample": [
+    "None available"
+   ],
+   "option_count": 1
+  },
+  {
+   "id": "m_cbObjectType",
+   "label": "Data type",
+   "kind": "choice",
+   "options_sample": [
+    "Multiple data types",
+    "As-Staked Line Point",
+    "As-Staked Point",
+    "CAD 3D PolyLine",
+    "CAD Arc",
+    "CAD BlockReference",
+    "CAD Line",
+    "CAD Multiline Text"
+   ],
+   "option_count": 24
+  },
+  {
+   "id": "m_cbExclude",
+   "label": "This value",
+   "kind": "ultra"
+  },
+  {
+   "id": "m_rbDataWithTheFollowing",
+   "label": "Data with the following property",
+   "kind": "radio"
+  },
+  {
+   "id": "m_rbAllOfThisDataType",
+   "label": "All of this data type",
+   "kind": "radio"
+  },
+  {
+   "id": "This_value",
+   "label": "This value",
+   "kind": "text"
+  }
+ ],
+ "buttons": [
+  "Cancel",
+  "OK",
+  "Apply"
+ ],
+ "key": "QuickSelect",
+ "tbc_version": "2026.10",
+ "notes": []
+}

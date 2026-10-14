@@ -1,0 +1,398 @@
+{
+ "tabs": [
+  "Home | Home",
+  "Views | Views",
+  "Survey | Survey",
+  "GIS | GIS",
+  "CAD | CAD",
+  "Linework | Linework",
+  "Drafting | Drafting",
+  "BIM | BIM",
+  "SurfaceTools | Surfaces",
+  "AlignmentTools | Corridors",
+  "PointCloudData | Point Clouds",
+  "FieldData | Construction Data",
+  "Quadri | Quadri",
+  "Photogrammetry | Photogrammetry",
+  "Tunnels | Tunnels",
+  "Mines | Mines",
+  "Monitoring | Monitoring",
+  "MobileMapping | Mobile Mapping",
+  "DataPrep | Data Prep",
+  "Takeoff | Takeoff",
+  "SiteMassHaul | Site Mass Haul",
+  "CorridorMassHaul | Corridor Mass Haul",
+  "Utility | Utility",
+  "PilePlan | Drill Pile Compact",
+  "ANZEdit | ANZ Edit",
+  "ANZTools | ANZ Tools",
+  "Reports | Reports",
+  "Macros | Macros",
+  "Support | Support"
+ ],
+ "groups": [
+  {
+   "tools": [
+    {
+     "key": "LayerManager",
+     "visible": true,
+     "type": "StateButtonTool",
+     "enabled": true,
+     "caption": "Layer Manager"
+    },
+    {
+     "key": "LayerGroupManager",
+     "visible": true,
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Layer Groups"
+    },
+    {
+     "key": "RelayerObjects",
+     "visible": true,
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Relayer Objects"
+    },
+    {
+     "key": "StandardizeLayers",
+     "visible": true,
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Standardize"
+    },
+    {
+     "key": "ANZ_RegroupLayers",
+     "visible": true,
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Regroup Layers"
+    },
+    {
+     "key": "ANZ_DeleteLayers",
+     "visible": true,
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Delete layers"
+    }
+   ],
+   "group": "Layers"
+  },
+  {
+   "tools": [
+    {
+     "key": "AddPoint",
+     "visible": true,
+     "children": [],
+     "type": "PopupGalleryTool",
+     "enabled": true,
+     "caption": "Create Point"
+    },
+    {
+     "key": "ConvertCADPoints",
+     "visible": true,
+     "children": [
+      {
+       "key": "ANZ_ConvertToCADPoints",
+       "visible": true,
+       "type": "ButtonTool",
+       "enabled": true,
+       "caption": "Convert To CAD"
+      }
+     ],
+     "type": "PopupGalleryTool",
+     "enabled": true,
+     "caption": "Convert CAD Points"
+    },
+    {
+     "key": "CreateAtInterval",
+     "visible": true,
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Create at Intervals"
+    },
+    {
+     "key": "ANZ_PointsFromChainageOffset",
+     "visible": true,
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Station Offset"
+    },
+    {
+     "key": "CreateFromCAD",
+     "visible": true,
+     "children": [
+      {
+       "key": "CreateFromBimCmd",
+       "visible": true,
+       "type": "ButtonTool",
+       "enabled": true,
+       "caption": "Create from BIM"
+      }
+     ],
+     "type": "PopupGalleryTool",
+     "enabled": true,
+     "caption": "Create from CAD"
+    },
+    {
+     "key": "DuplicateCmd.1.GeometryPointIntegrateCmd",
+     "visible": true,
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Integrate to Geometry"
+    },
+    {
+     "key": "ANZ_FindAndReplacePoints",
+     "visible": true,
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Find and Replace"
+    }
+   ],
+   "group": "Points"
+  },
+  {
+   "tools": [
+    {
+     "key": "ANZ_MapObjects",
+     "visible": true,
+     "children": [
+      {
+       "key": "ANZ_MapAndExport",
+       "visible": true,
+       "type": "ButtonTool",
+       "enabled": true,
+       "caption": "Map and Export"
+      }
+     ],
+     "type": "PopupGalleryTool",
+     "enabled": true,
+     "caption": "Map Objects"
+    },
+    {
+     "key": "MatchProperties",
+     "visible": true,
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Match Properties"
+    },
+    {
+     "key": "ANZ_RenameObjects",
+     "visible": true,
+     "children": [
+      {
+       "key": "NameObjects",
+       "visible": true,
+       "type": "ButtonTool",
+       "enabled": true,
+       "caption": "Name Objects"
+      }
+     ],
+     "type": "PopupGalleryTool",
+     "enabled": true,
+     "caption": "Rename Objects"
+    },
+    {
+     "key": "ANZ_RemoveDuplicates",
+     "visible": true,
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Remove Duplicates"
+    },
+    {
+     "key": "ChangeElevation",
+     "visible": true,
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Change Elevation"
+    },
+    {
+     "key": "DrapeObjectsOnSurface",
+     "visible": true,
+     "children": [
+      {
+       "key": "DrapeObjectsOnPointCloud",
+       "visible": true,
+       "type": "ButtonTool",
+       "enabled": true,
+       "caption": "Drape Objects"
+      }
+     ],
+     "type": "PopupGalleryTool",
+     "enabled": true,
+     "caption": "Drape Objects"
+    }
+   ],
+   "group": "Edit Objects"
+  },
+  {
+   "tools": [
+    {
+     "key": "MoveObjects",
+     "visible": true,
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Move"
+    },
+    {
+     "key": "RotateObjects",
+     "visible": true,
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Rotate"
+    },
+    {
+     "key": "ScaleObjects",
+     "visible": true,
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Scale"
+    },
+    {
+     "key": "RotTransSclObjectsByPoints",
+     "visible": true,
+     "children": [
+      {
+       "key": "TransformSurveyPoints",
+       "visible": true,
+       "type": "ButtonTool",
+       "enabled": true,
+       "caption": "Transform Survey Points"
+      },
+      {
+       "key": "RotTransSclObjects",
+       "visible": true,
+       "type": "ButtonTool",
+       "enabled": true,
+       "caption": "Transform"
+      }
+     ],
+     "type": "PopupGalleryTool",
+     "enabled": true,
+     "caption": "By Points"
+    },
+    {
+     "key": "MirrorObjects",
+     "visible": true,
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Mirror"
+    }
+   ],
+   "group": "Move/Transform"
+  },
+  {
+   "tools": [
+    {
+     "key": "CopyObjects",
+     "visible": true,
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Copy"
+    },
+    {
+     "key": "ANZ_Array",
+     "visible": true,
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Array"
+    }
+   ],
+   "group": "Clone"
+  },
+  {
+   "tools": [
+    {
+     "key": "Copy",
+     "visible": true,
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Copy"
+    },
+    {
+     "key": "Paste",
+     "visible": true,
+     "type": "ButtonTool",
+     "enabled": false,
+     "caption": "Paste"
+    },
+    {
+     "key": "PasteSpecial",
+     "visible": true,
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Paste special"
+    }
+   ],
+   "group": "Copy/Paste"
+  },
+  {
+   "tools": [
+    {
+     "key": "Explode",
+     "visible": true,
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Explode"
+    }
+   ],
+   "group": "Explode"
+  },
+  {
+   "tools": [
+    {
+     "key": "georeferenceImage",
+     "visible": true,
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Georef Image"
+    },
+    {
+     "key": "GeoReferenceVectorPdf",
+     "visible": true,
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Georef Vector PDF"
+    },
+    {
+     "key": "ImportVectorPdfData",
+     "visible": true,
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Import Vector PDF"
+    },
+    {
+     "key": "PlaceImage",
+     "visible": true,
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Place Image"
+    },
+    {
+     "key": "Capture",
+     "visible": true,
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Capture"
+    },
+    {
+     "key": "ImageBoundaries",
+     "visible": true,
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Boundaries"
+    },
+    {
+     "key": "CopyViewToClipboard",
+     "visible": true,
+     "type": "ButtonTool",
+     "enabled": true,
+     "caption": "Copy View"
+    }
+   ],
+   "group": "Images"
+  }
+ ],
+ "tbc_version": "2026.10",
+ "tbc_build": "44.0.9666.28609"
+}

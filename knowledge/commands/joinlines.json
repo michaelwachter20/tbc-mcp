@@ -1,0 +1,56 @@
+{
+ "key": "JoinLines",
+ "caption": "Join Lines",
+ "last_seen": "2026-10-13T16:15:30",
+ "fields": [
+  {
+   "id": "AllMemberSelection",
+   "label": "Lines to join",
+   "kind": "text"
+  },
+  {
+   "id": "AllRadioButton",
+   "label": "All selected lines",
+   "kind": "radio"
+  },
+  {
+   "id": "OneToSelectionMemberSelection",
+   "label": "Lines to join",
+   "kind": "text"
+  },
+  {
+   "id": "OneToSelectionPrimarySelectEntity",
+   "label": "Base line",
+   "kind": "entity"
+  },
+  {
+   "id": "OneToSelectionRadioButton",
+   "label": "One line to selection",
+   "kind": "radio"
+  },
+  {
+   "id": "TwoRadioButton",
+   "label": "Two lines",
+   "kind": "radio"
+  },
+  {
+   "id": "TwoSecondarySelectEntity",
+   "label": "Line to join",
+   "kind": "entity"
+  },
+  {
+   "id": "TwoPrimarySelectEntity",
+   "label": "Base line",
+   "kind": "entity"
+  }
+ ],
+ "buttons": [
+  null,
+  null,
+  null,
+  "Close",
+  "Join"
+ ],
+ "notes": [],
+ "tbc_version": "2026.10"
+}

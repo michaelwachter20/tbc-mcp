@@ -1,0 +1,50 @@
+{
+ "key": "ANZ_ExplodeLines",
+ "caption": "Explode Lines",
+ "last_seen": "2026-10-13T16:15:22",
+ "fields": [
+  {
+   "id": "TextBox",
+   "label": "Lines",
+   "kind": "text"
+  },
+  {
+   "id": "CheckBoxRelayer",
+   "label": null,
+   "kind": "bool"
+  },
+  {
+   "id": "ComboBox",
+   "label": null,
+   "kind": "choice",
+   "options": "project data (not recorded)"
+  },
+  {
+   "id": "checkBox",
+   "label": "Delete existing",
+   "kind": "bool"
+  },
+  {
+   "id": "explodeAll",
+   "label": "Every segment",
+   "kind": "radio"
+  },
+  {
+   "id": "explodeDeflection",
+   "label": "Large deflections",
+   "kind": "radio"
+  },
+  {
+   "id": "ClientAreaTextBox",
+   "label": "Max angle",
+   "kind": "text"
+  }
+ ],
+ "buttons": [
+  "Apply",
+  "Close",
+  "Options"
+ ],
+ "notes": [],
+ "tbc_version": "2026.10"
+}

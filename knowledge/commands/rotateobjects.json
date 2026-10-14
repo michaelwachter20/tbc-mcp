@@ -1,0 +1,38 @@
+{
+ "key": "RotateObjects",
+ "caption": "Rotate Objects",
+ "last_seen": "2026-10-13T11:40:11",
+ "fields": [
+  {
+   "id": "aeAngle",
+   "label": "Angle",
+   "kind": "text"
+  },
+  {
+   "id": "SelectedEntities",
+   "label": "Objects to rotate",
+   "kind": "text"
+  },
+  {
+   "id": "ceFrom",
+   "label": "Around",
+   "kind": "text"
+  },
+  {
+   "id": "UpdateDependentObjects",
+   "label": "Update dependent objects when dragging",
+   "kind": "bool"
+  },
+  {
+   "id": "DragObjectsChk",
+   "label": "Show preview",
+   "kind": "bool"
+  }
+ ],
+ "buttons": [
+  "Close",
+  "Apply"
+ ],
+ "notes": [],
+ "tbc_version": "2026.10"
+}

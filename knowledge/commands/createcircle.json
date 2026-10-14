@@ -1,0 +1,39 @@
+{
+ "key": "CreateCircle",
+ "caption": "Create Circle",
+ "last_seen": "2026-10-13T16:12:41",
+ "fields": [
+  {
+   "id": "ClientAreaTextBox",
+   "label": "Name",
+   "kind": "text"
+  },
+  {
+   "id": "ComboBox",
+   "label": "Layer",
+   "kind": "choice",
+   "options": "project data (not recorded)"
+  },
+  {
+   "id": "ClientAreaTextBox#2",
+   "label": "Elevation",
+   "kind": "text"
+  },
+  {
+   "id": "ClientAreaTextBox#3",
+   "label": "Center point",
+   "kind": "text"
+  },
+  {
+   "id": "ClientAreaTextBox#4",
+   "label": "Radius",
+   "kind": "text"
+  }
+ ],
+ "buttons": [
+  "Create",
+  "Cancel"
+ ],
+ "notes": [],
+ "tbc_version": "2026.10"
+}

@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "tbc": {
+      "command": "py",
+      "args": ["-3.12", "C:\\path\\to\\tbc-mcp\\mcp_server\\tbc_mcp_server.py"]
+    }
+  }
+}

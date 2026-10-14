@@ -1,0 +1,29 @@
+{
+ "key": "NameObjects",
+ "caption": "Name Objects",
+ "last_seen": "2026-10-13T11:40:40",
+ "fields": [
+  {
+   "id": "m_SelectEntity",
+   "label": "Object to name",
+   "kind": "entity"
+  },
+  {
+   "id": "m_Name",
+   "label": "New name",
+   "kind": "entity"
+  },
+  {
+   "id": "tbCommandLine",
+   "label": "Results",
+   "kind": "text"
+  }
+ ],
+ "buttons": [
+  "Select Unnamed Objects",
+  "Close",
+  "Apply"
+ ],
+ "notes": [],
+ "tbc_version": "2026.10"
+}

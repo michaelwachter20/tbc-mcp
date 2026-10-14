@@ -1,0 +1,12 @@
+{
+ "key": "MergeSurveyProjects",
+ "caption": "Merge Survey Projects",
+ "last_seen": "2026-10-13T11:55:54",
+ "fields": [],
+ "buttons": [
+  "Cancel",
+  "OK"
+ ],
+ "notes": [],
+ "tbc_version": "2026.10"
+}

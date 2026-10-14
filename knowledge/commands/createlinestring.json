@@ -1,0 +1,67 @@
+{
+ "key": "CreateLinestring",
+ "caption": "Create Linestring",
+ "last_seen": "2026-10-13T16:18:58",
+ "fields": [
+  {
+   "id": "LinestringName",
+   "label": "Name",
+   "kind": "text"
+  },
+  {
+   "id": "Layer",
+   "label": "Layer",
+   "kind": "choice",
+   "options": "project data (not recorded)"
+  },
+  {
+   "id": "LineStyle",
+   "label": "Line style",
+   "kind": "choice",
+   "options": "project data (not recorded)"
+  },
+  {
+   "id": "LineStyleScale",
+   "label": "Line style scale",
+   "kind": "text"
+  },
+  {
+   "id": "LineColor",
+   "label": "Color",
+   "kind": "choice",
+   "options_sample": [
+    "By Layer",
+    "By Block / Feature",
+    "Aquamarine",
+    "Black",
+    "Blue",
+    "Brown",
+    "Cyan",
+    "Gray"
+   ],
+   "option_count": 18
+  },
+  {
+   "id": "ExtendVertical",
+   "label": "Extend vertical",
+   "kind": "bool"
+  },
+  {
+   "id": "Sharpness",
+   "label": "Surface sharpness",
+   "kind": "choice",
+   "options": "project data (not recorded)"
+  },
+  {
+   "id": "Closed",
+   "label": "Auto-close",
+   "kind": "bool"
+  }
+ ],
+ "buttons": [
+  "Cancel",
+  "OK"
+ ],
+ "notes": [],
+ "tbc_version": "2026.10"
+}

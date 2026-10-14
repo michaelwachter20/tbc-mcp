@@ -1,0 +1,56 @@
+{
+ "key": "CreatePolyline",
+ "caption": "Create Polyline",
+ "last_seen": "2026-10-13T16:12:32",
+ "fields": [
+  {
+   "id": "m_ElevationEdit",
+   "label": "Elevation",
+   "kind": "text"
+  },
+  {
+   "id": "CloseModeComboBox",
+   "label": "Automatically close by connecting ends",
+   "kind": "choice",
+   "options_sample": [
+    "Never",
+    "Always",
+    "If ends are close"
+   ],
+   "option_count": 3
+  },
+  {
+   "id": "m_Layer",
+   "label": "Layer",
+   "kind": "choice",
+   "options": "project data (not recorded)"
+  },
+  {
+   "id": "NameTextBox",
+   "label": "Name",
+   "kind": "text"
+  },
+  {
+   "id": "StreamPointsRadioButton",
+   "label": "Stream points",
+   "kind": "radio"
+  },
+  {
+   "id": "PickPointsRadioButton",
+   "label": "Specify individual points",
+   "kind": "radio"
+  },
+  {
+   "id": "NextPointCoordinateEdit",
+   "label": "Next point",
+   "kind": "text"
+  }
+ ],
+ "buttons": [
+  "Add Point",
+  "Close",
+  "New"
+ ],
+ "notes": [],
+ "tbc_version": "2026.10"
+}

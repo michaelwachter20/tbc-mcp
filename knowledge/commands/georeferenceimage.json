@@ -1,0 +1,20 @@
+{
+ "key": "GeoReferenceImage",
+ "caption": "Georeference Image",
+ "last_seen": "2026-10-13T11:24:12",
+ "fields": [
+  {
+   "id": "cepImage",
+   "label": null,
+   "kind": "text"
+  }
+ ],
+ "buttons": [
+  "Delete",
+  "Add",
+  "Close",
+  "Compute"
+ ],
+ "notes": [],
+ "tbc_version": "2026.10"
+}

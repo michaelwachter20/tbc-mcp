@@ -1,0 +1,30 @@
+{
+ "key": "CrossingGeometry",
+ "caption": "Detect Crossing Geometry",
+ "last_seen": "2026-10-13T16:19:41",
+ "fields": [
+  {
+   "id": "memberSelection1",
+   "label": "Selection",
+   "kind": "text"
+  },
+  {
+   "id": "distanceEdit1",
+   "label": "Vertical tolerance (optional)",
+   "kind": "text"
+  },
+  {
+   "id": "checkBox1",
+   "label": "Exclude objects with undefined or 0 elevations",
+   "kind": "bool"
+  }
+ ],
+ "buttons": [
+  "Close",
+  "Apply",
+  "Report",
+  "Remove All Flags"
+ ],
+ "notes": [],
+ "tbc_version": "2026.10"
+}

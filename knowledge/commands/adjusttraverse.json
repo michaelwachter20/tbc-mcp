@@ -1,0 +1,119 @@
+{
+ "key": "AdjustTraverse",
+ "caption": "Adjust Traverse",
+ "last_seen": "2026-10-13T13:11:25",
+ "fields": [
+  {
+   "id": "stationComboBox",
+   "label": null,
+   "kind": "choice",
+   "options": "project data (not recorded)"
+  },
+  {
+   "id": "statusComboBox",
+   "label": "Status",
+   "kind": "choice",
+   "options_sample": [
+    "Enabled",
+    "Disabled"
+   ],
+   "option_count": 2
+  },
+  {
+   "id": "modeComboBox",
+   "label": "Mode",
+   "kind": "choice",
+   "options_sample": [
+    "Adjust automatically",
+    "Adjust manually"
+   ],
+   "option_count": 2
+  },
+  {
+   "id": "horizontalComboBox",
+   "label": "Adjust horizontal",
+   "kind": "choice",
+   "options_sample": [
+    "None",
+    "Compass/Bowditch",
+    "Transit"
+   ],
+   "option_count": 3
+  },
+  {
+   "id": "elevationComboBox",
+   "label": "Adjust vertical",
+   "kind": "choice",
+   "options_sample": [
+    "Proportional to distance",
+    "Equal proportions",
+    "None"
+   ],
+   "option_count": 3
+  },
+  {
+   "id": "anglesComboBox",
+   "label": "Adjust angles",
+   "kind": "choice",
+   "options_sample": [
+    "Proportional to distance",
+    "Equal proportions",
+    "None"
+   ],
+   "option_count": 3
+  },
+  {
+   "id": "lastAutoRadioButton",
+   "label": "All available backsights",
+   "kind": "radio"
+  },
+  {
+   "id": "lastAzimuthTextBox",
+   "label": "Azimuth",
+   "kind": "text"
+  },
+  {
+   "id": "lastForesightComboBox",
+   "label": null,
+   "kind": "choice"
+  },
+  {
+   "id": "lastManualRadioButton",
+   "label": "Single foresight",
+   "kind": "radio"
+  },
+  {
+   "id": "firstAutoRadioButton",
+   "label": "All available backsights",
+   "kind": "radio"
+  },
+  {
+   "id": "firstBacksightComboBox",
+   "label": null,
+   "kind": "choice"
+  },
+  {
+   "id": "firstAzimuthTextBox",
+   "label": "Azimuth",
+   "kind": "text"
+  },
+  {
+   "id": "firstManualRadioButton",
+   "label": "Single backsight",
+   "kind": "radio"
+  },
+  {
+   "id": "traverseComboBox",
+   "label": "Traverse name",
+   "kind": "choice",
+   "options": "project data (not recorded)"
+  }
+ ],
+ "buttons": [
+  "Clear",
+  "Close",
+  "Apply"
+ ],
+ "notes": [],
+ "tbc_version": "2026.10"
+}

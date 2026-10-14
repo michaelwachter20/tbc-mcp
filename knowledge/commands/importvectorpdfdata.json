@@ -1,0 +1,53 @@
+{
+ "key": "ImportVectorPdfData",
+ "caption": "Import Vector PDF Data",
+ "last_seen": "2026-10-13T11:24:16",
+ "fields": [
+  {
+   "id": "m_radioPreservePdfLayers",
+   "label": "Preserve native PDF layers",
+   "kind": "radio"
+  },
+  {
+   "id": "m_radioOrganizeByStyle",
+   "label": "Layer by style",
+   "kind": "radio"
+  },
+  {
+   "id": "m_radioDoNotJoinDashedLines",
+   "label": "Do not join dashed lines",
+   "kind": "radio"
+  },
+  {
+   "id": "m_radioJoinAndPreserve",
+   "label": "Join dashed lines and preserve raw data",
+   "kind": "radio"
+  },
+  {
+   "id": "m_radioJoinAndDiscard",
+   "label": "Join dashed lines and discard raw data",
+   "kind": "radio"
+  },
+  {
+   "id": "m_bIncludeFillwork",
+   "label": "Georeferenced vector PDF pages",
+   "kind": "ultra"
+  },
+  {
+   "id": "m_bIncludeZeroLengthLines",
+   "label": "Georeferenced vector PDF pages",
+   "kind": "ultra"
+  },
+  {
+   "id": "m_bClipUsingImageBoundary",
+   "label": "Georeferenced vector PDF pages",
+   "kind": "ultra"
+  }
+ ],
+ "buttons": [
+  "Close",
+  "Import"
+ ],
+ "notes": [],
+ "tbc_version": "2026.10"
+}

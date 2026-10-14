@@ -1,0 +1,18 @@
+{
+ "_intro": [
+  "- **Acts immediately (no panel):** Disable Redundant BS (changes data), Loop Closure (report in the browser), Processing Services (opens a web page). Ask the user first.",
+  "- The spreadsheet tools (Feature, Occupation, Vector, Optical) and Time-Based View open **view windows**, not panels. Close them when done (user preference).",
+  "- Greyed-out tools depend on project data: Process Baselines and Clear Processing need GNSS baselines, Clear Adjustment needs an adjustment, Mean Angle Residuals needs MTA data.",
+  "- Tools marked not licensed need the ANZ Toolbox and are refused automatically."
+ ],
+ "DisableRedundantBacksights": "**ACTS IMMEDIATELY**: disables ALL redundant backsight observations in the project (no panel, no confirmation); then recompute with F4. Only run it when the user asks.",
+ "LoopClosure": "**ACTS IMMEDIATELY**: generates the GNSS Loop Closure Results report and opens it in the web browser (read-only). Clear the selection first, or the results are skewed.",
+ "ExternalProcessingServices": "**Opens a Trimble web page** in the browser (external processing services: OPUS, CRSR, AUSPOS, ...). Do not open it unless the user asks.",
+ "ConvertCSVtoFXL": "Needs a Feature Library in the project; otherwise shows the WPF popup \"Feature Library Missing\" (buttons OK / New Feature Library). Close it with X.",
+ "CombineLevelBags": "Nothing appears when the project has no level files to combine.",
+ "SiteCalibrationCalculation": "May open with a Yes/No question when GNSS base points are not derived from global positions (asks whether to use them anyway). Answer as the user decides; No is the safe way out.",
+ "TotalStationEditor": "Starts with a \"Select Total Station Files\" dialog (OK / Cancel).",
+ "LevelEditor": "Level Editor dialog (runs, station setups, side shots; Adjust/Merge/Split runs). Without level data it also asks to \"Create New Run\".",
+ "tbc_version": "2026.10",
+ "tbc_build": "44.0.9666.28609"
+}

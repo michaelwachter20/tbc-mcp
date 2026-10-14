@@ -1,0 +1,34 @@
+{
+ "key": "CreateLineLabelTable",
+ "caption": "Create Line Label Table",
+ "last_seen": "2026-10-14T09:04:36",
+ "fields": [
+  {
+   "id": "Style",
+   "label": "Style",
+   "kind": "text"
+  },
+  {
+   "id": "Layer",
+   "label": "Layer",
+   "kind": "choice",
+   "options": "project data (not recorded)"
+  },
+  {
+   "id": "TitleTextBox",
+   "label": "Title",
+   "kind": "text"
+  },
+  {
+   "id": "LocationCoordinateEdit",
+   "label": null,
+   "kind": "text"
+  }
+ ],
+ "buttons": [
+  "Cancel",
+  "OK"
+ ],
+ "notes": [],
+ "tbc_version": "2026.10"
+}

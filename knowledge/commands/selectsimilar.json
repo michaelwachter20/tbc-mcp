@@ -1,0 +1,100 @@
+{
+ "caption": "Select Similar",
+ "last_seen": "2026-10-14T10:36:44",
+ "fields": [
+  {
+   "id": "selectEntity",
+   "label": "Source object",
+   "kind": "entity"
+  },
+  {
+   "id": "chkColor",
+   "label": "Color",
+   "kind": "bool"
+  },
+  {
+   "id": "chkLineStyle",
+   "label": "Line style",
+   "kind": "bool"
+  },
+  {
+   "id": "chkFeatureAttribute",
+   "label": null,
+   "kind": "bool"
+  },
+  {
+   "id": "chkBlockScale",
+   "label": "Block scale",
+   "kind": "bool"
+  },
+  {
+   "id": "chkFeatureLocked",
+   "label": "Feature locked",
+   "kind": "bool"
+  },
+  {
+   "id": "chkLabelTableStyle",
+   "label": "Label table style",
+   "kind": "bool"
+  },
+  {
+   "id": "chkFeatureCode",
+   "label": "Feature code",
+   "kind": "bool"
+  },
+  {
+   "id": "chkLabelStyle",
+   "label": "Label style",
+   "kind": "bool"
+  },
+  {
+   "id": "chkBlockRotation",
+   "label": "Block rotation",
+   "kind": "bool"
+  },
+  {
+   "id": "chkName",
+   "label": "Name",
+   "kind": "bool"
+  },
+  {
+   "id": "chkDimensionStyle",
+   "label": "Dimension style",
+   "kind": "bool"
+  },
+  {
+   "id": "chkTextStyle",
+   "label": "Text style",
+   "kind": "bool"
+  },
+  {
+   "id": "chkWeight",
+   "label": "Weight",
+   "kind": "bool"
+  },
+  {
+   "id": "chkLineStyleScale",
+   "label": "Line style scale",
+   "kind": "bool"
+  },
+  {
+   "id": "chkAllProperties",
+   "label": "All properties",
+   "kind": "bool"
+  },
+  {
+   "id": "chkLayer",
+   "label": "Layer",
+   "kind": "bool"
+  }
+ ],
+ "buttons": [
+  "Select target attributes",
+  "Cancel",
+  "OK",
+  "Apply"
+ ],
+ "key": "SelectSimilar",
+ "tbc_version": "2026.10",
+ "notes": []
+}

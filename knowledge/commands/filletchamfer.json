@@ -1,0 +1,48 @@
+{
+ "key": "FilletChamfer",
+ "caption": "Fillet Chamfer",
+ "last_seen": "2026-10-13T15:54:20",
+ "fields": [
+  {
+   "id": "chkEntireLine",
+   "label": "Apply to entire line",
+   "kind": "bool"
+  },
+  {
+   "id": "dseRadius",
+   "label": "Fillet radius",
+   "kind": "text"
+  },
+  {
+   "id": "selLine1",
+   "label": "Target line segments",
+   "kind": "entity"
+  },
+  {
+   "id": "selLine2",
+   "label": "Target line segments",
+   "kind": "entity"
+  },
+  {
+   "id": "chkTrim",
+   "label": "Trim object",
+   "kind": "bool"
+  },
+  {
+   "id": "rdoChamfer",
+   "label": "Chamfer",
+   "kind": "radio"
+  },
+  {
+   "id": "rdoFillet",
+   "label": "Fillet",
+   "kind": "radio"
+  }
+ ],
+ "buttons": [
+  "Close",
+  "Apply"
+ ],
+ "notes": [],
+ "tbc_version": "2026.10"
+}

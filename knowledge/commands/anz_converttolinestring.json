@@ -1,0 +1,82 @@
+{
+ "key": "ANZ_ConvertToLinestring",
+ "caption": "Convert To Linestring",
+ "last_seen": "2026-10-13T16:14:45",
+ "fields": [
+  {
+   "id": "TextBox",
+   "label": "Select entities",
+   "kind": "text"
+  },
+  {
+   "id": "DeleteExisting",
+   "label": null,
+   "kind": "bool"
+  },
+  {
+   "id": "ConvertAlignments",
+   "label": null,
+   "kind": "bool"
+  },
+  {
+   "id": "AllowLeaders",
+   "label": null,
+   "kind": "bool"
+  },
+  {
+   "id": "ConvertUcs",
+   "label": null,
+   "kind": "bool"
+  },
+  {
+   "id": "ClientAreaTextBox",
+   "label": "Horizontal arc tolerance",
+   "kind": "text"
+  },
+  {
+   "id": "ClientAreaTextBox#2",
+   "label": "Vertical arc tolerance",
+   "kind": "text"
+  },
+  {
+   "id": "OverrideLayerColor",
+   "label": "Override layer and color",
+   "kind": "bool"
+  },
+  {
+   "id": "ComboBox",
+   "label": "Layer",
+   "kind": "choice",
+   "options": "project data (not recorded)"
+  },
+  {
+   "id": "ComboBox#2",
+   "label": "Color",
+   "kind": "choice",
+   "options_sample": [
+    "By Layer",
+    "By Block / Feature",
+    "Aquamarine",
+    "Black",
+    "Blue",
+    "Brown",
+    "Cyan",
+    "Gray"
+   ],
+   "option_count": 18
+  },
+  {
+   "id": "CheckBoxAutoConvertOnImport",
+   "label": "Auto convert to linestrings on import",
+   "kind": "bool"
+  }
+ ],
+ "buttons": [
+  "Apply",
+  "OK",
+  "Close",
+  "Options"
+ ],
+ "notes": [],
+ "tbc_version": "2026.10"
+}

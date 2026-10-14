@@ -1,0 +1,138 @@
+{
+ "key": "TransformSurveyPoints",
+ "caption": "Transform Survey Points",
+ "last_seen": "2026-10-13T12:51:28",
+ "fields": [
+  {
+   "id": "hzResidualBox",
+   "label": "H. Residual",
+   "kind": "text"
+  },
+  {
+   "id": "vtResidualBox",
+   "label": "V. Residual",
+   "kind": "text"
+  },
+  {
+   "id": "enableCheckBox",
+   "label": null,
+   "kind": "bool"
+  },
+  {
+   "id": "fromPoint",
+   "label": null,
+   "kind": "text"
+  },
+  {
+   "id": "toPoint",
+   "label": null,
+   "kind": "text"
+  },
+  {
+   "id": "verticalScaleCheckBox",
+   "label": "Fix vertical scale at 1.00",
+   "kind": "bool"
+  },
+  {
+   "id": "xRotation",
+   "label": "Objects to transform",
+   "kind": "text"
+  },
+  {
+   "id": "xRotationCheckBox",
+   "label": "X Rotation",
+   "kind": "bool"
+  },
+  {
+   "id": "yRotation",
+   "label": "Objects to transform",
+   "kind": "text"
+  },
+  {
+   "id": "yRotationCheckBox",
+   "label": "Y Rotation",
+   "kind": "bool"
+  },
+  {
+   "id": "firstPointRadioButton",
+   "label": "First \"From point\"",
+   "kind": "radio"
+  },
+  {
+   "id": "centroidRadioButton",
+   "label": "Centroid",
+   "kind": "radio"
+  },
+  {
+   "id": "northingCheckBox",
+   "label": "Delta Northing",
+   "kind": "bool"
+  },
+  {
+   "id": "scaleFactor",
+   "label": "Objects to transform",
+   "kind": "text"
+  },
+  {
+   "id": "eastingCheckBox",
+   "label": "Delta Easting",
+   "kind": "bool"
+  },
+  {
+   "id": "zRotation",
+   "label": "Objects to transform",
+   "kind": "text"
+  },
+  {
+   "id": "deltaEasting",
+   "label": "Objects to transform",
+   "kind": "text"
+  },
+  {
+   "id": "deltaElevation",
+   "label": "Objects to transform",
+   "kind": "text"
+  },
+  {
+   "id": "elevationCheckBox",
+   "label": "Delta elevation",
+   "kind": "bool"
+  },
+  {
+   "id": "deltaNorthing",
+   "label": "Objects to transform",
+   "kind": "text"
+  },
+  {
+   "id": "zRotationCheckBox",
+   "label": "Z Rotation (delta azimuth)",
+   "kind": "bool"
+  },
+  {
+   "id": "scaleCheckBox",
+   "label": "Horizontal scale",
+   "kind": "bool"
+  },
+  {
+   "id": "SelectedEntities",
+   "label": "Objects to transform",
+   "kind": "text"
+  },
+  {
+   "id": "leastSquaresRadioButton",
+   "label": "Least squares",
+   "kind": "radio"
+  },
+  {
+   "id": "helmertRadioButton",
+   "label": "Helmert",
+   "kind": "radio"
+  }
+ ],
+ "buttons": [
+  "Close",
+  "Apply"
+ ],
+ "notes": [],
+ "tbc_version": "2026.10"
+}

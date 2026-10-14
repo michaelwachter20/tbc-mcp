@@ -1,0 +1,21 @@
+{
+ "key": "AdjustProjectTerraNet",
+ "caption": "Adjust Network",
+ "last_seen": "2026-10-13T13:47:29",
+ "fields": [
+  {
+   "id": "m_subNetworkComboBox",
+   "label": "Subnetwork name",
+   "kind": "choice",
+   "options": "project data (not recorded)"
+  }
+ ],
+ "buttons": [
+  "Adjust",
+  "Add Azimuth Constraint",
+  "Cancel",
+  "OK"
+ ],
+ "notes": [],
+ "tbc_version": "2026.10"
+}

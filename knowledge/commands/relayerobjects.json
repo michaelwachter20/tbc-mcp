@@ -1,0 +1,30 @@
+{
+ "key": "RelayerObjects",
+ "caption": "Relayer Objects",
+ "last_seen": "2026-10-13T11:40:36",
+ "fields": [
+  {
+   "id": "TextBox",
+   "label": "Multi-select objects to relayer",
+   "kind": "text"
+  },
+  {
+   "id": "ComboBox",
+   "label": "Target layer",
+   "kind": "choice",
+   "options": "project data (not recorded)"
+  },
+  {
+   "id": "ClientAreaTextBox",
+   "label": "Select objects to relayer",
+   "kind": "text"
+  }
+ ],
+ "buttons": [
+  "Apply",
+  "Close",
+  "Options"
+ ],
+ "notes": [],
+ "tbc_version": "2026.10"
+}

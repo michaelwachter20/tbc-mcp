@@ -1,0 +1,106 @@
+{
+ "key": "SingleProportioning",
+ "caption": "Single Proportioning",
+ "last_seen": "2026-10-13T12:56:24",
+ "fields": [
+  {
+   "id": "createReportCheckBox",
+   "label": "Create report",
+   "kind": "bool"
+  },
+  {
+   "id": "createPointsCheckBox",
+   "label": "Create points at start/end positions",
+   "kind": "bool"
+  },
+  {
+   "id": "selectLineEntity",
+   "label": "Select segments (optional)",
+   "kind": "entity"
+  },
+  {
+   "id": "startPointCoordinateEdit",
+   "label": "Select starting position",
+   "kind": "text"
+  },
+  {
+   "id": "endPointCoordinateEdit",
+   "label": "Select ending position",
+   "kind": "text"
+  },
+  {
+   "id": "createLinesCheckBox",
+   "label": "Create lines",
+   "kind": "bool"
+  },
+  {
+   "id": "pointsLayer",
+   "label": "Layer",
+   "kind": "choice",
+   "options": "project data (not recorded)"
+  },
+  {
+   "id": "startingPointTextBox",
+   "label": "Starting point ID",
+   "kind": "text"
+  },
+  {
+   "id": "featureEdit",
+   "label": "Feature code",
+   "kind": "text"
+  },
+  {
+   "id": "geodeticRadioButton",
+   "label": "Geodetic (global)",
+   "kind": "radio"
+  },
+  {
+   "id": "planarRadioButton",
+   "label": "Planar (grid)",
+   "kind": "radio"
+  },
+  {
+   "id": "groundRadioButton",
+   "label": "Ground",
+   "kind": "radio"
+  },
+  {
+   "id": "gridRadioButton",
+   "label": "Grid",
+   "kind": "radio"
+  },
+  {
+   "id": "combinedScaleFactorBox",
+   "label": "Scale factor",
+   "kind": "text"
+  },
+  {
+   "id": "distanceEdit",
+   "label": null,
+   "kind": "text"
+  },
+  {
+   "id": "fixedCheckBox",
+   "label": "Fixed",
+   "kind": "bool"
+  },
+  {
+   "id": "distanceEdit#2",
+   "label": null,
+   "kind": "text"
+  },
+  {
+   "id": "fixedCheckBox#2",
+   "label": "Fixed",
+   "kind": "bool"
+  }
+ ],
+ "buttons": [
+  "Reverse Direction",
+  "Calculate",
+  "Close",
+  "Apply"
+ ],
+ "notes": [],
+ "tbc_version": "2026.10"
+}

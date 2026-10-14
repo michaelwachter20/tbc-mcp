@@ -1,0 +1,33 @@
+{
+ "key": "MirrorObjects",
+ "caption": "Mirror Objects",
+ "last_seen": "2026-10-13T11:40:20",
+ "fields": [
+  {
+   "id": "deleteSourceCheckBox",
+   "label": "Delete source objects",
+   "kind": "bool"
+  },
+  {
+   "id": "ceFrom",
+   "label": "From",
+   "kind": "text"
+  },
+  {
+   "id": "ceTo",
+   "label": "To",
+   "kind": "text"
+  },
+  {
+   "id": "SelectedEntities",
+   "label": "Objects to mirror",
+   "kind": "text"
+  }
+ ],
+ "buttons": [
+  "Close",
+  "Apply"
+ ],
+ "notes": [],
+ "tbc_version": "2026.10"
+}

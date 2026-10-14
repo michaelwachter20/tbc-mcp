@@ -1,0 +1,57 @@
+{
+ "key": "CreateArc",
+ "caption": "Create Arc",
+ "last_seen": "2026-10-13T16:52:40",
+ "fields": [
+  {
+   "id": "Name",
+   "label": "Name",
+   "kind": "text"
+  },
+  {
+   "id": "ComboBox",
+   "label": "Layer",
+   "kind": "choice",
+   "options": "project data (not recorded)"
+  },
+  {
+   "id": "ClientAreaTextBox",
+   "label": "Elevation",
+   "kind": "text"
+  },
+  {
+   "id": "Create_arc_using",
+   "label": "Create arc using",
+   "kind": "choice",
+   "options_sample": [
+    "Start, Middle, End",
+    "Start, Center, End",
+    "Center, Start, Angle",
+    "Start, End, Angle",
+    "Start, End, Radius"
+   ],
+   "option_count": 5
+  },
+  {
+   "id": "ClientAreaTextBox#2",
+   "label": "Start point",
+   "kind": "text"
+  },
+  {
+   "id": "ClientAreaTextBox#3",
+   "label": "Middle point",
+   "kind": "text"
+  },
+  {
+   "id": "ClientAreaTextBox#4",
+   "label": "End point",
+   "kind": "text"
+  }
+ ],
+ "buttons": [
+  "Apply",
+  "Close"
+ ],
+ "notes": [],
+ "tbc_version": "2026.10"
+}

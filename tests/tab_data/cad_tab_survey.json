@@ -1,0 +1,795 @@
+{
+ "start": [
+  true,
+  7364,
+  7259
+ ],
+ "end": [
+  true,
+  7364,
+  7259
+ ],
+ "results": [
+  {
+   "group": "Layers",
+   "caption": "Layer Manager",
+   "key": "LayerManager",
+   "type": "StateButtonTool",
+   "outcome": "no panel/dialog (acts directly, toggles a pane, or needs a selection)",
+   "note": "toggle; ran twice to restore",
+   "modified_after": true
+  },
+  {
+   "group": "Layers",
+   "caption": "Layer Groups",
+   "key": "LayerGroupManager",
+   "type": "ButtonTool",
+   "outcome": "panel",
+   "panel": "Layer Group Manager",
+   "fields": [],
+   "buttons": [
+    "Delete",
+    "New",
+    "Close"
+   ],
+   "modified_after": true
+  },
+  {
+   "group": "Layers",
+   "caption": "Relayer Objects",
+   "key": "RelayerObjects",
+   "type": "ButtonTool",
+   "outcome": "panel",
+   "panel": "Relayer Objects",
+   "fields": [
+    "Multi-select objects to relayer [text]",
+    "Target layer [choice]",
+    "Select objects to relayer [text]"
+   ],
+   "buttons": [
+    "Apply",
+    "Close",
+    "Options"
+   ],
+   "modified_after": true
+  },
+  {
+   "group": "Layers",
+   "caption": "Standardize",
+   "key": "StandardizeLayers",
+   "type": "ButtonTool",
+   "outcome": "panel",
+   "panel": "Standardize Layers",
+   "fields": [
+    "m_AllLayersList [list]"
+   ],
+   "buttons": [
+    "Close",
+    "Apply"
+   ],
+   "modified_after": true
+  },
+  {
+   "group": "Layers",
+   "caption": "Regroup Layers",
+   "key": "ANZ_RegroupLayers",
+   "type": "ButtonTool",
+   "outcome": "not licensed (skipped, needs one of ['ANZToolbox', 'SurveyAdvancedJapan'])"
+  },
+  {
+   "group": "Layers",
+   "caption": "Delete layers",
+   "key": "ANZ_DeleteLayers",
+   "type": "ButtonTool",
+   "outcome": "not licensed (skipped, needs one of ['ANZToolbox', 'SurveyAdvancedJapan'])"
+  },
+  {
+   "group": "Points",
+   "caption": "Create Point",
+   "key": "AddPoint",
+   "type": "PopupGalleryTool",
+   "outcome": "panel",
+   "panel": "Create Point",
+   "fields": [
+    "Measure Codes mode [bool]",
+    "Layer [choice]",
+    "Feature code [text]",
+    "Point ID [text]",
+    "Status [choice]",
+    "Height [text]",
+    "Northing [text]",
+    "Easting [text]",
+    "Elevation [text]",
+    "Coordinate type [choice]"
+   ],
+   "buttons": [
+    "Close",
+    "Add"
+   ],
+   "modified_after": true
+  },
+  {
+   "group": "Points",
+   "caption": "Convert CAD Points",
+   "key": "ConvertCADPoints",
+   "type": "PopupGalleryTool",
+   "outcome": "dialog",
+   "dialogs": [
+    {
+     "title": "Warning",
+     "message": "No CAD points are selected.",
+     "buttons": [
+      "OK"
+     ],
+     "native": false
+    }
+   ],
+   "dismissed": [
+    {
+     "dialog": "Warning",
+     "action": "closed with X",
+     "license": false
+    }
+   ],
+   "modified_after": true
+  },
+  {
+   "group": "Points",
+   "caption": "Convert To CAD",
+   "key": "ANZ_ConvertToCADPoints",
+   "type": "ButtonTool",
+   "outcome": "not licensed (skipped, needs one of ['ANZToolbox', 'SurveyAdvancedJapan'])"
+  },
+  {
+   "group": "Points",
+   "caption": "Create at Intervals",
+   "key": "CreateAtInterval",
+   "type": "ButtonTool",
+   "outcome": "panel",
+   "panel": "Create Points at Intervals",
+   "fields": [
+    "Two points [radio]",
+    "Selection [radio]",
+    "memberSelection1 [text]",
+    "Point quality [choice]",
+    "Vertical offset [text]",
+    "Create grid-only points [bool]",
+    "Horizontal offset [text]",
+    "Layer [choice]",
+    "Feature code [text]",
+    "Add points at start and end position [bool]",
+    "Add points at intermediate line vertices [bool]",
+    "Add points at vertical transitions [bool]",
+    "Interval [text]",
+    "Starting point ID [text]"
+   ],
+   "buttons": [
+    "Close",
+    "Apply"
+   ],
+   "modified_after": true
+  },
+  {
+   "group": "Points",
+   "caption": "Station Offset",
+   "key": "ANZ_PointsFromChainageOffset",
+   "type": "ButtonTool",
+   "outcome": "not licensed (skipped, needs one of ['ANZToolbox', 'SurveyAdvancedJapan'])"
+  },
+  {
+   "group": "Points",
+   "caption": "Create from CAD",
+   "key": "CreateFromCAD",
+   "type": "PopupGalleryTool",
+   "outcome": "panel",
+   "panel": "Create Points from CAD",
+   "fields": [
+    "Point quality [choice]",
+    "Selection [text]",
+    "Create grid-only points [bool]",
+    "Centroids of closed lines [bool]",
+    "Segment end points [bool]",
+    "Intersections [bool]",
+    "Insertion points [bool]",
+    "CAD points and mesh vertices [bool]",
+    "Arc/circle centers [bool]",
+    "Line mid points [bool]",
+    "Line end points [bool]",
+    "Starting point ID [text]",
+    "Layer [choice]",
+    "Feature code [text]"
+   ],
+   "buttons": [
+    "Close",
+    "Apply"
+   ],
+   "modified_after": true
+  },
+  {
+   "group": "Points",
+   "caption": "Create from BIM",
+   "key": "CreateFromBimCmd",
+   "type": "ButtonTool",
+   "outcome": "panel",
+   "panel": "Create Points from BIM",
+   "fields": [
+    "Select BIM objects [text]",
+    "Create from mesh centroids [bool]",
+    "Use individual mesh centroids [radio]",
+    "Use BIM geometry centroids [radio]",
+    "Use BIM properties [radio]",
+    "Create from mesh faces [bool]",
+    "Use all selected mesh faces [radio]",
+    "Use all horizontal mesh faces [radio]",
+    "Use lowest horizontal mesh faces [radio]",
+    "Use pipe/beam end faces [radio]",
+    "Create grid-only points [bool]",
+    "Point quality [choice]",
+    "Starting point ID [text]",
+    "Layer [choice]"
+   ],
+   "buttons": [
+    "Apply",
+    "Close",
+    "Options"
+   ],
+   "modified_after": true
+  },
+  {
+   "group": "Points",
+   "caption": "Integrate to Geometry",
+   "key": "GeometryPointIntegrateCmd",
+   "type": "ButtonTool",
+   "outcome": "panel",
+   "panel": "Integrate to Geometry",
+   "fields": [
+    "Select points and geometry [text]",
+    "Starting point ID [text]"
+   ],
+   "buttons": [
+    "Close",
+    "Options",
+    "Process",
+    "Clear"
+   ],
+   "modified_after": true
+  },
+  {
+   "group": "Points",
+   "caption": "Find and Replace",
+   "key": "ANZ_FindAndReplacePoints",
+   "type": "ButtonTool",
+   "outcome": "not licensed (skipped, needs one of ['ANZToolbox', 'SurveyAdvancedJapan'])"
+  },
+  {
+   "group": "Edit Objects",
+   "caption": "Map Objects",
+   "key": "ANZ_MapObjects",
+   "type": "PopupGalleryTool",
+   "outcome": "not licensed (skipped, needs one of ['ANZToolbox', 'SurveyAdvancedJapan'])"
+  },
+  {
+   "group": "Edit Objects",
+   "caption": "Map and Export",
+   "key": "ANZ_MapAndExport",
+   "type": "ButtonTool",
+   "outcome": "not licensed (skipped, needs one of ['ANZToolbox', 'SurveyAdvancedJapan'])"
+  },
+  {
+   "group": "Edit Objects",
+   "caption": "Match Properties",
+   "key": "MatchProperties",
+   "type": "ButtonTool",
+   "outcome": "panel",
+   "panel": "Match Properties",
+   "fields": [
+    "Target object [text]",
+    "Match properties for all object types [bool]",
+    "Target object [text]",
+    "Source object [text]",
+    "Color [bool]",
+    "Line style [bool]",
+    "chkFeatureAttribute [bool]",
+    "Block scale [bool]",
+    "Feature locked [bool]",
+    "Label table style [bool]",
+    "Feature code [bool]",
+    "Label style [bool]",
+    "Block rotation [bool]",
+    "Name [bool]",
+    "Dimension style [bool]",
+    "Text style [bool]",
+    "Weight [bool]",
+    "Line style scale [bool]",
+    "All properties [bool]",
+    "Layer [bool]"
+   ],
+   "buttons": [
+    "Select target attributes",
+    "Close",
+    "Apply"
+   ],
+   "modified_after": true
+  },
+  {
+   "group": "Edit Objects",
+   "caption": "Rename Objects",
+   "key": "ANZ_RenameObjects",
+   "type": "PopupGalleryTool",
+   "outcome": "not licensed (skipped, needs one of ['ANZToolbox', 'SurveyAdvancedJapan'])"
+  },
+  {
+   "group": "Edit Objects",
+   "caption": "Name Objects",
+   "key": "NameObjects",
+   "type": "ButtonTool",
+   "outcome": "panel",
+   "panel": "Name Objects",
+   "fields": [
+    "Object to name [text]",
+    "New name [text]",
+    "Results [text]"
+   ],
+   "buttons": [
+    "Select Unnamed Objects",
+    "Close",
+    "Apply"
+   ],
+   "modified_after": true
+  },
+  {
+   "group": "Edit Objects",
+   "caption": "Remove Duplicates",
+   "key": "ANZ_RemoveDuplicates",
+   "type": "ButtonTool",
+   "outcome": "not licensed (skipped, needs one of ['ANZToolbox', 'SurveyAdvancedJapan'])"
+  },
+  {
+   "group": "Edit Objects",
+   "caption": "Change Elevation",
+   "key": "ChangeElevation",
+   "type": "ButtonTool",
+   "outcome": "panel",
+   "panel": "Change Elevation",
+   "fields": [
+    "Objects to elevate [text]",
+    "Delta elevation [radio]",
+    "Absolute elevation [radio]",
+    "Undefined elevation [radio]",
+    "Surface elevation [radio]",
+    "Relative to point [radio]",
+    "Elevation [text]"
+   ],
+   "buttons": [
+    "Close",
+    "Apply"
+   ],
+   "modified_after": true
+  },
+  {
+   "group": "Edit Objects",
+   "caption": "Drape Objects",
+   "key": "DrapeObjectsOnSurface",
+   "type": "PopupGalleryTool",
+   "outcome": "panel",
+   "panel": "Drape Objects On Surface",
+   "fields": [
+    "Select multiple [bool]",
+    "Surface sharpness [choice]",
+    "Reference line/point [text]",
+    "Surface [text]",
+    "Layer [choice]"
+   ],
+   "buttons": [
+    "Close",
+    "Apply"
+   ],
+   "modified_after": true
+  },
+  {
+   "group": "Edit Objects",
+   "caption": "Drape Objects",
+   "key": "DrapeObjectsOnPointCloud",
+   "type": "ButtonTool",
+   "outcome": "panel",
+   "panel": "Drape Objects",
+   "fields": [
+    "CAD objects selection [text]",
+    "Point cloud selection [text]",
+    "Search Strategy [choice]",
+    "Search distance [text]",
+    "Offset lines [bool]",
+    "Creation Options [text]",
+    "choice [choice]",
+    "Add point when interval exceeds [bool]",
+    "ClientAreaTextBox#3 [text]",
+    "Interpolate missing elevations for lines [bool]",
+    "Layer [choice]",
+    "Delete the existing objects [bool]"
+   ],
+   "buttons": [
+    "Apply",
+    "Cancel"
+   ],
+   "modified_after": true
+  },
+  {
+   "group": "Move/Transform",
+   "caption": "Move",
+   "key": "MoveObjects",
+   "type": "ButtonTool",
+   "outcome": "panel",
+   "panel": "Move Objects",
+   "fields": [
+    "Delta elevation [text]",
+    "Objects to move [text]",
+    "From [text]",
+    "To [text]",
+    "3D move [bool]",
+    "Update dependent objects when dragging [bool]",
+    "Show preview [bool]"
+   ],
+   "buttons": [
+    "Close",
+    "Apply"
+   ],
+   "modified_after": true
+  },
+  {
+   "group": "Move/Transform",
+   "caption": "Rotate",
+   "key": "RotateObjects",
+   "type": "ButtonTool",
+   "outcome": "panel",
+   "panel": "Rotate Objects",
+   "fields": [
+    "Angle [text]",
+    "Objects to rotate [text]",
+    "Around [text]",
+    "Update dependent objects when dragging [bool]",
+    "Show preview [bool]"
+   ],
+   "buttons": [
+    "Close",
+    "Apply"
+   ],
+   "modified_after": true
+  },
+  {
+   "group": "Move/Transform",
+   "caption": "Scale",
+   "key": "ScaleObjects",
+   "type": "ButtonTool",
+   "outcome": "panel",
+   "panel": "Scale Objects",
+   "fields": [
+    "Horizontal (Y) scale [text]",
+    "Lock X and Y scales [bool]",
+    "From [text]",
+    "Horizontal (X) scale [text]",
+    "Objects to scale [text]",
+    "Scale vertical [bool]",
+    "Base elevation [text]",
+    "Vertical scale [text]"
+   ],
+   "buttons": [
+    "Close",
+    "Apply"
+   ],
+   "modified_after": true
+  },
+  {
+   "group": "Move/Transform",
+   "caption": "By Points",
+   "key": "RotTransSclObjectsByPoints",
+   "type": "PopupGalleryTool",
+   "outcome": "panel",
+   "panel": "Move/Rotate/Scale Objects by Points",
+   "fields": [
+    "Point 1 [text]",
+    "Point 2 [text]",
+    "Point 1 [text]",
+    "Point 2 [text]",
+    "Scale [text]",
+    "Rotation angle [text]",
+    "Delta elevation [text]",
+    "Objects to move [text]",
+    "3D move [bool]"
+   ],
+   "buttons": [
+    "Cancel",
+    "OK"
+   ],
+   "modified_after": true
+  },
+  {
+   "group": "Move/Transform",
+   "caption": "Transform Survey Points",
+   "key": "TransformSurveyPoints",
+   "type": "ButtonTool",
+   "outcome": "panel",
+   "panel": "Transform Survey Points",
+   "fields": [
+    "H. Residual [text]",
+    "V. Residual [text]",
+    "enableCheckBox [bool]",
+    "fromPoint [text]",
+    "toPoint [text]",
+    "Fix vertical scale at 1.00 [bool]",
+    "Objects to transform [text]",
+    "X Rotation [bool]",
+    "Objects to transform [text]",
+    "Y Rotation [bool]",
+    "First \"From point\" [radio]",
+    "Centroid [radio]",
+    "Delta Northing [bool]",
+    "Objects to transform [text]",
+    "Delta Easting [bool]",
+    "Objects to transform [text]",
+    "Objects to transform [text]",
+    "Objects to transform [text]",
+    "Delta elevation [bool]",
+    "Objects to transform [text]",
+    "Z Rotation (delta azimuth) [bool]",
+    "Horizontal scale [bool]",
+    "Objects to transform [text]",
+    "Least squares [radio]",
+    "Helmert [radio]"
+   ],
+   "buttons": [
+    "Close",
+    "Apply"
+   ],
+   "modified_after": true
+  },
+  {
+   "group": "Move/Transform",
+   "caption": "Transform",
+   "key": "RotTransSclObjects",
+   "type": "ButtonTool",
+   "outcome": "panel",
+   "panel": "Move/Rotate/Scale Objects",
+   "fields": [
+    "Horizontal scale [text]",
+    "Rotation angle [text]",
+    "Delta elevation [text]",
+    "Objects to move [text]",
+    "From [text]",
+    "To [text]",
+    "3D move [bool]"
+   ],
+   "buttons": [
+    "Close",
+    "Apply"
+   ],
+   "modified_after": true
+  },
+  {
+   "group": "Move/Transform",
+   "caption": "Mirror",
+   "key": "MirrorObjects",
+   "type": "ButtonTool",
+   "outcome": "panel",
+   "panel": "Mirror Objects",
+   "fields": [
+    "Delete source objects [bool]",
+    "From [text]",
+    "To [text]",
+    "Objects to mirror [text]"
+   ],
+   "buttons": [
+    "Close",
+    "Apply"
+   ],
+   "modified_after": true
+  },
+  {
+   "group": "Clone",
+   "caption": "Copy",
+   "key": "CopyObjects",
+   "type": "ButtonTool",
+   "outcome": "panel",
+   "panel": "Copy Objects",
+   "fields": [
+    "Relayer copied objects [bool]",
+    "Objects to copy [text]"
+   ],
+   "buttons": [
+    "Close",
+    "Apply"
+   ],
+   "modified_after": true
+  },
+  {
+   "group": "Clone",
+   "caption": "Array",
+   "key": "ANZ_Array",
+   "type": "ButtonTool",
+   "outcome": "not licensed (skipped, needs one of ['ANZToolbox', 'SurveyAdvancedJapan'])"
+  },
+  {
+   "group": "Copy/Paste",
+   "caption": "Copy",
+   "key": "Copy",
+   "type": "ButtonTool",
+   "outcome": "no panel/dialog (acts directly, toggles a pane, or needs a selection)",
+   "modified_after": true
+  },
+  {
+   "group": "Copy/Paste",
+   "caption": "Paste",
+   "key": "Paste",
+   "type": "ButtonTool",
+   "outcome": "disabled on ribbon (skipped)"
+  },
+  {
+   "group": "Copy/Paste",
+   "caption": "Paste special",
+   "key": "PasteSpecial",
+   "type": "ButtonTool",
+   "outcome": "panel",
+   "panel": "Paste special",
+   "fields": [
+    "Paste method [choice]"
+   ],
+   "buttons": [
+    "OK",
+    "Cancel"
+   ],
+   "modified_after": true
+  },
+  {
+   "group": "Explode",
+   "caption": "Explode",
+   "key": "Explode",
+   "type": "ButtonTool",
+   "outcome": "panel",
+   "panel": "Explode",
+   "fields": [
+    "Delete blocks after exploding [bool]",
+    "Objects to explode [text]"
+   ],
+   "buttons": [
+    "Close",
+    "Explode"
+   ],
+   "modified_after": true
+  },
+  {
+   "group": "Images",
+   "caption": "Georef Image",
+   "key": "georeferenceImage",
+   "type": "ButtonTool",
+   "outcome": "panel",
+   "panel": "Georeference Image",
+   "fields": [
+    "cepImage [text]"
+   ],
+   "buttons": [
+    "Delete",
+    "Add",
+    "Close",
+    "Compute"
+   ],
+   "modified_after": true
+  },
+  {
+   "group": "Images",
+   "caption": "Georef Vector PDF",
+   "key": "GeoReferenceVectorPdf",
+   "type": "ButtonTool",
+   "outcome": "dialog",
+   "dialogs": [
+    {
+     "title": "Georeference Vector PDF",
+     "message": "No PDF file is defined in the project.",
+     "buttons": [
+      "OK"
+     ],
+     "native": false
+    }
+   ],
+   "dismissed": [
+    {
+     "dialog": "Georeference Vector PDF",
+     "action": "closed with X",
+     "license": false
+    }
+   ],
+   "modified_after": true
+  },
+  {
+   "group": "Images",
+   "caption": "Import Vector PDF",
+   "key": "ImportVectorPdfData",
+   "type": "ButtonTool",
+   "outcome": "panel",
+   "panel": "Import Vector PDF Data",
+   "fields": [
+    "Preserve native PDF layers [radio]",
+    "Layer by style [radio]",
+    "Do not join dashed lines [radio]",
+    "Join dashed lines and preserve raw data [radio]",
+    "Join dashed lines and discard raw data [radio]",
+    "Georeferenced vector PDF pages [ultra]",
+    "Georeferenced vector PDF pages [ultra]",
+    "Georeferenced vector PDF pages [ultra]"
+   ],
+   "buttons": [
+    "Close",
+    "Import"
+   ],
+   "modified_after": true
+  },
+  {
+   "group": "Images",
+   "caption": "Place Image",
+   "key": "PlaceImage",
+   "type": "ButtonTool",
+   "outcome": "panel",
+   "panel": "Place Image",
+   "fields": [
+    "m_cmbGeorefedImages [choice]",
+    "Bearing [text]",
+    "To pixel [text]",
+    "From pixel [text]",
+    "Distance [text]",
+    "To pixel [text]",
+    "From pixel [text]",
+    "Known distance [radio]",
+    "Line with distance and bearing [radio]",
+    "Scale bar and known bearing [radio]"
+   ],
+   "buttons": [
+    "Close",
+    "Compute"
+   ],
+   "modified_after": true
+  },
+  {
+   "group": "Images",
+   "caption": "Capture",
+   "key": "Capture",
+   "type": "ButtonTool",
+   "outcome": "panel",
+   "panel": "Capture Image...",
+   "fields": [
+    "Select plotbox (optional) [text]",
+    "File name [text]",
+    "Resolution [choice]"
+   ],
+   "buttons": [
+    "Close",
+    "Apply"
+   ],
+   "modified_after": true
+  },
+  {
+   "group": "Images",
+   "caption": "Boundaries",
+   "key": "ImageBoundaries",
+   "type": "ButtonTool",
+   "outcome": "panel",
+   "panel": "Add/Remove Image Boundaries",
+   "fields": [
+    "Clipping boundary [text]"
+   ],
+   "buttons": [
+    "Close",
+    "Add",
+    "Remove"
+   ],
+   "modified_after": true
+  },
+  {
+   "group": "Images",
+   "caption": "Copy View",
+   "key": "CopyViewToClipboard",
+   "type": "ButtonTool",
+   "outcome": "no panel/dialog (acts directly, toggles a pane, or needs a selection)",
+   "modified_after": true
+  }
+ ],
+ "tbc_version": "2026.10",
+ "tbc_build": "44.0.9666.28609"
+}

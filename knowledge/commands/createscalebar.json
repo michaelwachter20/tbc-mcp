@@ -1,0 +1,156 @@
+{
+ "key": "CreateScaleBar",
+ "caption": "Create Scale Bar",
+ "last_seen": "2026-10-14T09:05:15",
+ "fields": [
+  {
+   "id": "nedScale",
+   "label": "Scale bar type",
+   "kind": "text"
+  },
+  {
+   "id": "rdoSpecifyScale",
+   "label": "Specify scale",
+   "kind": "radio"
+  },
+  {
+   "id": "rdoTargetDynaview",
+   "label": "Target dynaview",
+   "kind": "radio"
+  },
+  {
+   "id": "cboBarType",
+   "label": "Scale bar type",
+   "kind": "choice",
+   "options_sample": [
+    "Scale Line",
+    "Alternating Scale Bar",
+    "Double Alternating Scale Bar"
+   ],
+   "option_count": 3
+  },
+  {
+   "id": "cdeLocation",
+   "label": "Location",
+   "kind": "text"
+  },
+  {
+   "id": "cboLayer",
+   "label": "Layer",
+   "kind": "choice",
+   "options": "project data (not recorded)"
+  },
+  {
+   "id": "txtScaleLabelPrefix",
+   "label": "Prefix",
+   "kind": "text"
+  },
+  {
+   "id": "cboScaleLabelPosition",
+   "label": "Position",
+   "kind": "choice",
+   "options_sample": [
+    "Top left",
+    "Top center",
+    "Top right",
+    "Middle left",
+    "Middle right",
+    "Bottom left",
+    "Bottom center",
+    "Bottom right"
+   ],
+   "option_count": 8
+  },
+  {
+   "id": "cboScaleLabelTextStyle",
+   "label": "Text style",
+   "kind": "choice",
+   "options": "project data (not recorded)"
+  },
+  {
+   "id": "cboScaleLabelFormat",
+   "label": "Format",
+   "kind": "choice",
+   "options_sample": [
+    "1:<Scale>",
+    "1/<Scale>",
+    "1<Sheet unit> = <Ground unit>"
+   ],
+   "option_count": 3
+  },
+  {
+   "id": "chkScaleLabelDisplay",
+   "label": "Display scale label",
+   "kind": "bool"
+  },
+  {
+   "id": "cboRulerPosition",
+   "label": "Position",
+   "kind": "choice",
+   "options_sample": [
+    "Above the bar",
+    "Below the bar"
+   ],
+   "option_count": 2
+  },
+  {
+   "id": "cboRulerTextStyle",
+   "label": "Text style",
+   "kind": "choice",
+   "options": "project data (not recorded)"
+  },
+  {
+   "id": "dseBarLUnit",
+   "label": "Left sheet unit per bar unit",
+   "kind": "text"
+  },
+  {
+   "id": "cboBarNumLDiv",
+   "label": "Number of left divisions",
+   "kind": "choice",
+   "options_sample": [
+    "No divisions",
+    "1 division",
+    "2 divisions",
+    "3 divisions",
+    "4 divisions",
+    "5 divisions",
+    "6 divisions",
+    "7 divisions"
+   ],
+   "option_count": 11
+  },
+  {
+   "id": "dseBarRUnit",
+   "label": "Right sheet unit per bar unit",
+   "kind": "text"
+  },
+  {
+   "id": "cboBarNumRDiv",
+   "label": "Number of right divisions",
+   "kind": "choice",
+   "options_sample": [
+    "1 division",
+    "2 divisions",
+    "3 divisions",
+    "4 divisions",
+    "5 divisions",
+    "6 divisions",
+    "7 divisions",
+    "8 divisions"
+   ],
+   "option_count": 10
+  },
+  {
+   "id": "dseBarHeight",
+   "label": "Height",
+   "kind": "text"
+  }
+ ],
+ "buttons": [
+  "Cancel",
+  "OK"
+ ],
+ "notes": [],
+ "tbc_version": "2026.10"
+}

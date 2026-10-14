@@ -1,0 +1,34 @@
+{
+ "key": "InsertImage",
+ "caption": "Insert Image",
+ "last_seen": "2026-10-14T08:53:31",
+ "fields": [
+  {
+   "id": "folderBrowserBox",
+   "label": "File name",
+   "kind": "text"
+  },
+  {
+   "id": "m_CornerOne",
+   "label": "Lower corner",
+   "kind": "text"
+  },
+  {
+   "id": "m_Layer",
+   "label": "Layer",
+   "kind": "choice",
+   "options": "project data (not recorded)"
+  },
+  {
+   "id": "Scale1",
+   "label": "Scale",
+   "kind": "text"
+  }
+ ],
+ "buttons": [
+  "Close",
+  "Apply"
+ ],
+ "notes": [],
+ "tbc_version": "2026.10"
+}

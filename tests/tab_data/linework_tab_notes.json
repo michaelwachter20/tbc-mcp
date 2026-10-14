@@ -1,0 +1,9 @@
+{
+ "_intro": [
+  "- Every tool here opens a command panel; none acts immediately. 24 Linework tools are ANZ Toolbox / SiteModeling on the surveyed machine (check yours with `tbc_license`).",
+  "- Creating linework: Polyline (constant elevation), Linestring (2D/3D, most versatile), Boundary, Breakline, Polygon, Circle/Arc/Rectangle variants, Best-Fit Line, Quick Line (Trimble macro).",
+  "- For USING the tools (verified recipes) read **linework_tools_usage**."
+ ],
+ "tbc_version": "2026.10",
+ "tbc_build": "44.0.9666.28609"
+}

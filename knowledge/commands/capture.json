@@ -1,0 +1,35 @@
+{
+ "key": "Capture",
+ "caption": "Capture Image...",
+ "last_seen": "2026-10-13T11:24:21",
+ "fields": [
+  {
+   "id": "plotBoxPicker",
+   "label": "Select plotbox (optional)",
+   "kind": "text"
+  },
+  {
+   "id": "targetFileBox",
+   "label": "File name",
+   "kind": "text"
+  },
+  {
+   "id": "resolutionCombo",
+   "label": "Resolution",
+   "kind": "choice",
+   "options_sample": [
+    "Very High Resolution (300 DPI)",
+    "High Resolution (120 DPI)",
+    "Medium Resolution (96 DPI)",
+    "Low Resolution  (72 DPI)"
+   ],
+   "option_count": 4
+  }
+ ],
+ "buttons": [
+  "Close",
+  "Apply"
+ ],
+ "notes": [],
+ "tbc_version": "2026.10"
+}

@@ -1,0 +1,44 @@
+{
+ "key": "MergePoints",
+ "caption": "Merge Points",
+ "last_seen": "2026-10-13T14:05:59",
+ "fields": [
+  {
+   "id": "SelectedEntities",
+   "label": null,
+   "kind": "text"
+  },
+  {
+   "id": "rbIdentical",
+   "label": "Identical",
+   "kind": "radio"
+  },
+  {
+   "id": "rbIgnore",
+   "label": "Ignored",
+   "kind": "radio"
+  },
+  {
+   "id": "MinimumDistance",
+   "label": null,
+   "kind": "text"
+  },
+  {
+   "id": "chkSelectPointsWithin",
+   "label": null,
+   "kind": "ultra"
+  },
+  {
+   "id": "ultra",
+   "label": null,
+   "kind": "ultra"
+  }
+ ],
+ "buttons": [
+  "Apply",
+  "Close",
+  "OK"
+ ],
+ "notes": [],
+ "tbc_version": "2026.10"
+}

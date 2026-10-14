@@ -1,0 +1,23 @@
+{
+ "key": "CopyToSheet",
+ "caption": "Copy to Sheet",
+ "last_seen": "2026-10-14T08:46:34",
+ "fields": [
+  {
+   "id": "viewContainer",
+   "label": "Sheet",
+   "kind": "text"
+  },
+  {
+   "id": "SelectedEntities",
+   "label": "Objects to move",
+   "kind": "text"
+  }
+ ],
+ "buttons": [
+  "Close",
+  "Apply"
+ ],
+ "notes": [],
+ "tbc_version": "2026.10"
+}

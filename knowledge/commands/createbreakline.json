@@ -1,0 +1,35 @@
+{
+ "key": "CreateBreakLine",
+ "caption": "Create Breakline",
+ "last_seen": "2026-10-13T16:13:55",
+ "fields": [
+  {
+   "id": "SurfaceComboBoxEntityPicker",
+   "label": "Add to surface",
+   "kind": "text"
+  },
+  {
+   "id": "SharpnessComboBox",
+   "label": "Surface sharpness",
+   "kind": "choice",
+   "options": "project data (not recorded)"
+  },
+  {
+   "id": "m_LayerEdit",
+   "label": "Layer",
+   "kind": "choice",
+   "options": "project data (not recorded)"
+  },
+  {
+   "id": "NameTextBox",
+   "label": "Name",
+   "kind": "text"
+  }
+ ],
+ "buttons": [
+  "Cancel",
+  "OK"
+ ],
+ "notes": [],
+ "tbc_version": "2026.10"
+}
