@@ -472,30 +472,6 @@ more reliable guide.
 
 ---
 
-## Making a release
-
-Releases are built by GitHub automatically (`.github/workflows/release.yml`):
-
-1. Bump `SERVER_VERSION` in `mcp_server/tbc_mcp_server.py` (e.g. `0.4.0`) and commit.
-2. Tag the commit and push the tag:
-   ```bash
-   git tag v0.4.0
-   git push origin v0.4.0
-   ```
-3. GitHub Actions zips the paths listed in `release_files.txt` into `tbc-mcp-v0.4.0.zip` and publishes a release
-   with it (notes are generated from the commits since the last release). Watch it under the repository's
-   **Actions** tab; the result appears under **Releases**.
-
-To check the package before publishing, build the same zip locally:
-
-```powershell
-powershell -ExecutionPolicy Bypass -File tools\make_release.ps1
-```
-
-It lands in `dist\` (not committed). Per-machine files (license profiles, crash and error logs) are never packaged.
-
----
-
 ## License
 
 Released under the [MIT License](LICENSE). © 2026 Michael Wachter.

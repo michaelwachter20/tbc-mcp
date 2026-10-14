@@ -1,5 +1,9 @@
 # Builds the download package and publishes a GitHub Release whenever a version tag (v0.3.0, v0.4.0 ...) is pushed.
 # The zip contains exactly the paths listed in release_files.txt (no tests, dev tools or per-machine logs).
+#
+# Maintainer steps (GitHub Desktop): bump SERVER_VERSION in mcp_server/tbc_mcp_server.py and commit; History tab ->
+# right-click the commit -> Create Tag "v<version>"; Push origin. Check the run under the repository's Actions tab.
+# Preview the same zip locally with: powershell -ExecutionPolicy Bypass -File tools\make_release.ps1  (-> dist\)
 name: Release package
 
 on:
