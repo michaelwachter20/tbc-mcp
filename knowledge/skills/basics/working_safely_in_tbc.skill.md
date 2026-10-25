@@ -28,6 +28,9 @@ verified: "2026-10-13, compiled from live sessions with the user on TBC 2026.10"
 ## Before doing something
 
 - Search the knowledge base: `tbc_skills action=search` (skills, scripts, lessons, remembered command panels).
+- Check what is known about **this job**: `project_info` returns its shared project notes the first time
+  (or `tbc_project_notes action=list`). Follow them. If Project Analyzer has read the job's documents, its
+  reports are in the job's files folder under `analysis\` (`tbc_project_notes action=read file=analysis\OVERVIEW.md`).
 - Read the command's help: `tbc_help action=read command=<key>`. It says what the command does and whether it
   **acts immediately** (no panel).
 - Ask the user to save (or confirm it's a test copy) before experiments that change project-wide data
@@ -102,3 +105,7 @@ verified: "2026-10-13, compiled from live sessions with the user on TBC 2026.10"
 - License profiles are NOT in the knowledge base: they stay in `%LOCALAPPDATA%\TBC-MCP\license` on each machine.
 - Keep project-specific details (client/project names, file names, real site coordinates) out of skills and
   lessons: write "the test project" and use made-up example coordinates.
+- **Facts about one job** go in `tbc_project_notes` instead: the project knowledge base shared with Civil 3D MCP
+  and Project Analyzer (`Documents\Civil3DMcp-KnowledgeBase\projects\`, matched to the job by the .vce's folder).
+  Link the TBC folder to the job's existing name when the other tools already know it. Only TBC's own notes may
+  be updated or removed; correct another tool's note by adding a new one. Ask the user before saving.

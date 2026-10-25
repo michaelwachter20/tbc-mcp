@@ -9,6 +9,10 @@ Layout (default: <repo>/knowledge, override with TBC_MCP_KNOWLEDGE_DIR):
   memory/lessons.jsonl                one lesson per line: {id, ts, topic, tags, text, tbc_version}
   commands/<key>.json                 TBC command panel layouts seen by command_ui_*, plus notes
 
+Everything here is GENERAL TBC knowledge, useful on any job. Facts about one job live in the project knowledge base
+shared with Civil 3D MCP and Project Analyzer (projects.py), never here. Same rules as those tools: add, never
+delete; small one-line entries with ids; duplicate check on add; atomic writes; lessons surface by topic.
+
 TBC VERSIONS: everything here records the TBC release it was verified on (baseline: 2026.10, build 44.0.9666).
 When a newer TBC behaves differently, knowledge is ADDED for that release and never deleted:
   - skills: frontmatter tbc_versions + a '## TBC <release>' section appended (append_version_section)
@@ -20,6 +24,7 @@ import datetime
 import json
 import os
 import re
+import time
 
 ROOT = os.environ.get("TBC_MCP_KNOWLEDGE_DIR") or os.path.normpath(
     os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "knowledge"))
@@ -77,7 +82,8 @@ def _check_name(name, what="name"):
 
 def _write(path, text):
     os.makedirs(os.path.dirname(path), exist_ok=True)
-    tmp = path + ".tmp"
+    # unique temp name: two AI chats (two servers) can write the same knowledge folder at once
+    tmp = os.path.join(os.path.dirname(path), ".%s.%d.%d.tmp" % (os.path.basename(path), os.getpid(), int(time.time() * 1000)))
     with open(tmp, "w", encoding="utf-8", newline="\n") as f:
         f.write(text)
     os.replace(tmp, path)
@@ -373,6 +379,9 @@ def add_lesson(text, topic=None, tags=None):
     if not text or not text.strip():
         raise KnowledgeError("text is required")
     ls = _lessons()
+    duplicate = next((l for l in ls if l.get("text", "").strip().lower() == text.strip().lower()), None)
+    if duplicate:
+        return dict(duplicate, action="unchanged", note="That lesson is already recorded.")
     lid = max([l.get("id", 0) for l in ls] + [0]) + 1
     rec = {"id": lid, "ts": _now(), "topic": (topic or "general").strip().lower(), "tags": tags or [], "text": text.strip(),
            "tbc_version": current_release()}
@@ -387,6 +396,24 @@ def list_lessons(topic=None):
     if topic:
         ls = [l for l in ls if l.get("topic") == topic.strip().lower()]
     return ls
+
+
+def lessons_relevant_to(text, limit=6):
+    """Lessons about a TBC command named in the given text (e.g. code about to run in TBC), so known pitfalls
+    surface where they matter (as civil3d-mcp-unified does with its lessons' topics). Only topics that are command
+    keys count: broad topics and tags (import, all, survey ...) would match almost any code."""
+    words = set(re.findall(r"[a-z0-9_]+", (text or "").lower()))
+    out = []
+    for l in _lessons():
+        topic = (l.get("topic") or "").lower()
+        if topic in words and os.path.exists(_cmd_path(topic)):
+            rec = {"id": l["id"], "topic": l.get("topic"), "text": l["text"], "tbc_version": l.get("tbc_version", BASELINE_RELEASE)}
+            if rec["tbc_version"] != current_release():
+                rec["version_note"] = "Learned on TBC %s; this TBC is %s. Check it still applies." % (rec["tbc_version"], current_release())
+            out.append(rec)
+            if len(out) >= limit:
+                break
+    return out
 
 
 def delete_lesson(lid):
@@ -500,6 +527,9 @@ def add_pref(text, topic=None):
     if not text or not text.strip():
         raise KnowledgeError("text is required")
     ps = list_prefs()
+    duplicate = next((p for p in ps if p.get("text", "").strip().lower() == text.strip().lower()), None)
+    if duplicate:
+        return dict(duplicate, action="unchanged", note="That preference already exists.")
     pid = max([p.get("id", 0) for p in ps] + [0]) + 1
     rec = {"id": pid, "topic": (topic or "general").strip().lower(), "text": text.strip(), "added": _now()}
     ps.append(rec)

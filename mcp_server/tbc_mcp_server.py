@@ -13,6 +13,7 @@ Environment variables (all optional):
   TBC_SDK_DOCS      folder with the SDK *.xml docs (default C:\\Program Files (x86)\\Trimble\\Macros SDK)
   TBC_MCP_ALLOW_PYTHON  set to 0 to hide the execute_python tool
   TBC_MCP_EXIT_WITH_TBC set to 0 to keep running after TBC closes (default: exit when TBC exits/crashes)
+  CIVIL3D_KNOWLEDGE_DIR shared project knowledge base (default Documents\\Civil3DMcp-KnowledgeBase, as Civil 3D MCP)
 """
 import glob
 import itertools
@@ -27,6 +28,7 @@ import xml.etree.ElementTree as ET
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import knowledge as K  # noqa: E402
+import projects as P  # noqa: E402
 import tbc_help as HELP  # noqa: E402
 
 IPY_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ipy")
@@ -499,7 +501,7 @@ def t_command_ui_open(a):
     elif not st.get("modal_dialogs"):
         st["note"] = ("No panel or dialog appeared. The command may act immediately (check with read tools), "
                       "may need a selection first, or may use a different key (see list_commands).")
-    return st
+    return with_project_notes(st)
 
 
 def t_command_ui_inspect(a):
@@ -1215,6 +1217,88 @@ def t_preferences(a):
     raise K.KnowledgeError("action must be list, add, update or remove")
 
 
+# ---------------------------------------------------------------------------
+# Project knowledge shared with Civil 3D MCP and Project Analyzer (projects.py)
+# ---------------------------------------------------------------------------
+_active = {"path": None, "at": 0.0}
+ACTIVE_PATH_CODE = "result = str(prj.ProjectName)"   # TBC 2026: ProjectName is the full .vce path
+
+
+def active_project_path(refresh=False):
+    """Full path of the project open in TBC, or None (no project, unsaved, or TBC unreachable). Cached for 30 s so
+    attaching project notes costs at most one small bridge call per half minute."""
+    if not refresh and time.time() - _active["at"] < 30:
+        return _active["path"]
+    try:
+        path = call_bridge("execute_python", {"code": ACTIVE_PATH_CODE, "transaction": False}, timeout=15).get("result")
+    except BridgeError:
+        path = None
+    remember_active_path(path)
+    return _active["path"]
+
+
+def remember_active_path(path):
+    _active["path"] = path if path and os.path.isabs(str(path)) else None
+    _active["at"] = time.time()
+
+
+def with_project_notes(result, path=None):
+    """Adds the open project's shared notes to a result, once per project per server run."""
+    if not isinstance(result, dict):
+        return result
+    try:
+        notes = P.notes_once(path or active_project_path())
+    except Exception:
+        notes = None  # project notes are advice; never fail a call because of them
+    if notes:
+        result["project_notes"] = notes
+    return result
+
+
+def t_project_info(a):
+    info = call_bridge("project_info")
+    if isinstance(info, dict):
+        remember_active_path(info.get("path"))
+        with_project_notes(info, _active["path"])
+    return info
+
+
+def t_execute_python(a):
+    r = call_bridge("execute_python", a)
+    if isinstance(r, dict):
+        lessons = K.lessons_relevant_to(a.get("code", ""))
+        if lessons:
+            r["related_lessons"] = lessons
+        with_project_notes(r)
+    return r
+
+
+def t_project_notes(a):
+    act = a.get("action", "list")
+    name = a.get("project")
+    if act == "unlink":
+        return P.unlink(name, a.get("folder"))
+    # a named project needs no TBC; otherwise the project open in TBC picks it (link: its folder is the default)
+    path = None if name and act != "link" else active_project_path(refresh=True)
+    if act == "list":
+        return P.list_notes(name, path)
+    if act == "link":
+        if not name:
+            raise K.KnowledgeError("project (a name) is required to link a folder")
+        return P.link(name, a.get("folder"), path)
+    if act == "add":
+        return P.add_note(a.get("note"), name, path)
+    if act == "update":
+        return P.update_note(a.get("id"), a.get("note"), name, path)
+    if act == "remove":
+        return P.remove_note(a.get("id"), name, path)
+    if act == "files":
+        return P.project_files(name, path)
+    if act == "read":
+        return P.read_file(a.get("file"), name, path, int(a.get("max_chars", P.MAX_READ_CHARS)))
+    raise K.KnowledgeError("action must be list, link, unlink, add, update, remove, files or read")
+
+
 def t_memory(a):
     act = a.get("action", "list")
     if act in ("add", "delete"):
@@ -1223,9 +1307,11 @@ def t_memory(a):
         except BridgeError:
             pass
     if act == "add":
+        rec = K.add_lesson(a["text"], a.get("topic") or a.get("command"), a.get("tags"))
+        if rec.get("action") == "unchanged":
+            return rec
         if a.get("command"):
             K.add_command_note(a["command"], a["text"])
-        rec = K.add_lesson(a["text"], a.get("topic") or a.get("command"), a.get("tags"))
         hit = [w for w in DANGER_WORDS if w in a["text"].lower()]
         if hit:
             rec["note"] = ("This lesson contains %s: opening command '%s' will now require confirm=true. If that is not "
@@ -1321,8 +1407,9 @@ TOOLS = [
     # name, description, schema, handler(args) -> result, annotations
     ("bridge_status", "Check whether the TBC bridge macro is running and reachable; also loads (or on first use builds) this user's license profile.",
      obj({}), t_bridge_status, {"readOnlyHint": True}),
-    ("project_info", "Summary of the project open in TBC: name, file, display units, point/layer counts, modified flag.",
-     obj({}), lambda a: call_bridge("project_info"), {"readOnlyHint": True}),
+    ("project_info", "Summary of the project open in TBC: name, file, display units, point/layer counts, modified flag. "
+     "The first time per project it also returns the job's shared project notes (project_notes), if any.",
+     obj({}), t_project_info, {"readOnlyHint": True}),
     ("list_entities", "List graphical objects in the project (recursively through containers) with serial, type, name and layer. "
      "Also returns counts by type. Use filters and paging for big projects.",
      obj({"type_contains": {"type": "string", "description": "Case-insensitive substring of the type name, e.g. 'Linestring', 'Model3D', 'Point'."},
@@ -1551,19 +1638,41 @@ TOOLS += [
     ("tbc_preferences", "The user's standing rules (how they want things done in TBC). They are sent to every AI "
      "in this server's instructions, so they apply in every chat. action=add when the user states a lasting "
      "preference ('always...', 'from now on...', 'I want...'); update/remove when they change their mind; list to "
-     "review. Use tbc_memory for facts about TBC, this tool for the user's wishes.",
+     "review. Use tbc_memory for facts about TBC, tbc_project_notes for one job's rules, this tool for the user's "
+     "general wishes. The same preference is never stored twice. Ask before adding or changing.",
      obj({"action": {"type": "string", "enum": ["list", "add", "update", "remove"], "default": "list"},
           "text": {"type": "string"}, "topic": {"type": "string"}, "id": {"type": "integer"}}),
      t_preferences, {"readOnlyHint": False, "destructiveHint": False}),
     ("tbc_memory", "Lessons learned that persist across sessions. action=add after you discover something non-obvious "
-     "(a field quirk, which command does X, a unit gotcha, what the user prefers); pass command=<key> to attach it to a "
-     "TBC command so it is shown next time that command is opened. action=search/list to recall; delete to remove a "
-     "wrong lesson.",
+     "(a field quirk, which command does X, a unit gotcha); pass command=<key> to attach it to a TBC command so it is "
+     "shown next time that command is opened and when execute_python code names that command. action=search/list to "
+     "recall; delete to remove a wrong lesson from the running release. Lessons must be GENERAL (useful on any job): no "
+     "project names, point IDs, coordinates, dates, layer/surface names or site features - facts about the current job "
+     "go in tbc_project_notes. The same lesson is never stored twice. Ask the user before adding.",
      obj({"action": {"type": "string", "enum": ["add", "search", "list", "delete"], "default": "list"},
           "text": {"type": "string"}, "topic": {"type": "string"}, "command": {"type": "string"},
           "tags": {"type": "array", "items": {"type": "string"}}, "query": {"type": "string"},
           "id": {"type": "integer"}, "limit": {"type": "integer", "default": 20}}),
      t_memory, {"readOnlyHint": False, "destructiveHint": False}),
+    ("tbc_project_notes", "Notes about ONE job, in the project knowledge base SHARED with Civil 3D MCP and Project "
+     "Analyzer (same files: what one tool learns about a job, the others see). For facts that only matter on this job: "
+     "what its layers, point ranges, surfaces and codes are for, control and datum, which survey belongs to which "
+     "feature, the client's standards, decisions the user made. A job is matched by folder: the open .vce belongs to "
+     "the project whose linked folder contains it; its notes come back with project_info and the first code or panel "
+     "result of a session. action=list (the open project's job, or project); link (project, optional folder; default "
+     "the open .vce's folder) creates a job or adds a folder to one - link to an existing name when Civil 3D or the "
+     "analyzer already know the job; unlink (project, folder); add (note) / update (id, note) / remove (id), optional "
+     "project - only notes TBC wrote can be updated or removed, correct another tool's note by adding one; files lists "
+     "the job's files folder (reference files the user drops in, and Project Analyzer's reports under analysis\\); read "
+     "(file) returns a text file from it, e.g. analysis\\OVERVIEW.md. Notes are one line each, kept only on this "
+     "computer. Ask the user before adding or changing.",
+     obj({"action": {"type": "string", "enum": ["list", "link", "unlink", "add", "update", "remove", "files", "read"], "default": "list"},
+          "project": {"type": "string", "description": "Job name; omit to use the job the open TBC project belongs to."},
+          "folder": {"type": "string"}, "note": {"type": "string"},
+          "id": {"type": "string", "description": "Note id, e.g. 'note-3'."},
+          "file": {"type": "string", "description": "read: path inside the files folder, as listed by action=files."},
+          "max_chars": {"type": "integer", "default": P.MAX_READ_CHARS}}),
+     t_project_notes, {"readOnlyHint": False, "destructiveHint": False}),
 ]
 
 if ALLOW_PYTHON:
@@ -1577,7 +1686,7 @@ if ALLOW_PYTHON:
         "to return data. By default runs in one undo-able transaction that rolls back on error. "
         "IronPython 3.4: avoid f-strings; use clr.GetClrType(T) for typeof.",
         obj({"code": {"type": "string"}, "transaction": {"type": "boolean", "default": True}}, ["code"]),
-        lambda a: call_bridge("execute_python", a),
+        t_execute_python,
         {"readOnlyHint": False, "destructiveHint": True, "openWorldHint": False}))
 
 TOOL_MAP = {t[0]: t for t in TOOLS}
@@ -1595,9 +1704,16 @@ INSTRUCTIONS = (
     "command panels. (2) Prefer the specific tools or a saved script. (3) For things only a TBC command can do: "
     "command_ui_open -> read the fields -> command_ui_fill (in the order a user would, then press the button) -> check "
     "'after' for popups (answer via tbc_dialogs) -> verify with read tools -> command_ui_close. (4) Use "
-    "search_sdk_docs + execute_python for API-level work. (5) Afterwards, record what you learned: tbc_memory add "
-    "(with command=<key> for panel quirks), tbc_script save for repeatable code, tbc_skills save once a procedure is "
-    "proven. Ask the user before pressing buttons that commit large or irreversible changes.\n"
+    "search_sdk_docs + execute_python for API-level work. (5) Afterwards, keep a knowledge base that grows (add, never "
+    "delete), asking the user first: a standing rule from the user -> tbc_preferences add; a non-obvious gotcha -> "
+    "tbc_memory add (with command=<key> for panel quirks); repeatable code -> tbc_script save; a proven procedure -> "
+    "tbc_skills save. Ask the user before pressing buttons that commit large or irreversible changes.\n"
+    "TWO SCOPES. Lessons, skills, scripts and panel notes are GENERAL TBC knowledge: never put project names, point "
+    "IDs, coordinates, dates, layer/surface names or site features in them. Facts about the current job go in "
+    "tbc_project_notes: a project knowledge base SHARED with Civil 3D MCP and Project Analyzer, matched to the job by "
+    "the .vce's folder. When you start on a project, check its notes (project_info returns them; or tbc_project_notes "
+    "action=list) and follow them; if Project Analyzer has analysed the job's documents, its reports are in the job's "
+    "files folder under analysis\\ (tbc_project_notes action=files / read).\n"
     "'Here' / 'where I'm looking' = tbc_view action=info center. Leave TBC tidy: close every command panel and pane "
     "you opened (e.g. Layer Manager: run_command layermanager toggles it) and clear selections you made, unless the "
     "user wants to see them. Never press buttons on license popups except to back out (tbc_dialogs action=dismiss).\n"

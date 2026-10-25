@@ -41,6 +41,9 @@ their panels the way you would, and keeps getting smarter with every session.
   tidy up when finished) are handed to every AI that connects, in every new chat.
 - **Learns as it goes.** Verified recipes, gotchas and panel layouts are saved to a knowledge base, so the next
   session starts where the last one finished.
+- **One project knowledge base for the whole suite.** What it learns about a job is kept in the same project notes
+  that [Civil 3D MCP](https://github.com/michaelwachter20/civil3d-mcp-unified) and Project Analyzer use, so facts
+  found in Civil 3D or in the job's documents come back in TBC, and the other way round.
 - **Knows your license.** Every user's subscription is different. The server builds a license profile each time it
   starts and quietly skips commands you aren't licensed for, without a single license popup.
 - **Polite by design.** Paced command launches, waits for Compute Project, never cancels a progress bar, and backs out
@@ -62,6 +65,7 @@ flowchart LR
     B -- "JSON + session token<br/>127.0.0.1:47821" --> C["TbcMcpBridge macro<br/>IronPython 3.4 inside TBC"]
     C -- "TBC SDK on the UI thread" --> D[("Open TBC project")]
     B <--> K[("knowledge\<br/>preferences · skills · lessons<br/>panel layouts · scripts")]
+    B <--> S[("Documents\Civil3DMcp-KnowledgeBase\projects<br/>project notes shared with<br/>Civil 3D MCP · Project Analyzer")]
     B <--> L[("%LOCALAPPDATA%\TBC-MCP<br/>this user's license profile")]
     B <--> H[("Installed TBC help<br/>read offline")]
 ```
@@ -208,9 +212,16 @@ it knows what it may do and which commands your license includes.
 
 ### When it learns something
 
-After a task the AI records what it learned (recipes, gotchas, the layout of panels it opened) in `knowledge\`.
-The next chat - or a colleague's AI using the same folder - starts from there. Share the `knowledge\` folder (or this
-repository) to share what it has learned; your license profile stays on your own PC.
+After a task the AI offers to record what it learned, and saves it once you agree. Panel layouts are recorded
+automatically. It keeps two kinds of knowledge apart:
+
+- **How TBC works** (recipes, gotchas, the layout of panels it opened) goes in `knowledge\`. It's general, so it
+  never names a job, point IDs, coordinates or layers. The next chat, or a colleague's AI using the same folder,
+  starts from there. Share the `knowledge\` folder (or this repository) to share it; your license profile stays on
+  your own PC.
+- **Facts about one job** (what its layers and point ranges are for, the control, the client's standards, your
+  decisions) go in the job's [shared project notes](#shared-project-knowledge), which Civil 3D MCP and Project
+  Analyzer read too.
 
 ---
 
@@ -278,12 +289,13 @@ identified by their integer `serial`.
 </details>
 
 <details>
-<summary><b>Knowledge and help</b> (7 tools)</summary>
+<summary><b>Knowledge and help</b> (8 tools)</summary>
 
 | Tool | What it does |
 |---|---|
 | `tbc_license` | license profile: features, expiry, which commands you can run |
 | `tbc_preferences` | your standing rules; add, update or remove them |
+| `tbc_project_notes` | the job's notes, shared with Civil 3D MCP and Project Analyzer; link folders, add notes, read the job's files and analysis reports |
 | `tbc_skills` | search and read verified how-tos (skills, lessons, scripts, panel layouts) |
 | `tbc_memory` | record and read lessons |
 | `tbc_script` | save and run parameterised IronPython scripts |
@@ -343,7 +355,7 @@ experienced.
 |---|---|---|
 | `preferences.json` | your standing rules, **included in the instructions every AI receives** | `tbc_preferences` |
 | `skills\**\*.skill.md` | step-by-step recipes verified against real projects; start with `basics\working_safely_in_tbc` | `tbc_skills` |
-| `memory\lessons.jsonl` | gotchas and facts; the ones for a command pop up when it opens | `tbc_memory` |
+| `memory\lessons.jsonl` | gotchas and facts; the ones for a command pop up when it opens or when code uses it | `tbc_memory` |
 | `commands\*.json` | the layout of every command panel opened so far | automatic |
 | `scripts\*.py` | reusable, parameterised scripts | `tbc_script` |
 | `memory\crash_log.md` | crash investigations on this machine (kept out of git) | - |
@@ -353,6 +365,37 @@ experienced.
 
 The skills cover TBC basics and safe working, the CAD, Survey, Linework and Drafting tabs, Home's Import/Export and
 Selection tools, command panel automation, Layer Manager, creating points, surfaces and reusable scripts.
+
+It follows the same rules as Civil 3D MCP and Project Analyzer: **add, never delete**; small one-line entries with
+ids; the same entry is never stored twice; files are written whole (temp file, then rename), so a crash never
+leaves half a file; and the AI asks you before it saves anything.
+
+### Shared project knowledge
+
+TBC MCP, [Civil 3D MCP](https://github.com/michaelwachter20/civil3d-mcp-unified) and Project Analyzer work like a
+suite: they share **one knowledge base per job**. It's plain files, in the folder Civil 3D MCP already uses:
+
+```
+Documents\Civil3DMcp-KnowledgeBase\     (or CIVIL3D_KNOWLEDGE_DIR)
+  projects\<project>.json               the job: its name, linked folders and notes
+  projects\<project>\                   the job's files: anything you drop in, and Project Analyzer's reports in analysis\
+```
+
+- **Matched by folder.** A job is linked to one or more folders. When the open `.vce` is inside one, its notes come
+  back with `project_info` and the first command or code result of a chat. If the job already exists from Civil
+  3D or the analyzer, link the TBC folder to that name and everything it knows is there.
+- **Everyone reads everything.** Notes the Civil 3D assistant wrote, facts Project Analyzer found in the job's
+  documents (each citing its source file), and notes TBC wrote all sit side by side. Each note says which tool
+  wrote it.
+- **Each tool changes only its own notes.** TBC updates or removes only notes it wrote (marked `"source": "tbc"`).
+  A note from another tool is corrected by adding a new note, never by rewriting it.
+- **Analysis reports.** After Project Analyzer has read a job's documents, its overview, timeline, people and issues
+  reports are in the job's `analysis\` folder; `tbc_project_notes action=read` reads them.
+- **Stays on this computer**, like your license profile. Point `CIVIL3D_KNOWLEDGE_DIR` at a shared drive to share
+  jobs with a team. Set it the same for all three tools.
+
+Ask *"what do we know about this job?"* to see a job's notes, or *"link this project to Elm Street Drainage"* to
+join one Civil 3D or the analyzer already set up.
 
 ### Every user, every license
 
@@ -418,6 +461,7 @@ All settings are optional environment variables.
 | `TBC_MCP_IDLE_TIMEOUT` | `900` | longest wait for Compute Project, in seconds |
 | `TBC_MCP_COMMAND_GAP` | `2.5` | minimum seconds between command launches |
 | `TBC_MCP_KNOWLEDGE_DIR` | `knowledge\` | use a different (e.g. shared) knowledge base |
+| `CIVIL3D_KNOWLEDGE_DIR` | `Documents\Civil3DMcp-KnowledgeBase` | the project knowledge base shared with Civil 3D MCP and Project Analyzer (set it the same for all three) |
 | `TBC_MCP_USER_DIR` | `%LOCALAPPDATA%\TBC-MCP` | private per-user folder for license profiles |
 | `TBC_MCP_INFO` | `%TEMP%\tbc_mcp_bridge.json` | where the bridge publishes its port and token |
 | `TBC_MCP_PORT` / `TBC_MCP_TOKEN` | from the info file | connect to a bridge manually |
@@ -459,10 +503,10 @@ All settings are optional environment variables.
 | Path | What it is |
 |---|---|
 | `tbc_macro\TbcMcpBridge.py` | the bridge macro that runs inside TBC |
-| `mcp_server\tbc_mcp_server.py` | the MCP server (37 tools) |
+| `mcp_server\tbc_mcp_server.py` | the MCP server (38 tools) |
 | `mcp_server\ipy\` | code sent into TBC on each call: panel engine, view, license, import/export |
-| `mcp_server\knowledge.py`, `tbc_help.py` | knowledge base and offline help reader |
-| `tests\` | live usage suites on throwaway objects (`cad_edit_tests.py`, `survey_cogo_tests.py`, `linework_tests.py`, `drafting_tests.py`, `home_tests.py`, `selection_tests.py`), the ribbon-tab surveyor (`tab_survey.py` + `write_tab_skill.py`), smoke tests (`test_watchdog.py` offline, `test_mcp_stdio.py`, `test_v2_e2e.py`) and shared helpers in `tbc_testkit.py` |
+| `mcp_server\knowledge.py`, `projects.py`, `tbc_help.py` | knowledge base, shared project knowledge and offline help reader |
+| `tests\` | live usage suites on throwaway objects (`cad_edit_tests.py`, `survey_cogo_tests.py`, `linework_tests.py`, `drafting_tests.py`, `home_tests.py`, `selection_tests.py`), the ribbon-tab surveyor (`tab_survey.py` + `write_tab_skill.py`), smoke tests (`test_watchdog.py` and `test_project_knowledge.py` offline, `test_mcp_stdio.py`, `test_v2_e2e.py`) and shared helpers in `tbc_testkit.py` |
 | `tests\tab_data\` | survey results per ribbon tab (every button, its panel and help), used to write the tab overview skills |
 | `tests\dev\` | one-off development probes (`ui_dev.py`, `explore_command_ui.py`, IronPython checks, `run_ipy.ps1` to run TBC's IronPython outside TBC) |
 | `tools\` | `reflect.ps1` (type signatures from TBC's DLLs) and `sdkdoc.py` (search the SDK docs) |
