@@ -5,11 +5,16 @@ Tests the knowledge base without TBC: the project knowledge shared with Civil 3D
 Everything runs in a temporary folder; the real knowledge bases are never touched.
 Usage: python test_project_knowledge.py
 """
-import json, os, shutil, subprocess, sys, tempfile
+import json, os, shutil, subprocess, sys, tempfile, textwrap
 
 here = os.path.dirname(os.path.abspath(__file__))
 server = os.path.join(here, "..", "mcp_server", "tbc_mcp_server.py")
 work = tempfile.mkdtemp(prefix="tbc_mcp_kb_test_")
+# The test folder lives in %TEMP%, which the privacy check refuses to link: point the per-user folders elsewhere
+for var in ("LOCALAPPDATA", "APPDATA", "TEMP", "TMP"):
+    os.environ[var] = os.path.join(work, "private", var)
+    os.makedirs(os.environ[var])
+os.environ.pop("TBC_MCP_USER_DIR", None)
 shared = os.path.join(work, "shared")
 general = os.path.join(work, "general")
 os.makedirs(os.path.join(general, "commands"))
@@ -125,7 +130,99 @@ check([x["id"] for x in rel] == [l1["id"]], "lessons surface for a command named
 p1 = K.add_pref("Use numeric point IDs")
 check(K.add_pref("use numeric point ids")["action"] == "unchanged" and len(K.list_prefs()) == 1, "duplicate preference not stored twice")
 
-# --- 9. the server, over stdio, without TBC -------------------------------------------------------------------
+# --- 9. a job all three tools have written to (contract: project-analyzer docs/shared-project-knowledge.md) ----
+three_dir = os.path.join(work, "jobs", "Three Tools")
+os.makedirs(os.path.join(three_dir, "CAD"))
+three = {"name": "Three Tools", "civil3d_view": {"zoom": 1.5, "layers": ["C-ROAD"]},
+         "folders": [os.path.join(three_dir, "CAD")],
+         "notes": [
+             {"id": "note-1", "note": "Point group Hide holds the shots beyond the right-of-way.", "added": "2026-10-20T10:00:00.000Z", "pinned": True},
+             {"id": "note-2", "note": "Müller Surveying set the control (2026-10-03) [source: Documents/minutes.docx; fact-1]",
+              "added": "2026-10-25T21:42:47.123Z", "source": "project-analyzer", "confidence": "high"},
+             {"id": "note-3", "note": "The TBC project uses the NAD83 Illinois East zone.", "added": "2026-10-21T08:00:00.000Z", "source": "tbc", "tbc_extra": [1, 2.5, None]}],
+         "project-analyzer_last_sync": "2026-10-25T21:42:47.123Z"}
+three_path = os.path.join(shared, "projects", "three-tools.json")
+three_text = json.dumps(three, indent=2, ensure_ascii=False) + "\n"  # the layout JSON.stringify(x, null, 2) writes
+with open(three_path, "w", encoding="utf-8", newline="\n") as f:
+    f.write(three_text)
+
+
+def three_now():
+    with open(three_path, encoding="utf-8", newline="") as f:
+        return f.read()
+
+
+by = {n["id"]: n["by"] for n in P.list_notes("Three Tools", None)["notes"]}
+check(by == {"note-1": "civil3d", "note-2": "project-analyzer", "note-3": "tbc"}, "origin(): no source = civil3d, source fields trusted: %s" % by)
+check(P.origin({"note": "Old analyzer note [source: a.pdf; fact-9]"}) == "project-analyzer"
+      and P.origin({"note": "x [source: a.pdf; fact-9]", "source": "tbc"}) == "tbc", "text check is only a fallback for notes without a source")
+check(raises(lambda: P.update_note("note-1", "x", "Three Tools", None), "civil 3d mcp")
+      and raises(lambda: P.remove_note("note-1", "Three Tools", None), "civil 3d mcp"), "update/remove refuse the Civil 3D note")
+check(raises(lambda: P.update_note("note-2", "x", "Three Tools", None), "project analyzer")
+      and raises(lambda: P.remove_note("note-2", "Three Tools", None), "project analyzer"), "update/remove refuse the Project Analyzer note")
+check(three_now() == three_text, "refused changes leave the file untouched")
+
+r = P.add_note("Surface EG comes from the 2026-10-03 survey [source: Three Tools.vce]", "Three Tools", None)
+added = textwrap.indent(json.dumps(r["note"], indent=2, ensure_ascii=False), "    ")
+after = three_now()
+check(r["note"]["id"] == "note-4" and after.replace(",\n" + added, "", 1) == three_text,
+      "adding a note keeps every other note and unknown field byte-for-byte")
+check(P.update_note("note-3", "The TBC project uses the NAD83 Illinois East (US ft) zone.", "Three Tools", None)["note"]["tbc_extra"] == [1, 2.5, None],
+      "updating TBC's own note keeps its unknown fields")
+
+# re-read before writing: a stale copy in memory must not overwrite what another tool wrote since
+stale = P.find_project("Three Tools")
+disk = json.loads(three_now())
+disk["notes"].append({"id": "note-5", "note": "Civil 3D wrote this meanwhile", "added": "2026-10-26T00:00:00.000Z"})
+with open(three_path, "w", encoding="utf-8", newline="\n") as f:
+    f.write(json.dumps(disk, indent=2, ensure_ascii=False) + "\n")
+real_resolve, P.resolve = P.resolve, lambda name, active: stale
+try:
+    r = P.add_note("Another TBC fact", "Three Tools", None)
+finally:
+    P.resolve = real_resolve
+ids = [n["id"] for n in json.loads(three_now())["notes"]]
+check(r["note"]["id"] == "note-6" and ids == ["note-1", "note-2", "note-3", "note-4", "note-5", "note-6"], "re-reads the file right before writing: %s" % ids)
+
+with open(three_path, "w", encoding="utf-8") as f:
+    f.write('{"name": "Three Tools", "notes": [')
+check(raises(lambda: P.add_note("x", "Three Tools", None), "can't be read") and three_now() == '{"name": "Three Tools", "notes": [',
+      "a file that doesn't parse is never rewritten")
+with open(three_path, "w", encoding="utf-8", newline="\n") as f:
+    f.write(json.dumps(disk, indent=2, ensure_ascii=False) + "\n")
+
+# links: a second link of the same folder changes nothing; other tools' folders are never unlinked
+tbc_dir = os.path.join(three_dir, "TBC")
+os.makedirs(tbc_dir)
+check(P.link("Three Tools", tbc_dir, None)["action"] == "linked", "link adds the TBC folder")
+before = three_now()
+check(P.link("Three Tools", tbc_dir + "\\", None)["action"] == "unchanged" and three_now() == before, "a second link of the same folder changes nothing")
+check(P.link("Three Tools", os.path.join(three_dir, "cad"), None)["action"] == "unchanged" and three_now() == before,
+      "linking a folder another tool linked changes nothing")
+check(raises(lambda: P.unlink("Three Tools", os.path.join(three_dir, "CAD")), "another tool"), "a folder Civil 3D linked can't be unlinked")
+check(json.loads(three_now())[P.OWN_FOLDERS] == [tbc_dir], "TBC's own folders are kept in tbc_linked_folders")
+
+# Project Analyzer's reports, including analysis\intel\
+intel = os.path.join(P.files_dir("Three Tools"), "analysis", "intel")
+os.makedirs(intel)
+with open(os.path.join(intel, "ENTITIES.md"), "w", encoding="utf-8") as f:
+    f.write("# Entities\n\n## MH-3 (structure)\nAliases: manhole 3. Files: minutes.docx, C-104.pdf\n")
+hint = P.project_files("Three Tools", None).get("analysis", "")
+check("ENTITIES.md" in hint and "MH-3" in hint, "files points to analysis\\intel\\ENTITIES.md for structures, stations and sheets")
+
+# privacy and reference formats
+P.add_private("tok3n-abcdef", "the bridge's session token")
+check(raises(lambda: P.add_note("token is tok3n-ABCDEF", "Three Tools", None), "session token"), "a session token is refused")
+check(raises(lambda: P.add_note("see %s\\Documents\\x.vce" % os.path.expanduser("~"), "Three Tools", None), "user profile"), "a user-profile path is refused")
+check(raises(lambda: P.link("Three Tools", os.path.join(os.environ["LOCALAPPDATA"], "TBC-MCP"), None), "private"), "a per-user folder can't be linked")
+loose = "Manhole 3 rim checked on 10/3/26 at Sta. 1250 (sheet C104), CO #4 was 12.5k"
+hints = P.format_hints(loose)
+check(P.add_note(loose, "Three Tools", None).get("format_hints") and len(hints) == 6,
+      "notes in other formats are saved, with reference-format hints: %s" % hints)
+check("format_hints" not in P.add_note("MH-3 rim checked 2026-10-03 at 12+50 (C-104), RFI 12, $12,500.00", "Three Tools", None),
+      "notes in the suite's formats get no hints")
+
+# --- 10. the server, over stdio, without TBC ------------------------------------------------------------------
 env = dict(os.environ, TBC_MCP_INFO=os.path.join(work, "no_bridge.json"), TBC_MCP_EXIT_WITH_TBC="0")
 p = subprocess.Popen([sys.executable, server], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                      env=env, text=True, encoding="utf-8")
@@ -145,6 +242,11 @@ r = rpc(3, "tools/call", {"name": "tbc_project_notes", "arguments": {"action": "
 check(not r["isError"] and json.loads(r["content"][0]["text"])["project"] == "Elm Street Drainage", "a named job is read without TBC")
 r = rpc(4, "tools/call", {"name": "tbc_project_notes", "arguments": {"action": "add", "note": "x"}})
 check(r["isError"] and "action=link" in r["content"][0]["text"], "no TBC and no project name -> asks for a name to link")
+r = rpc(5, "tools/call", {"name": "tbc_project_notes", "arguments": {"action": "read", "project": "Three Tools", "file": "analysis\\intel\\ENTITIES.md"}})
+check(not r["isError"] and "MH-3 (structure)" in json.loads(r["content"][0]["text"])["text"], "action=read opens analysis\\intel\\ENTITIES.md")
+desc = next(t["description"] for t in rpc(6, "tools/list", {})["tools"] if t["name"] == "tbc_project_notes")
+check(all(s in desc for s in ("12+50", "MH-3", "C-104", "RFI 12", "$12,500.00", "[source:", "ENTITIES.md", "license")),
+      "the tool tells the AI the reference formats, sources, intel reports and privacy rule")
 p.stdin.close()
 p.wait(timeout=10)
 

@@ -2,23 +2,28 @@
 """
 Project knowledge shared with civil3d-mcp-unified and project-analyzer: one knowledge base per job for the whole suite.
 
-The three tools keep what they learn about ONE job in the same plain files, so facts the Civil 3D assistant or the
-Project Analyzer recorded come back in TBC, and the other way round:
+The contract all three follow is project-analyzer's docs/shared-project-knowledge.md. In short, the three tools keep
+what they learn about ONE job in the same plain files, so facts the Civil 3D assistant or Project Analyzer recorded
+come back in TBC, and the other way round:
 
-    <shared dir>\\projects\\<slug>.json   {name, folders, notes: [{id: note-N, note, added, updated?, source?}]}
-    <shared dir>\\projects\\<slug>\\      the project's files folder: reference files the user drops in, and Project
-                                         Analyzer's reports under analysis\\ (OVERVIEW.md, TIMELINE.md, ...)
+    <shared dir>\\projects\\<slug>.json   {name, folders, notes: [{id: note-N, note, added, updated?, source?}], ...}
+    <shared dir>\\projects\\<slug>\\      the job's files folder: reference files the user drops in, and Project
+                                         Analyzer's reports: analysis\\ (OVERVIEW.md, TIMELINE.md, PEOPLE.md,
+                                         ISSUES.md, INDEX.md) and analysis\\intel\\ (ENTITIES.md, TIMELINE.md,
+                                         THREADS.md, VERSIONS.md, AMOUNTS.md)
 
 <shared dir> follows civil3d-mcp-unified's knowledgeRoot() exactly: CIVIL3D_KNOWLEDGE_DIR, else
 Documents\\Civil3DMcp-KnowledgeBase (moved there from the pre-2.2.0 Documents\\Civil3DMcp once, as Civil 3D MCP does).
 The slug, folder matching and file format are the same as its projectNotes.ts, so none of the other tools change.
 
-A project is matched by folder: the open TBC project (.vce) belongs to the project with the deepest linked folder
-that contains it. Rules, shared with the other two tools:
-  - project facts only; general TBC knowledge (lessons, skills, scripts) stays in knowledge.py and never names a job
-  - add, never delete: TBC updates or removes only the notes it wrote itself (source "tbc"); a note from Civil 3D
-    MCP or Project Analyzer is corrected by adding a new note, never rewritten
-  - small one-line entries with stable ids, duplicate check on add, atomic writes
+A job is matched by folder: the open TBC project (.vce) belongs to the job with the deepest linked folder that
+contains it. Rules:
+  - job facts only; general TBC knowledge (lessons, skills, scripts) stays in knowledge.py and never names a job
+  - each tool owns its notes: TBC updates or removes only notes with source "tbc", and unlinks only the folders it
+    linked (listed in its own top-level field "tbc_linked_folders"); everything else is corrected by adding
+  - the file is re-read right before every write, and fields TBC doesn't know (top level and on notes) are kept
+  - one-line notes with stable ids, duplicate check on add, the suite's reference formats, atomic writes
+  - privacy: no license details, session tokens or user-profile paths in notes or folders
 """
 import datetime
 import json
@@ -30,7 +35,24 @@ from knowledge import KnowledgeError
 FOLDER_NAME = "Civil3DMcp-KnowledgeBase"
 LEGACY_FOLDER_NAME = "Civil3DMcp"      # Civil 3D MCP's default before 2.2.0
 SOURCE = "tbc"                         # marks the notes TBC wrote (the other tools keep unknown fields)
+OWN_FOLDERS = "tbc_linked_folders"     # TBC's own top-level field: the folders it linked (only those can be unlinked)
 MAX_READ_CHARS = 20000
+ANALYSIS_REPORTS = ("OVERVIEW.md", "TIMELINE.md", "PEOPLE.md", "ISSUES.md", "INDEX.md")
+INTEL_REPORTS = ("ENTITIES.md", "TIMELINE.md", "THREADS.md", "VERSIONS.md", "AMOUNTS.md")
+
+# How every tool in the suite writes references, so Project Analyzer's automatic connections tie a note to the same
+# items in documents and drawings (contract: Reference formats)
+REFERENCE_FORMATS = ("dates 2026-10-03; stations 12+50 (12+50.25 only when decimals matter); structures MH-3, CB-12, "
+                     "FES-1; sheets C-104; documents RFI 12, CO 4, PCO 7, Submittal 3, ASI 2, Addendum 1, Pay App 5; "
+                     "amounts $12,500.00; people by full name, then initials if the files use them: John Smith (J. Smith)")
+_FORMAT_CHECKS = [
+    (re.compile(r"\b\d{1,2}/\d{1,2}/\d{2,4}\b"), "write dates as 2026-10-03"),
+    (re.compile(r"\bsta(?:tion)?\.?\s*\d{3,}(?:\.\d+)?\b(?!\+)", re.I), "write stations as 12+50"),
+    (re.compile(r"\b(?:manhole|catch ?basin)\s*#?\s*\d+|\b(?:MH|CB|FES)\s*#\s*\d+|\b(?:MH|CB|FES)\d+\b", re.I), "write structures as MH-3, CB-12"),
+    (re.compile(r"\b(?:sheet|sht\.?)\s+[A-Z]{1,3}\d{2,}\b", re.I), "write sheets as C-104"),
+    (re.compile(r"\bRFI[-#\s]*0\d+|\bchange order\s*#?\s*\d+|\bCO\s*#\s*\d+", re.I), "write documents as RFI 12, CO 4"),
+    (re.compile(r"\$?\b\d+(?:\.\d+)?\s*[kK]\b"), "write amounts as $12,500.00"),
+]
 TEXT_EXTENSIONS = {".md", ".txt", ".csv", ".tsv", ".json", ".jsonl", ".xml", ".html", ".htm", ".log", ".ini",
                    ".yaml", ".yml", ".landxml", ".gsi", ".job", ".raw", ".rw5", ".fbk", ".asc", ".pts"}
 
@@ -115,15 +137,77 @@ def files_dir(name):
 
 
 def _load(path):
+    """A job file as written by any tool. Every field is kept as it is, including ones TBC doesn't know, so _save
+    writes them back unchanged (same order, same values)."""
     with open(path, "r", encoding="utf-8-sig") as f:
         data = json.load(f)
+    if not isinstance(data, dict):
+        raise ValueError("not a JSON object")
     data.setdefault("folders", [])
     data.setdefault("notes", [])
     return data
 
 
+def _load_for_write(name):
+    """Re-reads the job file right before a change (another tool may have written since), so the change is merged
+    into the latest version. A file that doesn't parse is never rewritten."""
+    path = project_file(name)
+    if not os.path.exists(path):
+        return None
+    try:
+        return _load(path)
+    except (OSError, ValueError) as ex:
+        raise KnowledgeError("%s can't be read (%s), so it isn't changed. Fix or restore it first." % (path, ex))
+
+
 def _save(project):
+    # json.dumps keeps every key in its original order, and indent=2 + ensure_ascii=False is the layout
+    # JavaScript's JSON.stringify(project, null, 2) writes, so other tools' entries stay byte-for-byte the same
     _write_atomically(project_file(project["name"]), json.dumps(project, indent=2, ensure_ascii=False) + "\n")
+
+
+# ---------------------------------------------------------------------------
+# privacy: nothing private goes into the shared files (contract: Privacy)
+# ---------------------------------------------------------------------------
+_private = {}  # lowercased value -> what it is; registered by the server (session token, license fingerprint)
+
+
+def add_private(value, what):
+    """Register a value that must never reach a shared note (the bridge token, the license fingerprint ...)."""
+    if value and len(str(value)) >= 6:
+        _private[str(value).lower()] = what
+
+
+def _private_folders():
+    """Per-user folders that never belong in a shared job: the profile root itself, AppData, temp, TBC MCP's own."""
+    roots = [os.environ.get(v) for v in ("LOCALAPPDATA", "APPDATA", "TEMP", "TMP", "TBC_MCP_USER_DIR")]
+    return [normalize_folder(r).lower() for r in roots if r]
+
+
+def _profile():
+    return normalize_folder(os.path.expanduser("~")).lower()
+
+
+def check_private_text(text):
+    low = (text or "").lower().replace("/", "\\")
+    found = sorted({what for value, what in _private.items() if value in low})
+    if _profile() and _profile() + "\\" in low:
+        found.append("a path inside your user profile (write the file name, or the path inside the job folder)")
+    if found:
+        raise KnowledgeError("Shared project notes must not contain %s. Notes are shared with other tools and people; "
+                             "rewrite the note without it." % " or ".join(found))
+
+
+def check_private_folder(folder):
+    f = normalize_folder(folder).lower()
+    if f == _profile() or any(f == r or f.startswith(r + "\\") for r in _private_folders()):
+        raise KnowledgeError("%s is a private per-user folder (user profile, AppData or temp), so it can't be linked to "
+                             "a shared job. Link the job's own folder (drawings, TBC projects, documents)." % folder)
+
+
+def format_hints(text):
+    """Reference-format reminders for a note (it is still saved: they're advice, not rules)."""
+    return sorted({hint for rx, hint in _FORMAT_CHECKS if rx.search(text)})
 
 
 def list_projects():
@@ -141,8 +225,7 @@ def list_projects():
 
 
 def find_project(name):
-    p = project_file(name)
-    return _load(p) if os.path.exists(p) else None
+    return _load_for_write(name)
 
 
 def project_for_path(path):
@@ -164,8 +247,9 @@ TOOL_LABELS = {"civil3d": "Civil 3D MCP", "project-analyzer": "Project Analyzer"
 
 
 def origin(note):
-    """Which tool wrote a note: its `source` ("tbc", "project-analyzer", ...); notes without one are Civil 3D MCP's
-    (it predates the field), or Project Analyzer's from before it set the field (recognised by their text)."""
+    """Which tool wrote a note. The `source` field is trusted first ("tbc", "project-analyzer", ...). Without one, the
+    note is Project Analyzer's only if it is one of its older notes (text ending "; fact-N]", or its pointer to the
+    reports), which predate the field; anything else without a source is civil3d-mcp-unified's."""
     if note.get("source"):
         return str(note["source"])
     text = note.get("note", "")
@@ -175,7 +259,7 @@ def origin(note):
 
 
 def _present_notes(project):
-    return [dict(n, by=origin(n)) for n in project["notes"]]
+    return [dict(n, by=origin(n)) for n in project["notes"] if isinstance(n, dict)]
 
 
 def list_files(directory, limit=500):
@@ -205,11 +289,24 @@ def _ensure_files_dir(name):
 
 
 def _analysis_hint(directory):
-    if os.path.exists(os.path.join(directory, "analysis", "OVERVIEW.md")):
-        return ("Project Analyzer has analysed this job's documents: read analysis\\OVERVIEW.md first (then TIMELINE.md, "
-                "PEOPLE.md, ISSUES.md, INDEX.md, and analysis\\intel\\ if present) with tbc_project_notes action=read. Its "
-                "facts cite their source files.")
-    return None
+    """What Project Analyzer has written for this job, and how to use it, or None."""
+    analysis, intel = os.path.join(directory, "analysis"), os.path.join(directory, "analysis", "intel")
+    reports = [r for r in ANALYSIS_REPORTS if os.path.isfile(os.path.join(analysis, r))]
+    connections = [r for r in INTEL_REPORTS if os.path.isfile(os.path.join(intel, r))]
+    if not reports and not connections:
+        return None
+    parts = ["Project Analyzer has analysed this job's documents (read them with tbc_project_notes action=read file=...)."]
+    if reports:
+        parts.append("Reports in analysis\\: %s - start with %s. Their facts cite the source files."
+                     % (", ".join(reports), "OVERVIEW.md" if "OVERVIEW.md" in reports else reports[0]))
+    if connections:
+        parts.append("Automatic connections in analysis\\intel\\: %s. ENTITIES.md lists every person, organization, "
+                     "place, document number, structure, station and sheet with its aliases and the files it appears in: "
+                     "when the user asks about a structure (MH-3), station (12+50) or sheet (C-104), look it up there "
+                     "for the documents that mention it. TIMELINE.md is the automatic timeline, THREADS.md the email "
+                     "conversations, VERSIONS.md document versions and what changed, AMOUNTS.md the amounts."
+                     % ", ".join(connections))
+    return " ".join(parts)
 
 
 def describe(project):
@@ -257,11 +354,20 @@ def link(name, folder, active_path):
     target = folder or (os.path.dirname(active_path) if active_path and os.path.isabs(active_path) else None)
     if not target:
         raise KnowledgeError("No folder given and the open TBC project's folder isn't known (save the project first).")
-    project = find_project(name) or {"name": one_line(name), "folders": [], "notes": []}
-    created = not project["folders"] and not project["notes"]
+    if not slug(name):
+        raise KnowledgeError("Give the project a name with letters or digits.")
+    check_private_folder(target)
     normalized = normalize_folder(target)
-    if not any(normalize_folder(f).lower() == normalized.lower() for f in project["folders"]):
-        project["folders"].append(normalized)
+    project = _load_for_write(name)
+    created = project is None
+    if created:
+        project = {"name": one_line(name), "folders": [], "notes": []}
+    if any(normalize_folder(f).lower() == normalized.lower() for f in project["folders"]):
+        # already linked (by TBC or another tool): nothing to write
+        return {"success": True, "action": "unchanged", "project": project["name"], "folders": project["folders"],
+                "path": project_file(project["name"]), "files_folder": _ensure_files_dir(project["name"])}
+    project["folders"].append(normalized)
+    project.setdefault(OWN_FOLDERS, []).append(normalized)
     _save(project)
     return {"success": True, "action": "created" if created else "linked", "project": project["name"],
             "folders": project["folders"], "path": project_file(project["name"]),
@@ -269,37 +375,64 @@ def link(name, folder, active_path):
 
 
 def unlink(name, folder):
-    project = find_project(name)
-    if not project:
-        raise KnowledgeError("No project named %r." % name)
     if not folder:
         raise KnowledgeError("folder is required")
+    project = _load_for_write(name) if slug(name or "") else None
+    if not project:
+        raise KnowledgeError("No project named %r." % name)
     normalized = normalize_folder(folder).lower()
-    remaining = [f for f in project["folders"] if normalize_folder(f).lower() != normalized]
-    if len(remaining) == len(project["folders"]):
+    if not any(normalize_folder(f).lower() == normalized for f in project["folders"]):
         raise KnowledgeError("%r isn't linked to %r. Linked: %s." % (folder, project["name"], "; ".join(project["folders"]) or "(none)"))
-    project["folders"] = remaining
+    own = project.get(OWN_FOLDERS) or []
+    if not any(normalize_folder(f).lower() == normalized for f in own):
+        raise KnowledgeError("%r was linked by another tool (Civil 3D MCP or Project Analyzer), so TBC keeps it: a tool "
+                             "unlinks only the folders it linked itself." % folder)
+    project["folders"] = [f for f in project["folders"] if normalize_folder(f).lower() != normalized]
+    project[OWN_FOLDERS] = [f for f in own if normalize_folder(f).lower() != normalized]
     _save(project)
     return {"success": True, "action": "unlinked", "project": project["name"], "folders": project["folders"]}
 
 
-def add_note(note, name, active_path):
+def _fresh(project):
+    """The job's file as it is on disk right now, for a change (contract rule: re-read before writing)."""
+    latest = _load_for_write(project["name"])
+    if latest is None:
+        raise KnowledgeError("The file for project %r has gone (%s). List the projects again." % (project["name"], project_file(project["name"])))
+    return latest
+
+
+def _clean_note(note):
     text = one_line(note)
     if not text:
         raise KnowledgeError("The note is empty.")
-    project = resolve(name, active_path)
-    duplicate = next((n for n in project["notes"] if n.get("note", "").lower() == text.lower()), None)
+    check_private_text(text)
+    return text
+
+
+def _with_hints(result, text):
+    hints = format_hints(text)
+    if hints:
+        result["format_hints"] = ("Saved. Next time use the suite's reference formats so Project Analyzer connects the "
+                                  "note to the same items in documents: %s (%s)." % ("; ".join(hints), REFERENCE_FORMATS))
+    return result
+
+
+def add_note(note, name, active_path):
+    text = _clean_note(note)
+    project = _fresh(resolve(name, active_path))  # merge into what's on disk now
+    duplicate = next((n for n in project["notes"] if isinstance(n, dict) and n.get("note", "").lower() == text.lower()), None)
     if duplicate:
         return {"success": True, "action": "unchanged", "project": project["name"], "note": dict(duplicate, by=origin(duplicate))}
-    numbers = [int(re.sub(r"\D", "", str(n.get("id", ""))) or 0) for n in project["notes"]]
+    numbers = [int(re.sub(r"\D", "", str(n.get("id", ""))) or 0) for n in project["notes"] if isinstance(n, dict)]
     entry = {"id": "note-%d" % (max(numbers + [0]) + 1), "note": text, "added": _now(), "source": SOURCE}
     project["notes"].append(entry)
     _save(project)
-    return {"success": True, "action": "added", "project": project["name"], "note": entry, "path": project_file(project["name"])}
+    return _with_hints({"success": True, "action": "added", "project": project["name"], "note": entry,
+                        "path": project_file(project["name"])}, text)
 
 
 def _own_note(project, note_id):
-    entry = next((n for n in project["notes"] if n.get("id") == note_id), None)
+    entry = next((n for n in project["notes"] if isinstance(n, dict) and n.get("id") == note_id), None)
     if not entry:
         raise KnowledgeError("No note %r in project %r." % (note_id, project["name"]))
     if origin(entry) != SOURCE:
@@ -309,19 +442,17 @@ def _own_note(project, note_id):
 
 
 def update_note(note_id, note, name, active_path):
-    text = one_line(note)
-    if not text:
-        raise KnowledgeError("The note is empty.")
-    project = resolve(name, active_path)
+    text = _clean_note(note)
+    project = _fresh(resolve(name, active_path))
     entry = _own_note(project, note_id)
     entry["note"] = text
     entry["updated"] = _now()
     _save(project)
-    return {"success": True, "action": "updated", "project": project["name"], "note": entry}
+    return _with_hints({"success": True, "action": "updated", "project": project["name"], "note": entry}, text)
 
 
 def remove_note(note_id, name, active_path):
-    project = resolve(name, active_path)
+    project = _fresh(resolve(name, active_path))
     entry = _own_note(project, note_id)
     project["notes"] = [n for n in project["notes"] if n is not entry]
     _save(project)
@@ -387,7 +518,8 @@ def notes_once(active_path):
         _announced.add(project["name"])
         r = {"project": project["name"], "notes": _present_notes(project), "files_folder": d, "files": files,
              "hint": "Shared project knowledge (also used by Civil 3D MCP and Project Analyzer). Follow these facts; "
-                     "add what you learn about this job with tbc_project_notes action=add (ask the user first)."}
+                     "add what you learn about this job with tbc_project_notes action=add (ask the user first), "
+                     "in the suite's reference formats: %s." % REFERENCE_FORMATS}
         hint = _analysis_hint(d)
         if hint:
             r["analysis"] = hint

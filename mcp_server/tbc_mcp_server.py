@@ -87,6 +87,7 @@ def read_info():
 def bridge_endpoint():
     port, token = os.environ.get("TBC_MCP_PORT"), os.environ.get("TBC_MCP_TOKEN")
     if port and token:
+        P.add_private(token, "the bridge's session token")
         return int(port), token
     try:
         with open(INFO_FILE, "r", encoding="utf-8-sig") as f:
@@ -99,6 +100,7 @@ def bridge_endpoint():
                 pass
             raise BridgeError("TBC is not running (it closed or crashed). Start TBC, open a project and click "
                               "Macros > MCP > 'MCP Bridge'.")
+        P.add_private(info["token"], "the bridge's session token")  # never into shared project notes
         return int(info["port"]), info["token"]
     except BridgeError:
         raise
@@ -1058,6 +1060,7 @@ def license_profile(refresh=False):
     if _lic["profile"] is not None and not refresh and now - _lic["checked"] < 600:
         return _lic["profile"]
     fp = run_ipy("license", "fingerprint", {})["fingerprint"]
+    P.add_private(fp, "a license detail")  # license data never goes into shared project notes
     path = os.path.join(LICENSE_DIR, fp + ".json")
     prof = None
     if os.path.exists(path) and not refresh:
@@ -1658,14 +1661,23 @@ TOOLS += [
      "Analyzer (same files: what one tool learns about a job, the others see). For facts that only matter on this job: "
      "what its layers, point ranges, surfaces and codes are for, control and datum, which survey belongs to which "
      "feature, the client's standards, decisions the user made. A job is matched by folder: the open .vce belongs to "
-     "the project whose linked folder contains it; its notes come back with project_info and the first code or panel "
-     "result of a session. action=list (the open project's job, or project); link (project, optional folder; default "
-     "the open .vce's folder) creates a job or adds a folder to one - link to an existing name when Civil 3D or the "
-     "analyzer already know the job; unlink (project, folder); add (note) / update (id, note) / remove (id), optional "
-     "project - only notes TBC wrote can be updated or removed, correct another tool's note by adding one; files lists "
-     "the job's files folder (reference files the user drops in, and Project Analyzer's reports under analysis\\); read "
-     "(file) returns a text file from it, e.g. analysis\\OVERVIEW.md. Notes are one line each, kept only on this "
-     "computer. Ask the user before adding or changing.",
+     "the job whose linked folder contains it; its notes come back with project_info and the first code or panel "
+     "result of a session, each with 'by' (tbc, civil3d or project-analyzer). "
+     "action=list (the open project's job, or project); link (project, optional folder; default the open .vce's "
+     "folder) creates a job or adds a folder to one - link to the existing name when Civil 3D or the analyzer already "
+     "know the job; unlink (project, folder) drops a folder TBC linked; add (note) / update (id, note) / remove (id), "
+     "optional project - only notes TBC wrote can be updated or removed, correct another tool's note by adding one. "
+     "WRITING A NOTE: one fact, one line, in the suite's reference formats so Project Analyzer ties it to the same "
+     "items in documents and drawings: " + P.REFERENCE_FORMATS + ". End it with [source: <TBC project file name or "
+     "command>] when there is one, e.g. '[source: Elm Street.vce]'. Never put license details, licensee or company "
+     "names from the TBC license, user-profile paths or tokens in a note (they are refused). "
+     "files lists the job's files folder: reference files the user drops in, and Project Analyzer's reports - "
+     "analysis\\ (OVERVIEW.md, TIMELINE.md, PEOPLE.md, ISSUES.md, INDEX.md) and analysis\\intel\\ (ENTITIES.md: every "
+     "person, organization, place, document number, structure, station and sheet with its aliases and the files it "
+     "appears in; TIMELINE.md automatic timeline; THREADS.md email conversations; VERSIONS.md document versions and "
+     "what changed; AMOUNTS.md). read (file) returns a text file from it, e.g. analysis\\intel\\ENTITIES.md - when "
+     "the user asks about a structure (MH-3), station (12+50) or sheet (C-104), look it up there for the documents "
+     "that mention it. Kept only on this computer. Ask the user before adding or changing.",
      obj({"action": {"type": "string", "enum": ["list", "link", "unlink", "add", "update", "remove", "files", "read"], "default": "list"},
           "project": {"type": "string", "description": "Job name; omit to use the job the open TBC project belongs to."},
           "folder": {"type": "string"}, "note": {"type": "string"},
@@ -1713,7 +1725,11 @@ INSTRUCTIONS = (
     "tbc_project_notes: a project knowledge base SHARED with Civil 3D MCP and Project Analyzer, matched to the job by "
     "the .vce's folder. When you start on a project, check its notes (project_info returns them; or tbc_project_notes "
     "action=list) and follow them; if Project Analyzer has analysed the job's documents, its reports are in the job's "
-    "files folder under analysis\\ (tbc_project_notes action=files / read).\n"
+    "files folder under analysis\\, and analysis\\intel\\ENTITIES.md says which documents mention a structure, station "
+    "or sheet (tbc_project_notes action=files / read). Write project notes in the suite's reference formats "
+    "(2026-10-03, 12+50, MH-3, C-104, RFI 12, CO 4, $12,500.00, John Smith (J. Smith)), ending with [source: <TBC "
+    "project or command>] when there is one. Never put license details, licensee/company names, user-profile paths "
+    "or tokens in shared notes.\n"
     "'Here' / 'where I'm looking' = tbc_view action=info center. Leave TBC tidy: close every command panel and pane "
     "you opened (e.g. Layer Manager: run_command layermanager toggles it) and clear selections you made, unless the "
     "user wants to see them. Never press buttons on license popups except to back out (tbc_dialogs action=dismiss).\n"

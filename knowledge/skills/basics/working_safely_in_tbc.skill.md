@@ -109,3 +109,6 @@ verified: "2026-10-13, compiled from live sessions with the user on TBC 2026.10"
   and Project Analyzer (`Documents\Civil3DMcp-KnowledgeBase\projects\`, matched to the job by the .vce's folder).
   Link the TBC folder to the job's existing name when the other tools already know it. Only TBC's own notes may
   be updated or removed; correct another tool's note by adding a new one. Ask the user before saving.
+  Write references the suite's way (2026-10-03, 12+50, MH-3, C-104, RFI 12, CO 4, $12,500.00,
+  John Smith (J. Smith)) and end with `[source: <TBC project or command>]`. Never put license details, licensee or
+  company names, user-profile paths or tokens in a shared note.

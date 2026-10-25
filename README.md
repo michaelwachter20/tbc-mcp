@@ -373,24 +373,43 @@ leaves half a file; and the AI asks you before it saves anything.
 ### Shared project knowledge
 
 TBC MCP, [Civil 3D MCP](https://github.com/michaelwachter20/civil3d-mcp-unified) and Project Analyzer work like a
-suite: they share **one knowledge base per job**. It's plain files, in the folder Civil 3D MCP already uses:
+suite: they share **one knowledge base per job**. All three follow one contract, `docs\shared-project-knowledge.md`
+in the Project Analyzer repository; TBC's side is `mcp_server\projects.py`. It's plain files, in the folder Civil
+3D MCP already uses:
 
 ```
 Documents\Civil3DMcp-KnowledgeBase\     (or CIVIL3D_KNOWLEDGE_DIR)
   projects\<project>.json               the job: its name, linked folders and notes
-  projects\<project>\                   the job's files: anything you drop in, and Project Analyzer's reports in analysis\
+  projects\<project>\                   the job's files: anything you drop in, and Project Analyzer's reports
+    analysis\                           OVERVIEW, TIMELINE, PEOPLE, ISSUES, INDEX
+      intel\                            ENTITIES, TIMELINE, THREADS, VERSIONS, AMOUNTS (automatic connections)
 ```
+
+Only facts about a job are shared. TBC's preferences, lessons, skills, scripts and panel layouts stay in its own
+`knowledge\` folder.
 
 - **Matched by folder.** A job is linked to one or more folders. When the open `.vce` is inside one, its notes come
   back with `project_info` and the first command or code result of a chat. If the job already exists from Civil
   3D or the analyzer, link the TBC folder to that name and everything it knows is there.
 - **Everyone reads everything.** Notes the Civil 3D assistant wrote, facts Project Analyzer found in the job's
-  documents (each citing its source file), and notes TBC wrote all sit side by side. Each note says which tool
-  wrote it.
-- **Each tool changes only its own notes.** TBC updates or removes only notes it wrote (marked `"source": "tbc"`).
-  A note from another tool is corrected by adding a new note, never by rewriting it.
-- **Analysis reports.** After Project Analyzer has read a job's documents, its overview, timeline, people and issues
-  reports are in the job's `analysis\` folder; `tbc_project_notes action=read` reads them.
+  documents (each citing its source file), and notes TBC wrote all sit side by side. Each note's `source` says which
+  tool wrote it: `tbc`, `project-analyzer`, or none for Civil 3D MCP.
+- **Each tool changes only its own.** TBC updates or removes only notes marked `"source": "tbc"`, and unlinks only
+  folders it linked (it lists them in its own field, `tbc_linked_folders`). Another tool's note is corrected by
+  adding a new note, never by rewriting it.
+- **Nothing else is touched.** The job file is read again right before every change, so TBC merges into whatever
+  another tool just wrote. Fields TBC doesn't know about are kept exactly as they are. A file that doesn't parse is
+  left alone.
+- **Same reference formats everywhere**, so Project Analyzer can connect a TBC note to every document and drawing
+  that mentions the same thing: `2026-10-03`, `12+50`, `MH-3`, `C-104`, `RFI 12`, `CO 4`, `$12,500.00`,
+  `John Smith (J. Smith)`. Notes end with `[source: <TBC project or command>]` when there is one. A note written
+  another way is still saved, with a reminder.
+- **Analysis reports.** After Project Analyzer has read a job's documents, `analysis\` holds its overview, timeline,
+  people and issues. `analysis\intel\ENTITIES.md` lists every person, organization, place, document number,
+  structure, station and sheet, with the files each appears in, so *"what do the documents say about MH-3?"* works
+  from TBC. `tbc_project_notes action=read` reads them.
+- **Private stays private.** License details, the bridge's session token and paths inside your user profile are
+  refused in notes, and per-user folders (AppData, temp) can't be linked.
 - **Stays on this computer**, like your license profile. Point `CIVIL3D_KNOWLEDGE_DIR` at a shared drive to share
   jobs with a team. Set it the same for all three tools.
 
