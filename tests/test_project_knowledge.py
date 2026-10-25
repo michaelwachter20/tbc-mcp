@@ -210,6 +210,52 @@ with open(os.path.join(intel, "ENTITIES.md"), "w", encoding="utf-8") as f:
 hint = P.project_files("Three Tools", None).get("analysis", "")
 check("ENTITIES.md" in hint and "MH-3" in hint, "files points to analysis\\intel\\ENTITIES.md for structures, stations and sheets")
 
+checks_md = ("# Checks\n\n## Needs attention (1)\n\n### CO 4: two amounts\n*conflicting amounts* — $12,500.00 in "
+             "minutes.docx, $14,200.00 in CO 4.pdf\n\n## Worth checking (2)\n\n### RFI 12 has no reply\n*no reply* — "
+             "asked 2026-10-03\n\n### Submittal 3 is missing\n*missing document* — mentioned in 2 files\n\n"
+             "## For information (0)\n")
+stories_md = "# Stories\n\n## CO 4 → RFI 12: RFI 12 - pipe class\n2026-10-03 John Smith (J. Smith) asks; CO 4 $12,500.00.\n"
+graph_html = "<!doctype html><html><body><script>const DATA = {\"nodes\": [1, 2, 3]};</script></body></html>\n"
+for fn, text in (("CHECKS.md", checks_md), ("STORIES.md", stories_md), ("graph.html", graph_html)):
+    with open(os.path.join(intel, fn), "w", encoding="utf-8", newline="\n") as f:
+        f.write(text)
+files = P.project_files("Three Tools", None)
+hint = files.get("analysis", "")
+check("CHECKS.md" in hint and "STORIES.md" in hint and "in dispute" in hint and "RFI, change order or submittal" in hint,
+      "the hint says when to use CHECKS.md and STORIES.md")
+graph_path = os.path.join(os.path.realpath(intel), "graph.html")
+check([p["path"] for p in files.get("pages_to_open", [])] == [os.path.join(intel, "graph.html")] and "graph.html" in hint
+      and os.path.join(intel, "graph.html") in hint, "files and the hint list graph.html as a page to open, with its full path")
+r = P.read_file("analysis\\intel\\STORIES.md", "Three Tools", None)
+check(r.get("text") == stories_md, "action=read returns STORIES.md's text")
+r = P.read_file("analysis\\intel\\graph.html", "Three Tools", None)
+check("text" not in r and "browser" in r.get("message", "") and r.get("page") == graph_path and graph_path in r["message"],
+      "action=read on graph.html says to open it in a browser, with its path, instead of the HTML")
+
+three_vce = os.path.join(tbc_dir, "Three Tools.vce")
+P.reset_announcements()
+first = P.notes_once(three_vce) or {}
+c = first.get("checks") or {}
+check(c.get("needs_attention_titles") == ["CO 4: two amounts"] and c.get("needs_attention") == 1 and c.get("worth_checking") == 2,
+      "notes_once lists the Needs attention title and the Worth checking count: %s" % {k: c.get(k) for k in ("needs_attention", "needs_attention_titles", "worth_checking")})
+many = "# Checks\n\n## Needs attention\n\n" + "".join("### Problem %d\n*date conflict* — x\n\n" % i for i in range(1, 9))
+for label, content in (("missing", None), ("malformed", b"\xff\xfe\x00garbage ## Needs attention (\n### \x00"),
+                       ("without counts", many)):
+    path = os.path.join(intel, "CHECKS.md")
+    if content is None:
+        os.remove(path)
+    else:
+        with open(path, "wb") as f:
+            f.write(content if isinstance(content, bytes) else content.encode("utf-8"))
+    P.reset_announcements()
+    r = P.notes_once(three_vce)
+    ok_notes = bool(r) and len(r["notes"]) == len(P.find_project("Three Tools")["notes"])
+    if label == "without counts":
+        check(ok_notes and r["checks"]["needs_attention"] == 8 and len(r["checks"]["needs_attention_titles"]) == 5,
+              "a heading without a count is counted from its items, at most 5 titles shown")
+    else:
+        check(ok_notes and "checks" not in r, "notes_once still returns the notes when CHECKS.md is %s" % label)
+
 # privacy and reference formats
 P.add_private("tok3n-abcdef", "the bridge's session token")
 check(raises(lambda: P.add_note("token is tok3n-ABCDEF", "Three Tools", None), "session token"), "a session token is refused")

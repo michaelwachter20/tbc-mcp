@@ -1672,12 +1672,18 @@ TOOLS += [
      "command>] when there is one, e.g. '[source: Elm Street.vce]'. Never put license details, licensee or company "
      "names from the TBC license, user-profile paths or tokens in a note (they are refused). "
      "files lists the job's files folder: reference files the user drops in, and Project Analyzer's reports - "
-     "analysis\\ (OVERVIEW.md, TIMELINE.md, PEOPLE.md, ISSUES.md, INDEX.md) and analysis\\intel\\ (ENTITIES.md: every "
-     "person, organization, place, document number, structure, station and sheet with its aliases and the files it "
-     "appears in; TIMELINE.md automatic timeline; THREADS.md email conversations; VERSIONS.md document versions and "
-     "what changed; AMOUNTS.md). read (file) returns a text file from it, e.g. analysis\\intel\\ENTITIES.md - when "
-     "the user asks about a structure (MH-3), station (12+50) or sheet (C-104), look it up there for the documents "
-     "that mention it. Kept only on this computer. Ask the user before adding or changing.",
+     "analysis\\ (OVERVIEW.md, TIMELINE.md, PEOPLE.md, ISSUES.md, INDEX.md) and analysis\\intel\\ (CHECKS.md: "
+     "problems to follow up - conflicting amounts, unanswered RFIs, missing documents, date conflicts, versions after "
+     "FINAL - under Needs attention / Worth checking / For information; STORIES.md: each RFI, change order and "
+     "submittal from first mention to last, with people and amounts; ENTITIES.md: every person, organization, place, "
+     "document number, structure, station and sheet with its aliases and the files it appears in; TIMELINE.md "
+     "automatic timeline; THREADS.md email conversations; VERSIONS.md document versions and what changed; AMOUNTS.md), "
+     "plus graph.html / timeline.html, interactive pages for the user to open in a browser (read returns their path, "
+     "not their HTML). read (file) returns a text file from it. Use them: the user asks about an RFI, change order or "
+     "submittal -> read its story in STORIES.md; about a structure (MH-3), station (12+50) or sheet (C-104) -> look "
+     "it up in ENTITIES.md for the documents that mention it; before relying on an amount, revision or sheet that "
+     "might be in dispute -> check CHECKS.md. The first result of a session lists the job's 'Needs attention' items. "
+     "Kept only on this computer. Ask the user before adding or changing.",
      obj({"action": {"type": "string", "enum": ["list", "link", "unlink", "add", "update", "remove", "files", "read"], "default": "list"},
           "project": {"type": "string", "description": "Job name; omit to use the job the open TBC project belongs to."},
           "folder": {"type": "string"}, "note": {"type": "string"},
@@ -1725,8 +1731,11 @@ INSTRUCTIONS = (
     "tbc_project_notes: a project knowledge base SHARED with Civil 3D MCP and Project Analyzer, matched to the job by "
     "the .vce's folder. When you start on a project, check its notes (project_info returns them; or tbc_project_notes "
     "action=list) and follow them; if Project Analyzer has analysed the job's documents, its reports are in the job's "
-    "files folder under analysis\\, and analysis\\intel\\ENTITIES.md says which documents mention a structure, station "
-    "or sheet (tbc_project_notes action=files / read). Write project notes in the suite's reference formats "
+    "files folder under analysis\\ (tbc_project_notes action=files / read): in analysis\\intel\\, STORIES.md tells "
+    "the story of each RFI, change order and submittal, ENTITIES.md says which documents mention a structure, "
+    "station or sheet, and CHECKS.md lists open problems - check it before relying on an amount, revision or sheet "
+    "that might be in dispute, and mention its 'Needs attention' items when they bear on the task. Write project "
+    "notes in the suite's reference formats "
     "(2026-10-03, 12+50, MH-3, C-104, RFI 12, CO 4, $12,500.00, John Smith (J. Smith)), ending with [source: <TBC "
     "project or command>] when there is one. Never put license details, licensee/company names, user-profile paths "
     "or tokens in shared notes.\n"

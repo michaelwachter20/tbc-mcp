@@ -9,8 +9,9 @@ come back in TBC, and the other way round:
     <shared dir>\\projects\\<slug>.json   {name, folders, notes: [{id: note-N, note, added, updated?, source?}], ...}
     <shared dir>\\projects\\<slug>\\      the job's files folder: reference files the user drops in, and Project
                                          Analyzer's reports: analysis\\ (OVERVIEW.md, TIMELINE.md, PEOPLE.md,
-                                         ISSUES.md, INDEX.md) and analysis\\intel\\ (ENTITIES.md, TIMELINE.md,
-                                         THREADS.md, VERSIONS.md, AMOUNTS.md)
+                                         ISSUES.md, INDEX.md) and analysis\\intel\\ (CHECKS.md, STORIES.md,
+                                         ENTITIES.md, TIMELINE.md, THREADS.md, VERSIONS.md, AMOUNTS.md, plus the
+                                         graph.html / timeline.html pages for people to open in a browser)
 
 <shared dir> follows civil3d-mcp-unified's knowledgeRoot() exactly: CIVIL3D_KNOWLEDGE_DIR, else
 Documents\\Civil3DMcp-KnowledgeBase (moved there from the pre-2.2.0 Documents\\Civil3DMcp once, as Civil 3D MCP does).
@@ -38,7 +39,9 @@ SOURCE = "tbc"                         # marks the notes TBC wrote (the other to
 OWN_FOLDERS = "tbc_linked_folders"     # TBC's own top-level field: the folders it linked (only those can be unlinked)
 MAX_READ_CHARS = 20000
 ANALYSIS_REPORTS = ("OVERVIEW.md", "TIMELINE.md", "PEOPLE.md", "ISSUES.md", "INDEX.md")
-INTEL_REPORTS = ("ENTITIES.md", "TIMELINE.md", "THREADS.md", "VERSIONS.md", "AMOUNTS.md")
+INTEL_REPORTS = ("CHECKS.md", "STORIES.md", "ENTITIES.md", "TIMELINE.md", "THREADS.md", "VERSIONS.md", "AMOUNTS.md")
+# Interactive pages for people: their data is one big embedded JSON block, useless to the AI as text
+INTEL_PAGES = ("graph.html", "timeline.html")
 
 # How every tool in the suite writes references, so Project Analyzer's automatic connections tie a note to the same
 # items in documents and drawings (contract: Reference formats)
@@ -56,7 +59,7 @@ _FORMAT_CHECKS = [
 TEXT_EXTENSIONS = {".md", ".txt", ".csv", ".tsv", ".json", ".jsonl", ".xml", ".html", ".htm", ".log", ".ini",
                    ".yaml", ".yml", ".landxml", ".gsi", ".job", ".raw", ".rw5", ".fbk", ".asc", ".pts"}
 
-# Project Analyzer's notes end "[source: <file>; fact-N]"; its first note points to the reports (analyzer/civil3d.py)
+# Project Analyzer's notes end "[source: <file>; fact-N]"; its first note points to the reports (analyzer/shared.py)
 _ANALYZER_NOTE = re.compile(r"; fact-\d+\]$")
 _ANALYZER_POINTER = "Full analysis of this project (overview, timeline, people, issues, index) is in this project's files"
 
@@ -292,21 +295,81 @@ def _analysis_hint(directory):
     """What Project Analyzer has written for this job, and how to use it, or None."""
     analysis, intel = os.path.join(directory, "analysis"), os.path.join(directory, "analysis", "intel")
     reports = [r for r in ANALYSIS_REPORTS if os.path.isfile(os.path.join(analysis, r))]
-    connections = [r for r in INTEL_REPORTS if os.path.isfile(os.path.join(intel, r))]
-    if not reports and not connections:
+    findings = [r for r in INTEL_REPORTS if os.path.isfile(os.path.join(intel, r))]
+    pages = intel_pages(directory)
+    if not reports and not findings and not pages:
         return None
     parts = ["Project Analyzer has analysed this job's documents (read them with tbc_project_notes action=read file=...)."]
     if reports:
         parts.append("Reports in analysis\\: %s - start with %s. Their facts cite the source files."
                      % (", ".join(reports), "OVERVIEW.md" if "OVERVIEW.md" in reports else reports[0]))
-    if connections:
-        parts.append("Automatic connections in analysis\\intel\\: %s. ENTITIES.md lists every person, organization, "
-                     "place, document number, structure, station and sheet with its aliases and the files it appears in: "
-                     "when the user asks about a structure (MH-3), station (12+50) or sheet (C-104), look it up there "
-                     "for the documents that mention it. TIMELINE.md is the automatic timeline, THREADS.md the email "
-                     "conversations, VERSIONS.md document versions and what changed, AMOUNTS.md the amounts."
-                     % ", ".join(connections))
+    if findings:
+        parts.append("Automatic findings in analysis\\intel\\: %s." % ", ".join(findings))
+        uses = {
+            "CHECKS.md": "CHECKS.md lists problems to follow up (Needs attention / Worth checking / For information: "
+                         "conflicting amounts, RFIs with no reply, missing documents, date conflicts, versions dated "
+                         "after the FINAL one, quiet periods) - before relying on a document or number that might be "
+                         "in dispute (an amount, a revision, a sheet), check it there.",
+            "STORIES.md": "STORIES.md follows each RFI, change order, submittal and other reference from first mention "
+                          "to last, with the people and amounts (references that travel together are one story, e.g. "
+                          "'CO 4 -> RFI 12') - when the user asks about an RFI, change order or submittal, read its story.",
+            "ENTITIES.md": "ENTITIES.md lists every person, organization, place, document number, structure, station and "
+                           "sheet with its aliases and the files it appears in - when the user asks about a structure "
+                           "(MH-3), station (12+50) or sheet (C-104), look it up there for the documents that mention it.",
+            "TIMELINE.md": "TIMELINE.md is the automatic timeline.",
+            "THREADS.md": "THREADS.md the email conversations.",
+            "VERSIONS.md": "VERSIONS.md document versions and what changed.",
+            "AMOUNTS.md": "AMOUNTS.md the amounts.",
+        }
+        parts.extend(uses[r] for r in findings)
+    if pages:
+        parts.append("Interactive pages for the user to open in a browser (not readable as text): %s."
+                     % "; ".join(pages))
     return " ".join(parts)
+
+
+def intel_pages(directory):
+    """Full paths of Project Analyzer's interactive pages (graph.html, timeline.html) that exist for this job."""
+    intel = os.path.join(directory, "analysis", "intel")
+    return [os.path.join(intel, p) for p in INTEL_PAGES if os.path.isfile(os.path.join(intel, p))]
+
+
+_SECTION = re.compile(r"^##\s+(Needs attention|Worth checking|For information)\b[^\n(]*(?:\((\d+)\))?", re.I)
+_ITEM = re.compile(r"^###\s+(.+?)\s*$")
+
+
+def read_checks(directory, limit=5):
+    """The open problems in analysis\\intel\\CHECKS.md: titles of the 'Needs attention' items (at most `limit`) and
+    the counts per section, from the '## <section> (N)' headings (or the '### ' items when a heading has no count).
+    None when the file is missing, unreadable or has none of the sections; never raises."""
+    path = os.path.join(directory, "analysis", "intel", "CHECKS.md")
+    try:
+        if not os.path.isfile(path):
+            return None
+        with open(path, "r", encoding="utf-8-sig", errors="replace") as f:
+            lines = f.read(2000000).splitlines()
+        sections, current = {}, None
+        for line in lines:
+            m = _SECTION.match(line)
+            if m:
+                current = m.group(1).lower()
+                sections[current] = {"count": int(m.group(2)) if m.group(2) else None, "titles": []}
+            elif line.startswith("## "):
+                current = None
+            elif current:
+                item = _ITEM.match(line)
+                if item:
+                    sections[current]["titles"].append(item.group(1))
+        if not sections:
+            return None
+        count = lambda s: (sections[s]["count"] if sections[s]["count"] is not None else len(sections[s]["titles"])) if s in sections else 0
+        attention = sections.get("needs attention", {"titles": []})["titles"]
+        return {"file": path, "needs_attention": count("needs attention"), "needs_attention_titles": attention[:limit],
+                "worth_checking": count("worth checking"), "for_information": count("for information"),
+                "hint": "Open problems Project Analyzer found in this job's documents. Mention the ones that bear on "
+                        "the user's task; read analysis\\intel\\CHECKS.md (tbc_project_notes action=read) for details."}
+    except Exception:
+        return None
 
 
 def describe(project):
@@ -470,7 +533,16 @@ def project_files(name, active_path):
     hint = _analysis_hint(d)
     if hint:
         r["analysis"] = hint
+    pages = intel_pages(d)
+    if pages:
+        r["pages_to_open"] = [{"page": os.path.basename(p), "path": p, "open": "in a browser (for the user, not as text)"}
+                              for p in pages]
     return r
+
+
+def _is_intel_page(full, d):
+    return (os.path.basename(full).lower() in INTEL_PAGES
+            and os.path.normcase(os.path.dirname(full)) == os.path.normcase(os.path.join(d, "analysis", "intel")))
 
 
 def read_file(rel, name, active_path, max_chars=MAX_READ_CHARS):
@@ -488,6 +560,12 @@ def read_file(rel, name, active_path, max_chars=MAX_READ_CHARS):
         raise KnowledgeError("Only files inside the project's files folder can be read.")
     if not os.path.isfile(full):
         raise KnowledgeError("No file %r in %s. Use action=files to list them." % (rel, d))
+    if _is_intel_page(full, d):
+        return {"project": project["name"], "file": os.path.relpath(full, d), "page": full,
+                "message": "%s is an interactive page for people: its data is one large embedded JSON block, not useful "
+                           "as text. Tell the user to open it in a browser: %s. For the same information as text, read "
+                           "the .md reports in analysis\\intel\\ (STORIES.md, ENTITIES.md, TIMELINE.md)."
+                           % (os.path.basename(full), full)}
     with open(full, "rb") as f:
         raw = f.read(max_chars * 4 + 1)
     ext = os.path.splitext(full)[1].lower()
@@ -523,6 +601,9 @@ def notes_once(active_path):
         hint = _analysis_hint(d)
         if hint:
             r["analysis"] = hint
+        checks = read_checks(d)  # never raises: a missing or odd CHECKS.md just leaves this out
+        if checks:
+            r["checks"] = checks
         return r
     except (OSError, ValueError, KnowledgeError):
         return None

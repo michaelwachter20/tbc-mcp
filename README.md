@@ -382,7 +382,8 @@ Documents\Civil3DMcp-KnowledgeBase\     (or CIVIL3D_KNOWLEDGE_DIR)
   projects\<project>.json               the job: its name, linked folders and notes
   projects\<project>\                   the job's files: anything you drop in, and Project Analyzer's reports
     analysis\                           OVERVIEW, TIMELINE, PEOPLE, ISSUES, INDEX
-      intel\                            ENTITIES, TIMELINE, THREADS, VERSIONS, AMOUNTS (automatic connections)
+      intel\                            CHECKS, STORIES, ENTITIES, TIMELINE, THREADS, VERSIONS, AMOUNTS (automatic
+                                        findings), graph.html and timeline.html (interactive pages)
 ```
 
 Only facts about a job are shared. TBC's preferences, lessons, skills, scripts and panel layouts stay in its own
@@ -405,9 +406,20 @@ Only facts about a job are shared. TBC's preferences, lessons, skills, scripts a
   `John Smith (J. Smith)`. Notes end with `[source: <TBC project or command>]` when there is one. A note written
   another way is still saved, with a reminder.
 - **Analysis reports.** After Project Analyzer has read a job's documents, `analysis\` holds its overview, timeline,
-  people and issues. `analysis\intel\ENTITIES.md` lists every person, organization, place, document number,
-  structure, station and sheet, with the files each appears in, so *"what do the documents say about MH-3?"* works
-  from TBC. `tbc_project_notes action=read` reads them.
+  people and issues. Its automatic findings are in `analysis\intel\`, and `tbc_project_notes action=read` reads them:
+  - `CHECKS.md`: problems to follow up, sorted into *Needs attention*, *Worth checking* and *For information*.
+    Examples are conflicting amounts for one change order, an RFI nobody answered, a document mentioned but never
+    found, date conflicts, and a version dated after the FINAL one. When a chat starts on the job, the AI is told
+    the *Needs attention* items (up to five) and how many are worth checking. It checks this file before relying on
+    an amount, revision or sheet that might be in dispute.
+  - `STORIES.md`: each RFI, change order and submittal, followed from first mention to last, with the people and
+    amounts. *"What happened with RFI 12?"* gets its story.
+  - `ENTITIES.md`: every person, organization, place, document number, structure, station and sheet, with the
+    files each appears in. *"What do the documents say about MH-3?"* works from TBC.
+  - `TIMELINE.md`, `THREADS.md`, `VERSIONS.md` and `AMOUNTS.md`: the automatic timeline, email conversations,
+    document versions and amounts.
+  - `graph.html` and `timeline.html` are interactive pages for you to open in a browser. The AI lists them with
+    their full paths but doesn't read them as text.
 - **Private stays private.** License details, the bridge's session token and paths inside your user profile are
   refused in notes, and per-user folders (AppData, temp) can't be linked.
 - **Stays on this computer**, like your license profile. Point `CIVIL3D_KNOWLEDGE_DIR` at a shared drive to share
