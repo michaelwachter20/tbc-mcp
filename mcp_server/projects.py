@@ -25,11 +25,17 @@ contains it. Rules:
   - the file is re-read right before every write, and fields TBC doesn't know (top level and on notes) are kept
   - one-line notes with stable ids, duplicate check on add, the suite's reference formats, atomic writes
   - privacy: no license details, session tokens or user-profile paths in notes or folders
+  - copied folders: a job folder is usually a COPY of a project from elsewhere, so paths written in its files (a TBC
+    project's imported files and linked data) point at the original location. locate() translates them to the copy
+    with Project Analyzer's relink_map.csv and project-analyzer_original_locations, and never guesses
 """
+import csv
 import datetime
 import json
+import ntpath
 import os
 import re
+import urllib.parse
 
 from knowledge import KnowledgeError
 
@@ -39,7 +45,13 @@ SOURCE = "tbc"                         # marks the notes TBC wrote (the other to
 OWN_FOLDERS = "tbc_linked_folders"     # TBC's own top-level field: the folders it linked (only those can be unlinked)
 MAX_READ_CHARS = 20000
 ANALYSIS_REPORTS = ("OVERVIEW.md", "TIMELINE.md", "PEOPLE.md", "ISSUES.md", "INDEX.md")
-INTEL_REPORTS = ("CHECKS.md", "STORIES.md", "ENTITIES.md", "TIMELINE.md", "THREADS.md", "VERSIONS.md", "AMOUNTS.md")
+INTEL_REPORTS = ("CHECKS.md", "STORIES.md", "ENTITIES.md", "TIMELINE.md", "THREADS.md", "VERSIONS.md", "AMOUNTS.md",
+                 "REFERENCES.md", "relink_map.csv")
+# Project Analyzer's fields in <slug>.json about the copy (contract: Copied project folders); read, never written
+ANALYZER_ROOT = "project-analyzer_root"
+ANALYZER_COPY = "project-analyzer_copy"
+ANALYZER_ORIGINALS = "project-analyzer_original_locations"
+RELINK_COLUMNS = ("path as written in the files", "relative path in this folder", "status", "expected at", "times referenced")
 # Interactive pages for people: their data is one big embedded JSON block, useless to the AI as text
 INTEL_PAGES = ("graph.html", "timeline.html")
 
@@ -291,13 +303,14 @@ def _ensure_files_dir(name):
     return d
 
 
-def _analysis_hint(directory):
+def _analysis_hint(directory, project=None):
     """What Project Analyzer has written for this job, and how to use it, or None."""
     analysis, intel = os.path.join(directory, "analysis"), os.path.join(directory, "analysis", "intel")
     reports = [r for r in ANALYSIS_REPORTS if os.path.isfile(os.path.join(analysis, r))]
     findings = [r for r in INTEL_REPORTS if os.path.isfile(os.path.join(intel, r))]
     pages = intel_pages(directory)
-    if not reports and not findings and not pages:
+    copied = project is not None and any(_copy_info(project)[:2])
+    if not reports and not findings and not pages and not copied:
         return None
     parts = ["Project Analyzer has analysed this job's documents (read them with tbc_project_notes action=read file=...)."]
     if reports:
@@ -320,11 +333,25 @@ def _analysis_hint(directory):
             "THREADS.md": "THREADS.md the email conversations.",
             "VERSIONS.md": "VERSIONS.md document versions and what changed.",
             "AMOUNTS.md": "AMOUNTS.md the amounts.",
+            "REFERENCES.md": "REFERENCES.md lists the files the job's files point at that are missing from the copy, "
+                             "where each belongs and which files need it.",
+            "relink_map.csv": "relink_map.csv maps every path written in the files to its place in the copy - use "
+                              "tbc_project_notes action=locate (path) rather than reading it.",
         }
         parts.extend(uses[r] for r in findings)
     if pages:
         parts.append("Interactive pages for the user to open in a browser (not readable as text): %s."
                      % "; ".join(pages))
+    if project is not None:
+        root, originals, copy = _copy_info(project)
+        if root or originals or "relink_map.csv" in findings:
+            parts.append("COPIED FOLDER: this job's folder is a copy%s%s, so paths written in its files - a TBC "
+                         "project's imported files, linked images and data sources - still point at the original "
+                         "location. When TBC reports a missing or unresolved file, or a path the user mentions doesn't "
+                         "exist, use tbc_project_notes action=locate (path) before telling the user it's missing; an "
+                         "existing path isn't necessarily the right file either."
+                         % (" (top folder %s)" % root if root else "",
+                            "; originally %s" % ", ".join(o for o, _ in originals) if originals else ""))
     return " ".join(parts)
 
 
@@ -372,12 +399,193 @@ def read_checks(directory, limit=5):
         return None
 
 
+# ---------------------------------------------------------------------------
+# copied project folders: where a path written in the job's files is in the copy (contract: Copied project folders)
+# ---------------------------------------------------------------------------
+def to_windows(raw):
+    """Normalizes a path the way Project Analyzer writes column 1 of relink_map.csv (its references.to_windows):
+    'file:///P:/Jobs/1234%20Elm/x.pdf' -> 'P:\\Jobs\\1234 Elm\\x.pdf'; forward slashes -> backslashes."""
+    s = (raw or "").strip().strip("\"'")
+    m = re.match(r"(?i)^file:(/*)(.*)$", s)
+    if m:
+        slashes, rest = m.group(1), urllib.parse.unquote(m.group(2))
+        s = rest if re.match(r"^[A-Za-z]:", rest) else ("\\\\" + rest if len(slashes) == 2 else rest)
+    elif "%20" in s:
+        s = urllib.parse.unquote(s)
+    s = s.replace("/", "\\")
+    if s.startswith("\\\\"):
+        return "\\\\" + ntpath.normpath(s[2:])
+    return ntpath.normpath(s) if s else s
+
+
+_relink_cache = {}  # csv path -> (mtime, size, rows by lowercased path)
+
+
+def read_relink_map(directory):
+    """analysis\\intel\\relink_map.csv as {lowercased normalized path: row}, or None when it is missing or malformed.
+    Read only (utf-8-sig); never raises."""
+    path = os.path.join(directory, "analysis", "intel", "relink_map.csv")
+    try:
+        st = os.stat(path)
+    except OSError:
+        return None
+    cached = _relink_cache.get(path)
+    if cached and cached[:2] == (st.st_mtime, st.st_size):
+        return cached[2]
+    rows = None
+    try:
+        with open(path, "r", encoding="utf-8-sig", newline="") as f:
+            reader = csv.reader(f)
+            header = [h.strip().lower() for h in next(reader, [])]
+            if all(c in header for c in RELINK_COLUMNS[:3]):
+                col = {c: header.index(c) for c in RELINK_COLUMNS if c in header}
+                rows = {}
+                for rec in reader:
+                    if len(rec) < 3:
+                        continue  # blank or broken line
+                    get = lambda c: rec[col[c]].strip() if c in col and col[c] < len(rec) else ""
+                    written = to_windows(get("path as written in the files"))
+                    if not written:
+                        continue
+                    try:
+                        times = int(get("times referenced") or 0)
+                    except ValueError:
+                        times = 0
+                    rows[written.lower()] = {"written": written, "relative": get("relative path in this folder"),
+                                             "status": get("status").lower(), "expected": get("expected at"), "times": times}
+    except (OSError, UnicodeDecodeError, csv.Error):
+        rows = None
+    _relink_cache[path] = (st.st_mtime, st.st_size, rows)
+    return rows
+
+
+def _copy_info(project):
+    """Project Analyzer's description of the copy: (root or None, [(original, in_copy)], copy note or None)."""
+    root = project.get(ANALYZER_ROOT)
+    root = root if isinstance(root, str) and root.strip() else None
+    originals = []
+    for o in project.get(ANALYZER_ORIGINALS) or []:
+        if isinstance(o, dict) and isinstance(o.get("original"), str) and o["original"].strip():
+            originals.append((to_windows(o["original"]), to_windows(str(o.get("in_copy") or ""))))
+    originals.sort(key=lambda o: -len(o[0]))  # the most specific original folder wins
+    copy = project.get(ANALYZER_COPY)
+    return root, originals, (copy if copy not in (None, "", {}, []) else None)
+
+
+def _in_copy(root, relative):
+    """(absolute path, exists) for a path relative to the copy's root; (None, False) without a root."""
+    if not root or not relative:
+        return None, False
+    full = os.path.normpath(os.path.join(root, to_windows(relative)))
+    return full, os.path.exists(full)
+
+
+def references_summary(directory):
+    """How many referenced files are missing from the copy (one per distinct path), for the start of a session."""
+    rows = read_relink_map(directory)
+    if not rows:
+        return None
+    counts = {}
+    for r in rows.values():
+        counts[r["status"]] = counts.get(r["status"], 0) + 1
+    out = {"missing": counts.get("missing", 0), "ambiguous": counts.get("ambiguous", 0),
+           "found": counts.get("found", 0) + counts.get("found by name", 0),
+           "file": os.path.join(directory, "analysis", "intel", "REFERENCES.md")}
+    out["hint"] = ("This job's folder is a copy: paths written in its files (TBC imported files, linked images and data) "
+                   "point at the original location. %d referenced file(s) are missing from the copy - REFERENCES.md "
+                   "says what, where each belongs and which files need it. Before telling the user a file is "
+                   "missing, translate its path with tbc_project_notes action=locate." % out["missing"])
+    return out
+
+
+def locate(path, name, active_path):
+    """Where a path as TBC or a file shows it is in the job's copy: relink_map.csv first, then
+    project-analyzer_original_locations, then a check on disk. Never guesses."""
+    if not path or not str(path).strip():
+        raise KnowledgeError("path is required: the file path as TBC or a file shows it")
+    project = resolve(name, active_path)
+    d = files_dir(project["name"])
+    root, originals, copy = _copy_info(project)
+    written = to_windows(str(path))
+    r = {"project": project["name"], "path": str(path), "normalized": written, "copy_root": root}
+    if copy is not None:
+        r["copy"] = copy
+    record = ("If the user confirms this (or relinks the file in TBC), offer to record it as a project note, asking "
+              "first, e.g. 'Imported file <path as written> is <path in the copy, relative to its top folder> in the "
+              "copy [source: TBC project <name>.vce]'.")
+
+    rows = read_relink_map(d)
+    row = rows.get(written.lower()) if rows else None
+    if row:
+        r["source"] = "relink_map.csv"
+        r["status"] = row["status"] or "unknown"
+        r["times_referenced"] = row["times"]
+        full, exists = _in_copy(root, row["relative"])
+        if row["relative"]:
+            r["relative"] = row["relative"]
+            r["absolute"] = full
+            r["exists"] = exists
+        if r["status"] == "missing" or not row["relative"]:
+            if row["expected"]:
+                where, _ = _in_copy(root, row["expected"])
+                r["expected_at"] = {"relative": row["expected"], "absolute": where}
+        if r["status"] == "missing":
+            r["hint"] = ("Not in the copy. It belongs at %s (see analysis\\intel\\REFERENCES.md). Ask the user for the "
+                         "file; don't point TBC at another file." % (row["expected"] or "a place Project Analyzer could not tell"))
+        elif r["status"] == "ambiguous":
+            r["hint"] = ("More than one file in the copy could be this one; analysis\\intel\\REFERENCES.md lists the "
+                         "candidates. Ask the user which is right - don't pick one.")
+        elif r["status"] == "found by name":
+            r["hint"] = "Matched by file name only, elsewhere in the copy: check with the user that it's the right file. " + record
+        else:
+            r["hint"] = record
+        if row["relative"] and not root:
+            r["note"] = "Project Analyzer didn't record the copy's top folder, so only the relative path is known."
+        elif row["relative"] and not exists:
+            r["note"] = ("The copy's top folder (%s) isn't reachable from this computer, or the file was moved since "
+                         "the analysis." % root)
+        return r
+
+    low = written.lower()
+    for original, in_copy in originals:
+        o = original.lower().rstrip("\\")
+        if low == o or low.startswith(o + "\\"):
+            rest = written[len(o):].lstrip("\\")
+            relative = ntpath.join(in_copy, rest) if in_copy and in_copy != "." else rest
+            full, exists = _in_copy(root, relative)
+            r.update({"source": ANALYZER_ORIGINALS, "original_folder": original, "relative": relative,
+                      "absolute": full, "exists": exists,
+                      "status": "translated" if exists else "translated, not found"})
+            if not root:
+                r["note"] = "Project Analyzer didn't record the copy's top folder, so only the relative path is known."
+            r["hint"] = (record if exists else
+                         "Under the original folder %s, so in the copy it would be %s - but no file is there. It may "
+                         "not have been copied: ask the user for it." % (original, full or relative))
+            return r
+
+    r.update({"status": "not known", "source": None,
+              "hint": "Neither Project Analyzer's relink map nor its list of original locations covers this path, so "
+                      "where it is in the copy isn't known. Don't guess: ask the user where the original project folder "
+                      "was (or where this file is now)."})
+    if not rows and not originals:
+        r["note"] = ("Project Analyzer hasn't mapped this job's copy yet (no relink_map.csv or original locations): "
+                     "the user can run its analysis, or tell you where the original folder was.")
+    try:
+        if os.path.isabs(written) and os.path.exists(written):
+            r["exists_as_written"] = True
+            r["note"] = ((r.get("note", "") + " ").lstrip() + "A file does exist at that path, but it isn't known to "
+                         "be this job's copy of it: check with the user before using it.")
+    except (OSError, ValueError):
+        pass
+    return r
+
+
 def describe(project):
     d = _ensure_files_dir(project["name"])
     files, _ = list_files(d)
     r = {"project": project["name"], "folders": project["folders"], "notes": _present_notes(project),
          "path": project_file(project["name"]), "files_folder": d, "files": len(files)}
-    hint = _analysis_hint(d)
+    hint = _analysis_hint(d, project)
     if hint:
         r["analysis"] = hint
     return r
@@ -530,7 +738,7 @@ def project_files(name, active_path):
          "hint": "Empty. The user can drop PDFs, Word/Excel files, images or anything else here (subfolders are fine)."
          if not files else "Read text files with action=read (file=<path as listed>). Project-specific: keep findings in "
                            "project notes, not in general lessons or skills."}
-    hint = _analysis_hint(d)
+    hint = _analysis_hint(d, project)
     if hint:
         r["analysis"] = hint
     pages = intel_pages(d)
@@ -598,12 +806,18 @@ def notes_once(active_path):
              "hint": "Shared project knowledge (also used by Civil 3D MCP and Project Analyzer). Follow these facts; "
                      "add what you learn about this job with tbc_project_notes action=add (ask the user first), "
                      "in the suite's reference formats: %s." % REFERENCE_FORMATS}
-        hint = _analysis_hint(d)
+        hint = _analysis_hint(d, project)
         if hint:
             r["analysis"] = hint
         checks = read_checks(d)  # never raises: a missing or odd CHECKS.md just leaves this out
         if checks:
             r["checks"] = checks
+        try:
+            refs = references_summary(d)  # likewise for relink_map.csv
+        except Exception:
+            refs = None
+        if refs:
+            r["references"] = refs
         return r
     except (OSError, ValueError, KnowledgeError):
         return None

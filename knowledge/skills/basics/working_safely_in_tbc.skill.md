@@ -31,6 +31,10 @@ verified: "2026-10-13, compiled from live sessions with the user on TBC 2026.10"
 - Check what is known about **this job**: `project_info` returns its shared project notes the first time
   (or `tbc_project_notes action=list`). Follow them. If Project Analyzer has read the job's documents, its
   reports are in the job's files folder under `analysis\` (`tbc_project_notes action=read file=analysis\OVERVIEW.md`).
+- Job folders are usually **copies** of a project from another drive or server, so imported files and linked data
+  still point at the original location. When TBC reports a missing or unresolved file, or a path doesn't exist,
+  run `tbc_project_notes action=locate path=<path as TBC shows it>` before telling the user it's missing. If it
+  says "not known", ask the user where the original folder was; never guess.
 - Read the command's help: `tbc_help action=read command=<key>`. It says what the command does and whether it
   **acts immediately** (no panel).
 - Ask the user to save (or confirm it's a test copy) before experiments that change project-wide data

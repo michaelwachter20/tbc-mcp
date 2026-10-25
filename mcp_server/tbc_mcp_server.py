@@ -1299,7 +1299,9 @@ def t_project_notes(a):
         return P.project_files(name, path)
     if act == "read":
         return P.read_file(a.get("file"), name, path, int(a.get("max_chars", P.MAX_READ_CHARS)))
-    raise K.KnowledgeError("action must be list, link, unlink, add, update, remove, files or read")
+    if act == "locate":
+        return P.locate(a.get("path"), name, path)
+    raise K.KnowledgeError("action must be list, link, unlink, add, update, remove, files, read or locate")
 
 
 def t_memory(a):
@@ -1683,8 +1685,20 @@ TOOLS += [
      "submittal -> read its story in STORIES.md; about a structure (MH-3), station (12+50) or sheet (C-104) -> look "
      "it up in ENTITIES.md for the documents that mention it; before relying on an amount, revision or sheet that "
      "might be in dispute -> check CHECKS.md. The first result of a session lists the job's 'Needs attention' items. "
+     "COPIED FOLDERS: a job folder is usually a copy of a project from another drive or server, so paths written in "
+     "its files - a TBC project's imported files, linked images and data sources - point at the original location. "
+     "locate (path, as TBC or a file shows it) says where that file is in the copy: Project Analyzer's relink_map.csv "
+     "first, then its list of original locations, then a check on disk; it returns the status (found, found by name, "
+     "ambiguous, missing, translated, not known), the absolute path and the path relative to the copy's top folder, "
+     "and for a missing file where it should be. When TBC reports a missing or unresolved file, or a path the user "
+     "mentions doesn't exist, use locate BEFORE telling the user it's missing (and an existing path isn't necessarily "
+     "the right file). 'not known' means ask the user where the original folder was - never guess. REFERENCES.md and "
+     "relink_map.csv in analysis\\intel\\ list the job's missing files. When you find or fix a reference (e.g. the "
+     "user relinks an imported file), offer to record it as a note, e.g. 'Imported file P:\\Jobs\\1234\\Survey\\CP.job "
+     "is Project\\Survey\\CP.job in the copy [source: TBC project Elm.vce]'. "
      "Kept only on this computer. Ask the user before adding or changing.",
-     obj({"action": {"type": "string", "enum": ["list", "link", "unlink", "add", "update", "remove", "files", "read"], "default": "list"},
+     obj({"action": {"type": "string", "enum": ["list", "link", "unlink", "add", "update", "remove", "files", "read", "locate"], "default": "list"},
+          "path": {"type": "string", "description": "locate: a file path as TBC or a file shows it (the original location)."},
           "project": {"type": "string", "description": "Job name; omit to use the job the open TBC project belongs to."},
           "folder": {"type": "string"}, "note": {"type": "string"},
           "id": {"type": "string", "description": "Note id, e.g. 'note-3'."},
@@ -1734,8 +1748,10 @@ INSTRUCTIONS = (
     "files folder under analysis\\ (tbc_project_notes action=files / read): in analysis\\intel\\, STORIES.md tells "
     "the story of each RFI, change order and submittal, ENTITIES.md says which documents mention a structure, "
     "station or sheet, and CHECKS.md lists open problems - check it before relying on an amount, revision or sheet "
-    "that might be in dispute, and mention its 'Needs attention' items when they bear on the task. Write project "
-    "notes in the suite's reference formats "
+    "that might be in dispute, and mention its 'Needs attention' items when they bear on the task. Job folders are "
+    "usually COPIES of a project from elsewhere: when TBC reports a missing or unresolved file (imported file, linked "
+    "image or data source) or a path the user gives doesn't exist, run tbc_project_notes action=locate (path) before "
+    "saying it's missing, and never guess where a file went. Write project notes in the suite's reference formats "
     "(2026-10-03, 12+50, MH-3, C-104, RFI 12, CO 4, $12,500.00, John Smith (J. Smith)), ending with [source: <TBC "
     "project or command>] when there is one. Never put license details, licensee/company names, user-profile paths "
     "or tokens in shared notes.\n"

@@ -268,7 +268,85 @@ check(P.add_note(loose, "Three Tools", None).get("format_hints") and len(hints) 
 check("format_hints" not in P.add_note("MH-3 rim checked 2026-10-03 at 12+50 (C-104), RFI 12, $12,500.00", "Three Tools", None),
       "notes in the suite's formats get no hints")
 
-# --- 10. the server, over stdio, without TBC ------------------------------------------------------------------
+# --- 10. a copied job folder: paths in the files point at the original location ---------------------------------
+copy_root = os.path.join(work, "copies", "1234 Elm St")
+for sub in ("Survey", "CAD", "TBC"):
+    os.makedirs(os.path.join(copy_root, "Project", sub))
+for fn in (("Survey", "CP.job"), ("CAD", "Base.dwg")):
+    with open(os.path.join(copy_root, "Project", *fn), "w") as f:
+        f.write("x")
+copied = {"name": "Copied Job", "folders": [os.path.join(copy_root, "Project", "TBC")], "notes": [],
+          "project-analyzer_root": copy_root,
+          "project-analyzer_copy": {"is_copy": True, "of": "P:\\Jobs\\1234 Elm St", "answered": "assumed"},
+          "project-analyzer_original_locations": [{"original": "p:\\jobs\\1234 elm st", "in_copy": "Project"}]}
+with open(os.path.join(shared, "projects", "copied-job.json"), "w", encoding="utf-8", newline="\n") as f:
+    f.write(json.dumps(copied, indent=2, ensure_ascii=False) + "\n")
+copied_intel = os.path.join(P.files_dir("Copied Job"), "analysis", "intel")
+os.makedirs(copied_intel)
+relink_csv = os.path.join(copied_intel, "relink_map.csv")
+
+
+def write_relink():
+    import csv
+    with open(relink_csv, "w", encoding="utf-8-sig", newline="") as f:  # as Project Analyzer writes it
+        w = csv.writer(f)
+        w.writerow(["path as written in the files", "relative path in this folder", "status", "expected at", "times referenced"])
+        w.writerow(["P:\\Jobs\\1234 Elm St\\Survey\\CP.job", "Project\\Survey\\CP.job", "found", "", 3])
+        w.writerow(["P:\\Jobs\\1234 Elm St\\Images\\Aerial.tif", "", "missing", "Project\\Images\\Aerial.tif", 2])
+        w.writerow(["P:\\Jobs\\1234 Elm St\\Images\\Aerial.tif", "", "missing", "Project\\Images\\Aerial.tif", 1])
+        w.writerow(["P:\\Jobs\\1234 Elm St\\Data\\points.csv", "", "ambiguous", "", 1])
+
+
+write_relink()
+with open(os.path.join(copied_intel, "REFERENCES.md"), "w", encoding="utf-8") as f:
+    f.write("# References\n\n## Missing (1)\n\n- `P:\\Jobs\\1234 Elm St\\Images\\Aerial.tif`: expected at Project\\Images\\Aerial.tif\n")
+before_copy = open(os.path.join(shared, "projects", "copied-job.json"), encoding="utf-8").read()
+before_csv = open(relink_csv, "rb").read()
+
+r = P.locate("p:/jobs/1234 elm st/survey/CP.JOB", "Copied Job", None)
+cp = os.path.join(copy_root, "Project", "Survey", "CP.job")
+check(r["status"] == "found" and r["source"] == "relink_map.csv" and r["absolute"] == cp and r["exists"]
+      and r["relative"] == "Project\\Survey\\CP.job" and r["times_referenced"] == 3,
+      "locate finds a listed file: absolute and relative path (case and slashes don't matter)")
+r = P.locate("P:\\Jobs\\1234 Elm St\\Images\\Aerial.tif", "Copied Job", None)
+check(r["status"] == "missing" and r["expected_at"] == {"relative": "Project\\Images\\Aerial.tif",
+                                                       "absolute": os.path.join(copy_root, "Project", "Images", "Aerial.tif")}
+      and "ask the user" in r["hint"].lower(), "locate gives a missing file's expected place")
+r = P.locate("file:///P:/Jobs/1234%20Elm%20St/Data/points.csv", "Copied Job", None)
+check(r["status"] == "ambiguous" and "don't pick" in r["hint"], "an ambiguous match is reported, not guessed (file: URLs work too)")
+r = P.locate("\"P:\\JOBS\\1234 Elm St\\CAD\\Base.dwg\"", "Copied Job", None)
+check(r["status"] == "translated" and r["source"] == P.ANALYZER_ORIGINALS and r["exists"]
+      and r["absolute"] == os.path.join(copy_root, "Project", "CAD", "Base.dwg") and r["relative"] == "Project\\CAD\\Base.dwg",
+      "a path not in the CSV is translated through original_locations")
+r = P.locate("P:\\Jobs\\1234 Elm St\\CAD\\Gone.dwg", "Copied Job", None)
+check(r["status"] == "translated, not found" and not r["exists"], "a translated path with no file there says so")
+r = P.locate("Q:\\Other Job\\x.job", "Copied Job", None)
+check(r["status"] == "not known" and r["source"] is None and "ask the user where the original" in r["hint"],
+      "a path on an unrelated drive is 'not known', with a hint to ask the user")
+check(raises(lambda: P.locate("", "Copied Job", None), "path is required"), "locate needs a path")
+check(open(os.path.join(shared, "projects", "copied-job.json"), encoding="utf-8").read() == before_copy
+      and open(relink_csv, "rb").read() == before_csv, "locate never writes the job file or the CSV")
+
+hint = P.project_files("Copied Job", None).get("analysis", "")
+check("REFERENCES.md" in hint and "relink_map.csv" in hint and "action=locate" in hint and "COPIED FOLDER" in hint,
+      "the hint lists REFERENCES.md and relink_map.csv and says to locate before calling a file missing")
+copied_vce = os.path.join(copy_root, "Project", "TBC", "Elm.vce")
+P.reset_announcements()
+refs = (P.notes_once(copied_vce) or {}).get("references") or {}
+check(refs.get("missing") == 1 and refs.get("file", "").endswith("REFERENCES.md") and "1 referenced file" in refs.get("hint", ""),
+      "notes_once counts missing files (one per distinct path) and points to REFERENCES.md: %s" % {k: refs.get(k) for k in ("missing", "ambiguous", "found")})
+
+for label, content in (("garbage", b"\xff\xfe\x00\x01junk\n"), ("wrong header", b"a,b\n1,2\n")):
+    with open(relink_csv, "wb") as f:
+        f.write(content)
+    P.reset_announcements()
+    first = P.notes_once(copied_vce)
+    r = P.locate("P:\\Jobs\\1234 Elm St\\Survey\\CP.job", "Copied Job", None)
+    check(first is not None and "references" not in first and r["status"] == "translated" and r["exists"],
+          "a malformed relink_map.csv (%s) is skipped: notes_once works, locate falls back to original locations" % label)
+write_relink()
+
+# --- 11. the server, over stdio, without TBC ------------------------------------------------------------------
 env = dict(os.environ, TBC_MCP_INFO=os.path.join(work, "no_bridge.json"), TBC_MCP_EXIT_WITH_TBC="0")
 p = subprocess.Popen([sys.executable, server], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                      env=env, text=True, encoding="utf-8")
@@ -293,6 +371,11 @@ check(not r["isError"] and "MH-3 (structure)" in json.loads(r["content"][0]["tex
 desc = next(t["description"] for t in rpc(6, "tools/list", {})["tools"] if t["name"] == "tbc_project_notes")
 check(all(s in desc for s in ("12+50", "MH-3", "C-104", "RFI 12", "$12,500.00", "[source:", "ENTITIES.md", "license")),
       "the tool tells the AI the reference formats, sources, intel reports and privacy rule")
+check(all(s in desc for s in ("locate", "REFERENCES.md", "relink_map.csv", "never guess", "in the copy [source: TBC project")),
+      "the tool says when to use locate and to offer recording a fixed reference")
+r = rpc(7, "tools/call", {"name": "tbc_project_notes", "arguments": {"action": "locate", "project": "Copied Job",
+                                                                     "path": "P:\\Jobs\\1234 Elm St\\Survey\\CP.job"}})
+check(not r["isError"] and json.loads(r["content"][0]["text"])["absolute"] == cp, "action=locate works over MCP")
 p.stdin.close()
 p.wait(timeout=10)
 

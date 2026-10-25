@@ -295,7 +295,7 @@ identified by their integer `serial`.
 |---|---|
 | `tbc_license` | license profile: features, expiry, which commands you can run |
 | `tbc_preferences` | your standing rules; add, update or remove them |
-| `tbc_project_notes` | the job's notes, shared with Civil 3D MCP and Project Analyzer; link folders, add notes, read the job's files and analysis reports |
+| `tbc_project_notes` | the job's notes, shared with Civil 3D MCP and Project Analyzer; link folders, add notes, read the job's files and analysis reports, find a file's place in a copied job folder |
 | `tbc_skills` | search and read verified how-tos (skills, lessons, scripts, panel layouts) |
 | `tbc_memory` | record and read lessons |
 | `tbc_script` | save and run parameterised IronPython scripts |
@@ -382,8 +382,9 @@ Documents\Civil3DMcp-KnowledgeBase\     (or CIVIL3D_KNOWLEDGE_DIR)
   projects\<project>.json               the job: its name, linked folders and notes
   projects\<project>\                   the job's files: anything you drop in, and Project Analyzer's reports
     analysis\                           OVERVIEW, TIMELINE, PEOPLE, ISSUES, INDEX
-      intel\                            CHECKS, STORIES, ENTITIES, TIMELINE, THREADS, VERSIONS, AMOUNTS (automatic
-                                        findings), graph.html and timeline.html (interactive pages)
+      intel\                            CHECKS, STORIES, ENTITIES, TIMELINE, THREADS, VERSIONS, AMOUNTS, REFERENCES
+                                        (automatic findings), relink_map.csv, graph.html and timeline.html
+                                        (interactive pages)
 ```
 
 Only facts about a job are shared. TBC's preferences, lessons, skills, scripts and panel layouts stay in its own
@@ -420,6 +421,23 @@ Only facts about a job are shared. TBC's preferences, lessons, skills, scripts a
     document versions and amounts.
   - `graph.html` and `timeline.html` are interactive pages for you to open in a browser. The AI lists them with
     their full paths but doesn't read them as text.
+- **Copied project folders.** A job folder is usually a copy of a project from another drive or a server. Files in
+  it still point at the original location, and that includes a TBC project's imported files and linked images and
+  data. So a missing path isn't necessarily gone, and an existing one isn't necessarily the right file. Project
+  Analyzer works out the mapping for the whole job: the copy's top folder and where its files originally lived
+  (`project-analyzer_root`, `project-analyzer_original_locations` in the job file), `relink_map.csv` (every path
+  written in the files and its place in the copy) and `REFERENCES.md` (what's missing, where it belongs, and which
+  files need it). TBC reads these and never changes them:
+  - `tbc_project_notes action=locate path=<path as TBC shows it>` says where a file is in the copy. It looks the
+    path up in `relink_map.csv`, then applies the original locations, then checks the disk. It returns the status
+    (found, found by name, ambiguous, missing, translated, not known), the full path, the path relative to the
+    copy's top folder, and for a missing file where it should be. When neither source covers the path, it says so,
+    and the AI asks you where the original folder was instead of guessing.
+  - When TBC reports a missing or unresolved file, the AI runs `locate` before telling you it's missing.
+  - When a chat starts on the job, the AI is told how many referenced files are missing from the copy.
+  - When you relink a file in TBC, or the AI finds where one went, it offers to save that as a project note, for
+    example *Imported file P:\Jobs\1234\Survey\CP.job is Project\Survey\CP.job in the copy [source: TBC project
+    Elm.vce]*.
 - **Private stays private.** License details, the bridge's session token and paths inside your user profile are
   refused in notes, and per-user folders (AppData, temp) can't be linked.
 - **Stays on this computer**, like your license profile. Point `CIVIL3D_KNOWLEDGE_DIR` at a shared drive to share
