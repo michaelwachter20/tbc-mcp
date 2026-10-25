@@ -1,3 +1,43 @@
+# --- No job data in this repository (suite contract, rule 8) -------------------------
+# This repo holds code and GENERAL TBC know-how only. Job facts go in the shared project notes (tbc_project_notes,
+# outside every repo); job files stay in the user's own folders. The patterns below are a safety net so job files
+# dropped in here by mistake are never committed. A file that really belongs in the repo can still be added on
+# purpose with `git add -f <file>`; add a "!path" exception below for it so it stays tracked.
+*.vce
+*.job
+*.jxl
+*.rw5
+*.fbk
+*.dwg
+*.dxf
+*.dwt
+*.dgn
+*.pdf
+*.doc
+*.docx
+*.xls
+*.xlsx
+*.xlsm
+*.csv
+*.ppt
+*.pptx
+*.msg
+*.eml
+*.pst
+*.ost
+*.zip
+*.7z
+*.rar
+*.jpg
+*.jpeg
+*.png
+*.tif
+*.tiff
+*.bmp
+*.gif
+*.mp4
+*.mov
+
 # --- Per-user / per-machine data: never commit ---------------------------------
 # License profiles now live in %LOCALAPPDATA%\TBC-MCP\license (outside the repo); this is a safety net
 # in case an older version or TBC_MCP_USER_DIR ever puts them back in here.

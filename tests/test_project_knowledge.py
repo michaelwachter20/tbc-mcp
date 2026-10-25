@@ -130,6 +130,47 @@ check([x["id"] for x in rel] == [l1["id"]], "lessons surface for a command named
 p1 = K.add_pref("Use numeric point IDs")
 check(K.add_pref("use numeric point ids")["action"] == "unchanged" and len(K.list_prefs()) == 1, "duplicate preference not stored twice")
 
+# --- 8b. no job data in general knowledge (contract rule 8): the knowledge folder is committed with the repo ---
+lessons_before = len(K.list_lessons())
+refused = lambda fn: raises(fn, "tbc_project_notes action=add")
+check(refused(lambda: K.add_lesson("Imported the points from P:\\Jobs\\1234 Elm St\\Survey", "import")), "a lesson with a project-drive path is refused")
+check(refused(lambda: K.add_lesson("Points went in from \\\\fileserver\\jobs\\x", "import")), "a lesson with a network path is refused")
+check(K.add_lesson("Geoid files are read from C:\\ProgramData\\Trimble\\GeoData", "geoidsubgrid").get("id"), "C:\\ProgramData\\Trimble\\GeoData is allowed")
+check(K.add_lesson("Macros are installed under C:/Program Files/Trimble/Trimble Business Center", "install").get("id"), "C:\\Program Files paths are allowed")
+check(refused(lambda: K.add_lesson("On ELM STREET DRAINAGE the codes are separated by commas", "codes")), "a lesson naming a linked job is refused (any case)")
+check(refused(lambda: K.add_lesson("elm-street-drainage uses US feet", "units")), "a job's slug is refused")
+check(refused(lambda: K.add_lesson("The Elm Street folder has two surfaces", "surfaces")), "the name of a job's linked folder is refused")
+check(refused(lambda: K.add_lesson("Open Elm.vce before importing", "import")), "a TBC project file name is refused")
+check(refused(lambda: K.add_lesson("CP.job holds the control", "import")) and refused(lambda: K.add_lesson("Use field-1.JXL", "import")),
+      "job file names (.job, .jxl) are refused")
+check(K.add_lesson("Import .job and *.jxl files with Home > Import; Trimble.Vce.Core holds Project", "import").get("id"),
+      "a file extension alone, or the SDK namespace Trimble.Vce, is fine")
+P.add_private("s3cr3t-token-9f", "the bridge's session token")
+check(refused(lambda: K.add_lesson("The bridge answered with s3cr3t-token-9F", "bridge")), "a registered private value is refused")
+check(refused(lambda: K.add_lesson("Logs are in %s\\TBC-MCP" % os.path.expanduser("~"), "logs")), "a user-profile path is refused")
+check(refused(lambda: K.add_pref("For Elm Street Drainage always use the CTRL layer")), "a preference naming the job is refused")
+check(refused(lambda: K.update_pref(p1["id"], "Use numeric point IDs on Elm Street Drainage")) and K.list_prefs()[0]["text"] == "Use numeric point IDs",
+      "updating a preference to name the job is refused, the old text stays")
+check(refused(lambda: K.save_skill("elm_points", "points", "Points for Elm Street Drainage", "steps")), "a skill naming the job is refused")
+K.save_skill("general_skill", "general", "A general how-to", "Open the panel, fill it, press Apply.")
+check(refused(lambda: K.append_version_section("general_skill", "On TBC 2027 see P:\\Jobs\\x first")), "append_version_section is guarded")
+check(refused(lambda: K.add_command_note("createpoint", "Elm.vce needs the Feature code box")), "a command note with a project file is refused")
+check(refused(lambda: K.save_script("s1", K.build_script("s1", "", "read", [], "path = r'P:\\Jobs\\1234\\a.csv'"))), "a script with a project path is refused")
+check(len(K.list_lessons()) == lessons_before + 3 and not os.path.exists(os.path.join(general, "skills", "points")),
+      "refused entries were not written")
+generic = {"name": "Generic Folders", "folders": [os.path.join(work, "jobs", "Generic", "Survey")], "notes": []}
+with open(os.path.join(shared, "projects", "generic-folders.json"), "w", encoding="utf-8") as f:
+    json.dump(generic, f)
+check(K.add_lesson("The Feature code box accepts codes separated by spaces", "createpoint").get("id"), "a general lesson is saved")
+check(K.add_lesson("Survey tab tools need a licensed Survey module", "survey").get("id"), "generic folder names (Survey) don't block lessons")
+saved_shared = os.environ["CIVIL3D_KNOWLEDGE_DIR"]
+os.environ["CIVIL3D_KNOWLEDGE_DIR"] = os.path.join(work, "no such folder", "shared")
+try:
+    check(K.add_lesson("Compute Project must finish before reading results", "compute").get("id"), "a missing shared folder doesn't break saving")
+finally:
+    os.environ["CIVIL3D_KNOWLEDGE_DIR"] = saved_shared
+check(not os.path.exists(os.path.join(work, "no such folder")), "...and isn't created by the check")
+
 # --- 9. a job all three tools have written to (contract: project-analyzer docs/shared-project-knowledge.md) ----
 three_dir = os.path.join(work, "jobs", "Three Tools")
 os.makedirs(os.path.join(three_dir, "CAD"))
@@ -368,6 +409,8 @@ r = rpc(4, "tools/call", {"name": "tbc_project_notes", "arguments": {"action": "
 check(r["isError"] and "action=link" in r["content"][0]["text"], "no TBC and no project name -> asks for a name to link")
 r = rpc(5, "tools/call", {"name": "tbc_project_notes", "arguments": {"action": "read", "project": "Three Tools", "file": "analysis\\intel\\ENTITIES.md"}})
 check(not r["isError"] and "MH-3 (structure)" in json.loads(r["content"][0]["text"])["text"], "action=read opens analysis\\intel\\ENTITIES.md")
+r = rpc(8, "tools/call", {"name": "tbc_memory", "arguments": {"action": "add", "text": "Elm Street Drainage uses US feet", "topic": "units"}})
+check(r["isError"] and "tbc_project_notes action=add" in r["content"][0]["text"], "tbc_memory refuses job data over MCP and points to the project notes")
 desc = next(t["description"] for t in rpc(6, "tools/list", {})["tools"] if t["name"] == "tbc_project_notes")
 check(all(s in desc for s in ("12+50", "MH-3", "C-104", "RFI 12", "$12,500.00", "[source:", "ENTITIES.md", "license")),
       "the tool tells the AI the reference formats, sources, intel reports and privacy rule")

@@ -110,6 +110,102 @@ def _score(query, *texts):
 
 
 # ---------------------------------------------------------------------------
+# no job data in general knowledge (suite contract, rule 8: no job data in any tool's repository)
+# ---------------------------------------------------------------------------
+# knowledge\ is committed with the repository, so nothing written here may name a job, its folders or files, a
+# project drive or the user's profile. Job facts belong in the shared project notes (projects.py, outside the repo).
+ALLOWED_PATH_PREFIXES = ("c:\\program files", "c:\\program files (x86)", "c:\\programdata", "c:\\windows")
+# Folder names too generic to identify a job, even when a job's linked folder ends in one
+GENERIC_FOLDER_NAMES = {"survey", "surveys", "project", "projects", "jobs", "job", "drawings", "drawing", "documents",
+                        "docs", "data", "field", "fielddata", "office", "design", "files", "export", "exports",
+                        "import", "imports", "current", "archive", "working", "work", "civil", "civil3d", "trimble",
+                        "plans", "sheets", "images", "photos", "control", "base", "final", "draft", "incoming",
+                        "outgoing", "submittals", "correspondence", "email", "reports", "models", "points"}
+_DRIVE_PATH = re.compile(r"(?<![A-Za-z0-9])[A-Za-z]:\\")
+_UNC_PATH = re.compile(r"(?:^|[\s\"'(=\[,`])\\\\[A-Za-z0-9._-]+\\[A-Za-z0-9$._-]")
+_JOB_FILE = re.compile(r"[^\s\\/:*?\"'<>|`]*[A-Za-z0-9_\-)]\.(?:vce|job|jxl)\b", re.I)
+
+
+def _job_names(root=None):
+    """Names that identify a job in the shared projects folder: each job's name, its slug, and the last folder name
+    of each linked folder (4+ characters, generic folder names left out). Empty when the folder is missing or
+    unreadable - never raises. root: a shared folder to read instead of the configured one (for the repo audit)."""
+    try:
+        import projects  # imported here: projects.py imports this module
+        names = set()
+        if root:
+            d = os.path.join(root, "projects")
+            jobs = []
+            for fn in (os.listdir(d) if os.path.isdir(d) else []):
+                if fn.endswith(".json"):
+                    try:
+                        jobs.append(projects._load(os.path.join(d, fn)))
+                    except (OSError, ValueError):
+                        pass
+        else:
+            jobs = projects.list_projects()
+        for job in jobs:
+            name = str(job.get("name") or "").strip()
+            folders = [f for f in job.get("folders") or [] if isinstance(f, str)]
+            for n in [name, projects.slug(name)] + [os.path.basename(f.rstrip("\\/")) for f in folders]:
+                n = n.strip()
+                if len(n) >= 4 and n.lower() not in GENERIC_FOLDER_NAMES:
+                    names.add(n)
+        return names
+    except Exception:
+        return set()
+
+
+def job_data_problems(text, job_names=None):
+    """Why this text would put job data into general knowledge; an empty list means it is general. job_names: the
+    names to look for (default: the jobs in the shared projects folder)."""
+    if not text:
+        return []
+    problems = []
+    flat = text.replace("/", "\\")
+    low = re.sub(r"\\{2,}", r"\\", flat).lower()  # escaped backslashes in code/JSON count as one
+    for m in _DRIVE_PATH.finditer(low):
+        rest = low[m.start():]
+        if not any(rest.startswith(p) and not rest[len(p):len(p) + 1].isalnum() for p in ALLOWED_PATH_PREFIXES):
+            problems.append("an absolute path (%s...)" % rest[:40].split("\n")[0])
+            break
+    if _UNC_PATH.search(flat):
+        problems.append("a network path (\\\\server\\share)")
+    try:
+        import projects
+        projects.check_private_text(text)
+    except KnowledgeError as ex:
+        problems.append("private data (%s)" % str(ex).split("must not contain ", 1)[-1].split(". ", 1)[0])
+    except Exception:
+        pass
+    for name in sorted(_job_names() if job_names is None else job_names, key=len, reverse=True):
+        if re.search(r"(?<![A-Za-z0-9])" + re.escape(name) + r"(?![A-Za-z0-9])", text, re.I):
+            problems.append("the name of a job in the shared project notes (%s)" % name)
+            break
+    for m in _JOB_FILE.finditer(text):
+        token = m.group(0).strip("()[]{}<>,;")
+        # the TBC SDK's namespace (Trimble.Vce, Trimble.Vce.Core ...) isn't a project file
+        if token.lower().endswith("trimble.vce") or re.match(r"\.[A-Za-z]", text[m.end():m.end() + 2]):
+            continue
+        problems.append("a TBC project or job file name (%s)" % token)
+        break
+    return problems
+
+
+def check_general(what, *texts):
+    """Refuses to save general knowledge that names a job, its folders or files, a project drive or the user's profile."""
+    problems = job_data_problems("\n".join(t if isinstance(t, str) else json.dumps(t, ensure_ascii=False)
+                                           for t in texts if t))
+    if problems:
+        raise KnowledgeError(
+            "Not saved: this %s would put job data into TBC's general knowledge, which is kept in the repository and "
+            "shared with every user: %s. Lessons, skills, scripts, command notes and preferences must be GENERAL "
+            "(useful on any job; write 'the project folder', '<project>.vce' or '<project folder>\\Survey' instead of "
+            "real names and paths). Record facts about "
+            "this job with tbc_project_notes action=add instead (ask the user first)." % (what, "; ".join(problems)))
+
+
+# ---------------------------------------------------------------------------
 # skills
 # ---------------------------------------------------------------------------
 def parse_frontmatter(text):
@@ -188,6 +284,7 @@ def save_skill(name, category, description, body, requires_write=False, paramete
     _check_name(category, "category")
     if not body or not body.strip():
         raise KnowledgeError("body is required (markdown: when to use, steps/code, gotchas)")
+    check_general("skill", name, category, description, body, parameters)
     path = os.path.join(SKILLS, category, name + ".skill.md")
     rel = current_release()
     if os.path.exists(path):
@@ -213,6 +310,7 @@ def append_version_section(name, body, release=None):
         raise KnowledgeError("No skill named %r" % name)
     if not body or not body.strip():
         raise KnowledgeError("body is required: what is different on this release")
+    check_general("skill section", body)
     rel = release or current_release()
     text = _read(p)
     meta, _ = parse_frontmatter(text)
@@ -300,6 +398,7 @@ def save_script(name, text, overwrite=False):
     script was saved/tested on: saving on a new release adds that release, the old ones stay listed."""
     p = _script_path(name)
     meta, _ = parse_script(text)
+    check_general("script", text)
     if os.path.exists(p):
         if not overwrite:
             raise KnowledgeError("Script %r already exists; pass overwrite=true to save a new version of it." % name)
@@ -378,6 +477,7 @@ def _lessons():
 def add_lesson(text, topic=None, tags=None):
     if not text or not text.strip():
         raise KnowledgeError("text is required")
+    check_general("lesson", text, topic, tags)
     ls = _lessons()
     duplicate = next((l for l in ls if l.get("text", "").strip().lower() == text.strip().lower()), None)
     if duplicate:
@@ -494,6 +594,7 @@ def record_command(state):
 
 
 def add_command_note(key, text):
+    check_general("command note", key, text)
     rec = get_command(key) or {"key": key, "fields": [], "buttons": [], "notes": []}
     rec.setdefault("notes", []).append({"ts": _now(), "text": text.strip(), "tbc_version": current_release()})
     _write(_cmd_path(key), json.dumps(rec, indent=1, ensure_ascii=False))
@@ -526,6 +627,7 @@ def list_prefs():
 def add_pref(text, topic=None):
     if not text or not text.strip():
         raise KnowledgeError("text is required")
+    check_general("preference", text, topic)
     ps = list_prefs()
     duplicate = next((p for p in ps if p.get("text", "").strip().lower() == text.strip().lower()), None)
     if duplicate:
@@ -538,6 +640,7 @@ def add_pref(text, topic=None):
 
 
 def update_pref(pid, text):
+    check_general("preference", text)
     ps = list_prefs()
     for p in ps:
         if p.get("id") == int(pid):

@@ -370,6 +370,30 @@ It follows the same rules as Civil 3D MCP and Project Analyzer: **add, never del
 ids; the same entry is never stored twice; files are written whole (temp file, then rename), so a crash never
 leaves half a file; and the AI asks you before it saves anything.
 
+### No job data in the repository
+
+`knowledge\` is part of this repository and is shared with everyone who uses it, so it holds **general** TBC
+know-how only. Facts about a job go in the [shared project notes](#shared-project-knowledge), which live outside
+every repository. This is checked, not just asked for:
+
+- **Before anything is saved** as a lesson, skill, skill section, script, command note or preference, the text is
+  checked. It's refused, and the AI is told to use `tbc_project_notes action=add` instead, if it contains:
+  - an absolute path outside the program and system folders (`C:\Program Files`, `C:\Program Files (x86)`,
+    `C:\ProgramData` such as Trimble's GeoData folder, `C:\Windows`), or a network path;
+  - a path in your user profile, the bridge's session token or a license detail;
+  - the name of a job in the shared projects folder: its name, its slug, or the last folder name of a linked
+    folder. Matching is whole words, any case, and ignores names under 4 characters and generic folder names
+    like Survey or Drawings;
+  - a TBC project or job file name (`Elm.vce`, `CP.job`, `field.jxl`). An extension on its own (`.job`) and the
+    SDK namespace `Trimble.Vce` are fine.
+- **An audit test**, `tests\test_knowledge_audit.py`, scans every tracked file under `knowledge\` with the same
+  rules, against the jobs this computer knows, and lists file and line for any hit.
+- **`.gitignore` blocks job file types**: TBC and survey data, drawings, PDFs, Office files, email, archives, images
+  and video. A job file dropped into the repo by mistake is never committed. A file that really belongs can still
+  be added with `git add -f`.
+
+Panel layouts were already recorded without the entries of project-data dropdowns (layers, surfaces, styles ...).
+
 ### Shared project knowledge
 
 TBC MCP, [Civil 3D MCP](https://github.com/michaelwachter20/civil3d-mcp-unified) and Project Analyzer work like a
@@ -555,7 +579,7 @@ All settings are optional environment variables.
 | `mcp_server\tbc_mcp_server.py` | the MCP server (38 tools) |
 | `mcp_server\ipy\` | code sent into TBC on each call: panel engine, view, license, import/export |
 | `mcp_server\knowledge.py`, `projects.py`, `tbc_help.py` | knowledge base, shared project knowledge and offline help reader |
-| `tests\` | live usage suites on throwaway objects (`cad_edit_tests.py`, `survey_cogo_tests.py`, `linework_tests.py`, `drafting_tests.py`, `home_tests.py`, `selection_tests.py`), the ribbon-tab surveyor (`tab_survey.py` + `write_tab_skill.py`), smoke tests (`test_watchdog.py` and `test_project_knowledge.py` offline, `test_mcp_stdio.py`, `test_v2_e2e.py`) and shared helpers in `tbc_testkit.py` |
+| `tests\` | live usage suites on throwaway objects (`cad_edit_tests.py`, `survey_cogo_tests.py`, `linework_tests.py`, `drafting_tests.py`, `home_tests.py`, `selection_tests.py`), the ribbon-tab surveyor (`tab_survey.py` + `write_tab_skill.py`), smoke tests (`test_watchdog.py`, `test_project_knowledge.py` and `test_knowledge_audit.py` offline, `test_mcp_stdio.py`, `test_v2_e2e.py`) and shared helpers in `tbc_testkit.py` |
 | `tests\tab_data\` | survey results per ribbon tab (every button, its panel and help), used to write the tab overview skills |
 | `tests\dev\` | one-off development probes (`ui_dev.py`, `explore_command_ui.py`, IronPython checks, `run_ipy.ps1` to run TBC's IronPython outside TBC) |
 | `tools\` | `reflect.ps1` (type signatures from TBC's DLLs) and `sdkdoc.py` (search the SDK docs) |
