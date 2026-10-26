@@ -1,7 +1,41 @@
 ﻿# Written for and verified on Trimble Business Center 2026.10 (build 44.0.9666.28609). For a newer release, ADD handling for it and keep the 2026.10 behaviour (see README > TBC versions).
 """Live usage tests for the Drafting tab on throwaway objects (layer MCP_DRTEST). py -3.12 drafting_tests.py [names]
 Reference locations are numeric points (user preference) typed as point IDs into TBC's coordinate boxes.
-Never prints, never fills personal details (3D PDF contact boxes stay empty)."""
+Never prints, never fills personal details (3D PDF contact boxes stay empty).
+
+Needs TBC
+    Yes: TBC 2026.10 with a project open (use a copy) and the MCP Bridge macro on; talks to TBC at import
+    time. Uses tests\\tbc_testkit.py.
+
+How to run
+    cd tests
+    py -3.12 drafting_tests.py                         all tests in TESTS
+    py -3.12 drafting_tests.py text edit_text          only these (function names without "t_"); some tests
+                                                       depend on earlier ones (edit_text on text, insert_block
+                                                       on create_block, purge_blocks on insert_block)
+    Add --keep (with test names: it also counts as a name) to skip the teardown.
+    Run from tests\\ so drafting_results.json lands where .gitignore expects it (current directory).
+    MANUAL tests (Angular Dimension, Insert Image) are never run by this script.
+
+What it creates and cleans up
+    Layer MCP_DRTEST, 3000 east / 600 north of the Plan View centre, with reference points A-D (100 x 50
+    rectangle), M, T, L, U and per-test lines, polygons, text, dimensions, labels, label tables, a hatch, a
+    block reference and a surface MCP_DR_SURF. Objects that don't sit on the layer (plotbox setup, plan set,
+    sheet set, dynaview boundary set, scale bar, label tables, quick profile) are collected in MADE and deleted
+    by cleanup_made(). Block definitions MCP_TEST_BLOCK and MCP_IMPORT_* are removed with a narrowed Purge
+    Blocks (purge_only / t_purge_blocks), with Undo if more than expected disappeared. Temp files:
+    tests\\mcp_blocks_tmp\\ (removed), tests\\mcp_test_3d.pdf (removed if TBC lets go of it).
+    Not undone: Labeling Scale Factor is left set to a fixed factor of 1.0, and Import Blocks sets the
+    'My block folder path' setting back to empty (assumed to have been empty).
+
+What it writes
+    drafting_results.json in the current directory ({"results": [...]}).
+
+Pass / fail
+    Mostly "the expected new object exists" (by type and name), checked by listing the layer or walking the
+    project (find_types, snap), plus property read-backs (props) and panel status texts such as
+    "labeled: 2". "N/M passed" at the end; FAILs don't change the exit code.
+"""
 import json, math, os, sys
 from tbc_testkit import S, record, close, base, points, entities, make_points, make_line, open_cmd, fill, click, cleanup, run, done
 
@@ -9,8 +43,12 @@ LAYER = "MCP_DRTEST"
 E0, N0 = base(3000, 600)
 P = {}  # alias -> point ID
 SER = {}  # alias -> point serial
+# windows already open before the run; cleanup() closes any other non-modal window left behind
 BASE_FORMS = set(f["id"] for f in S.run_ipy("command_ui", "forms", {}))
 
+# IronPython run inside TBC with args = serial and names = [property names]: returns the object's type and
+# str() of every listed property it has (missing ones are skipped). Several candidate names are passed because
+# the property holding e.g. a text's string isn't the same on every drafting type.
 PROPS = r"""
 o = bridge.lookup(prj, args)
 out = {'type': o.GetType().FullName}
@@ -25,10 +63,14 @@ result = out
 
 
 def props(serial, names):
+    """{"type": full .NET type name, <name>: str(value) for each of `names` the object has} (see PROPS)."""
     return S.call_bridge("execute_python", {"code": "args = %d\nnames = %r\n" % (serial, names) + PROPS, "transaction": False})["result"]
 
 
 def setup():
+    """Create the layer and reference points (z 10), offsets from (E0, N0): A (0,0), B (100,0), C (100,50),
+    D (0,50), M (50,25) centre, T (50,80) above for text/leaders, L (50,-20) below for the dimension line,
+    U (120,60) for tables and block inserts."""
     S.call_bridge("create_layer", {"name": LAYER})
     coords = {"A": (0, 0, 10), "B": (100, 0, 10), "C": (100, 50, 10), "D": (0, 50, 10), "M": (50, 25, 10),
               "T": (50, 80, 10), "L": (50, -20, 10), "U": (120, 60, 10)}
@@ -40,25 +82,32 @@ def setup():
 
 
 def ents_before():
+    """Serials of everything on the test layer now."""
     return set(e["serial"] for e in entities(LAYER))
 
 
 def new_objects(before):
+    """Non-point objects on the test layer that weren't in `before`."""
     return [e for e in entities(LAYER) if e["serial"] not in before and not e["type"].endswith("Point")]
 
 
 def panel_texts():
+    """The static texts of the open panel (status lines such as "Points labeled: 2")."""
     return S.run_ipy("command_ui", "state", {"include_text": True}).get("texts")
 
 
 def ln(name, pts, closed=False):
+    """Throwaway linestring on the test layer through (x, y) offsets from (E0, N0), z 10."""
     return make_line(LAYER, name, [(E0 + x, N0 + y, 10) for x, y in pts], closed=closed)
 
 
 # ---------------------------------------------------------------- text
+# serial of the text made by t_text, edited by t_edit_text
 TEXT = {}
 
 
+# Create Text (createtext) at point T, height 2, "Middle center", content typed into the rich text box: one new
+# object whose text property contains "MCP TEST TEXT".
 def t_text():
     b = ents_before()
     open_cmd("createtext")
@@ -73,6 +122,8 @@ def t_text():
     record("Create Text", ok, "%s %s" % ([x["type"] for x in new], pr), r)
 
 
+# Edit Text (edittext) on t_text's text: the panel's richTextBox* field is found by id, set to "MCP EDITED"
+# and applied; the text property must now contain it. The panel's fields are printed as diagnostics.
 def t_edit_text():
     if "serial" not in TEXT:
         record("Edit Text", False, "needs the text from Create Text")
@@ -89,6 +140,8 @@ def t_edit_text():
 
 
 # ---------------------------------------------------------------- dimensions
+# Linear Dimension (createlineardimension), "Two points" A and B, dimension line through L: exactly one new
+# Dimension object (TBC also adds an MText for its text). Candidate value properties are reported.
 def t_linear_dimension():
     b = ents_before()
     open_cmd("createlineardimension")
@@ -102,6 +155,8 @@ def t_linear_dimension():
     record("Linear Dimension", ok, "%s %s (A-B = 100; TBC also adds an MText for the dimension text)" % ([x["type"] for x in new], pr), r)
 
 
+# Angular Dimension (createangulardimension), "Two line segments" A-B and A-D, location M: one new Dimension
+# (90 degrees). In MANUAL, not run (see the note above MANUAL).
 def t_angular_dimension():
     # "Arc segment" mode linked by serial says "A valid segment cannot be obtained from the selected object" (it
     # needs a pick). "Two line segments" with two single-segment lines leaves nothing to pick: A-B and A-D = 90 deg.
@@ -120,6 +175,8 @@ def t_angular_dimension():
 
 
 # ---------------------------------------------------------------- labels
+# Label Points (labelpoints) for A and B (Selection box takes serials) -> Add: the panel must report
+# "labeled: 2".
 def t_label_points():
     b = ents_before()
     open_cmd("labelpoints")
@@ -131,11 +188,14 @@ def t_label_points():
     record("Label Points", ok, "panel %s; new objects %s" % (tx, [x["type"] for x in new]), r)
 
 
+# Label Lines (labellines) on a two-segment line: passes when new objects appear on the layer or a panel
+# status line mentioning "label" contains a 1. A loose check: the detail line shows what TBC reported.
 def t_label_lines():
     line = ln("DR_LBL_LINE", [(0, 0), (100, 0), (100, 50)])
     b = ents_before()
     open_cmd("labellines")
     st = S.run_ipy("command_ui", "state", {})
+    # the multi-select box is the field showing "Selected: n"; its id is looked up rather than hard-coded
     ms = [f["id"] for f in st["fields"] if "Selected:" in str(f.get("value"))]
     r = fill([["Layer", LAYER], [ms[0], [line]]], press="Add", wait=2)
     tx = panel_texts()
@@ -147,7 +207,10 @@ def t_label_lines():
 
 def make_polygon(name, keys=("A", "B", "C", "D")):
     """Create Polygon -> Edit Linestring (Point ID + Save per vertex). The serial shown in Edit Linestring's 'Line'
-    box is REPLACED once vertices are saved (polygons only), so look the polygon up by name afterwards."""
+    box is REPLACED once vertices are saved (polygons only), so look the polygon up by name afterwards.
+
+    keys are aliases from P; returns the polygon's serial.
+    """
     open_cmd("createpolygon")
     fill([["Name", name], ["Layer", LAYER]], press="OK", wait=2)
     fill([["LocationTypeComboBox", "Point ID"]])
@@ -159,6 +222,7 @@ def make_polygon(name, keys=("A", "B", "C", "D")):
     return [e["serial"] for e in entities(LAYER) if e.get("name") == name and "Polygon" in e["type"]][0]
 
 
+# Label Polygons (labelpolygons) on polygon A-B-C-D: same loose check as Label Lines.
 def t_label_polygons():
     poly = make_polygon("DR_PG")
     b = ents_before()
@@ -173,6 +237,8 @@ def t_label_polygons():
     record("Label Polygons", ok, "panel %s; new objects %s" % (tx, [x["type"] for x in new]), r)
 
 
+# Point Label Table (createpointlabeltable) at U without labelling points first. Not in TESTS:
+# t_point_label_table_rows replaces it (it labels A and B first).
 def t_point_label_table():
     b = ents_before()
     open_cmd("createpointlabeltable")
@@ -183,10 +249,12 @@ def t_point_label_table():
     record("Point Label Table", ok, "new objects %s" % [x["type"] for x in new], r)
 
 
+# "points" -> serials of the point labels made by label_points_now (reused by t_leader_lines)
 LABELS = {}
 
 
 def label_points_now():
+    """Label points A and B with Label Points and return the new PointLabel serials."""
     b = ents_before()
     open_cmd("labelpoints")
     fill([["Layer", LAYER], ["Selection", [SER["A"], SER["B"]]]], press="Add", wait=2)
@@ -196,6 +264,8 @@ def label_points_now():
     return LABELS["points"]
 
 
+# Point Label Table (createpointlabeltable) after labelling A and B: exactly one new Table object on the layer.
+# Row-count candidate properties are reported, not checked.
 def t_point_label_table_rows():
     labels = label_points_now()
     b = ents_before()
@@ -208,6 +278,8 @@ def t_point_label_table_rows():
     record("Point Label Table", ok, "%d point labels -> %s %s" % (len(labels), [e["type"] for e in new], pr), r)
 
 
+# Leader Lines (createleaderlines) from a point label (selTarget, by serial) to point T: passes when new
+# objects appear or one of the label's Leader* properties is set.
 def t_leader_lines():
     labels = LABELS.get("points") or label_points_now()
     b = ents_before()
@@ -223,6 +295,10 @@ def t_leader_lines():
 # ---------------------------------------------------------------- blocks
 BLOCK = "MCP_TEST_BLOCK"
 
+# IronPython run inside TBC with mode and keep defined first: finds the Purge Blocks panel's WinForms
+# 'listView1' (walking the open command panel's controls) and lists its block definitions. mode 'only' ticks
+# exactly the names in `keep` and unticks everything else; any other mode ('read') only reads. Returns the
+# list size, what is ticked, and which of `keep` are present.
 LISTVIEW = r"""
 ui = TrimbleOffice.TheOffice.MainForm.CommandHost.TopCommand.CommandUI
 def find(c, n):
@@ -244,11 +320,17 @@ result = {'count': lv.Items.Count, 'checked': [str(i.Text) for i in lv.Items if 
 
 
 def purge_list(mode, keep=BLOCK):
+    """Read ('read') or narrow ('only') the open Purge Blocks list; see LISTVIEW."""
     return S.call_bridge("execute_python", {"code": "mode = %r\nkeep = %r\n" % (mode, keep) + LISTVIEW, "transaction": False})["result"]
 
 
 def purge_only(names):
-    """Purge exactly these unreferenced block definitions (everything else unticked first); undo if more went."""
+    """Purge exactly these unreferenced block definitions (everything else unticked first); undo if more went.
+
+    Safety steps: refuse (and close) unless the ticked set equals the names present; after Apply, reopen the
+    panel and compare list sizes; if more definitions disappeared than were asked for, run Undo.
+    Returns {"purged": bool, ...} with the reason when nothing was purged.
+    """
     open_cmd("purgeblocks")
     before = purge_list("read", names)
     sel = purge_list("only", names)
@@ -268,7 +350,10 @@ def purge_only(names):
     return {"purged": not after["present"], "lost": lost, "names": before["present"]}
 
 
+# temp folder for the generated block DXF (in .gitignore; removed by t_import_blocks)
 BLOCKS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "mcp_blocks_tmp")
+# IronPython run inside TBC with `name` defined first: in the Import Blocks panel's 'treeView1' (files -> blocks),
+# tick every second-level node whose text equals `name` and return "<parent>/<node>" for each one ticked.
 TREE = r"""
 ui = TrimbleOffice.TheOffice.MainForm.CommandHost.TopCommand.CommandUI
 def find(c, n):
@@ -287,9 +372,14 @@ result = hit
 """
 
 
+# Import Blocks (importblocks): writes a minimal DXF (R12, AC1009) holding one block MCP_IMPORT_BLOCK (a single
+# 10-unit line), points the panel's folder box at BLOCKS_DIR, ticks the file's node and imports. Passes when
+# the node was ticked and a new block definition MCP_IMPORT_BLOCK exists. Afterwards the MCP_IMPORT* definitions
+# are purged and the folder setting is cleared again. Runs last in TESTS.
 def t_import_blocks():
     import os, shutil
     os.makedirs(BLOCKS_DIR, exist_ok=True)
+    # DXF group-code/value pairs, one per line: HEADER, a BLOCKS section with the block, an empty ENTITIES section
     dxf = ["0", "SECTION", "2", "HEADER", "9", "$ACADVER", "1", "AC1009", "0", "ENDSEC", "0", "SECTION", "2", "BLOCKS",
            "0", "BLOCK", "8", "0", "2", "MCP_IMPORT_BLOCK", "70", "0", "10", "0.0", "20", "0.0", "30", "0.0", "3", "MCP_IMPORT_BLOCK",
            "0", "LINE", "8", "0", "10", "0.0", "20", "0.0", "30", "0.0", "11", "10.0", "21", "0.0", "31", "0.0",
@@ -306,6 +396,7 @@ def t_import_blocks():
     ok = bool(hit) and "MCP_IMPORT_BLOCK" in new
     record("Import Blocks", ok, "ticked %s -> new definitions %s (TBC adds a file-level block too)" % (hit, new), r)
     S.pace_command()
+    # remove every new definition starting MCP_IMPORT (the block and the file-level one)
     pr = purge_only([n for n in new if n.startswith("MCP_IMPORT")])
     print("      purge of the imported test blocks:", pr)
     # put the user's 'My block folder path' setting back (it was empty) and remove the test file
@@ -316,6 +407,9 @@ def t_import_blocks():
     shutil.rmtree(BLOCKS_DIR, ignore_errors=True)
 
 
+# Polygon Label Table (createpolygonlabeltable): label a polygon, create the table at U, and if TBC opens
+# Edit Label Table add the polygon there. Passes when a new LabelTable exists and the panel reports
+# "polygons: 1". The table is added to MADE (label tables are found by walking the project).
 def t_polygon_label_table():
     poly = make_polygon("DR_PG_TBL")
     # a label table lists LABELED objects: label the polygon first (as for lines)
@@ -339,6 +433,8 @@ def t_polygon_label_table():
     record("Polygon Label Table", len(new) >= 1 and any("polygons: 1" in str(t) for t in tx), "%s; panel %s" % (new[:1], tx), r)
 
 
+# Create Block (createblock) MCP_TEST_BLOCK from two lines, base point A: exactly one block definition with
+# that name exists afterwards. Reports how many source lines are left.
 def t_create_block():
     l1 = ln("DR_BLK1", [(0, -60), (20, -60)])
     l2 = ln("DR_BLK2", [(20, -60), (20, -45)])
@@ -354,6 +450,8 @@ def t_create_block():
     record("Create Block", ok, "definition %s; source lines left %d; new objects %s" % (defs, len(left), [e["type"] for e in new]), r)
 
 
+# Insert Block (insertblock) of MCP_TEST_BLOCK at U on the test layer, rotation 0: one new BlockReference whose
+# block-name property mentions MCP_TEST_BLOCK. Needs t_create_block.
 def t_insert_block():
     b = ents_before()
     open_cmd("insertblock")
@@ -365,6 +463,9 @@ def t_insert_block():
     record("Insert Block", ok, "%s %s" % ([e["type"] for e in new], pr), r)
 
 
+# Purge Blocks (purgeblocks) narrowed to MCP_TEST_BLOCK: its references on the layer are deleted first (TBC's
+# Delete command), the list is narrowed to just that block, then Apply. Passes when the block is gone and the
+# list shrank by exactly one; if more than one went, Undo is run.
 def t_purge_blocks():
     # only ever purge our own test block: delete its references first, untick everything else, verify, Apply
     refs = [e["serial"] for e in entities(LAYER) if "BlockReference" in e["type"]]
@@ -397,6 +498,8 @@ def t_purge_blocks():
 
 
 # ---------------------------------------------------------------- hatch, print, plan sets, 3D PDF
+# Create Hatch (createhatch), CROSS pattern at scale 1 inside a closed 100 x 50 line: a new object whose type
+# contains "atch" (Hatch / hatch).
 def t_hatch():
     rect = ln("DR_HATCH_BND", [(0, 0), (100, 0), (100, 50), (0, 50), (0, 0)], closed=True)
     b = ents_before()
@@ -408,6 +511,9 @@ def t_hatch():
     record("Create Hatch", ok, "%s" % [e["type"] for e in new], r)
 
 
+# IronPython run inside TBC with `words` defined first: walk the project's containers up to 3 levels deep and
+# list (max 200) objects whose .NET type name contains any of `words`, with serial, full type and name.
+# Used for objects that aren't listed on a layer (block definitions, sheet sets, label tables ...).
 FIND_TYPES = r"""
 out = []
 def walk(c, d=0):
@@ -424,15 +530,19 @@ result = out[:200]
 
 
 def find_types(words):
+    """Objects anywhere in the project whose type name contains one of `words` (see FIND_TYPES)."""
     return S.call_bridge("execute_python", {"code": "words = %r\n" % words + FIND_TYPES, "transaction": False})["result"]
 
 
 MADE = []  # non-layer objects to delete at the end (plan sets, plotboxes)
 
 
+# the three object types Print Plan View's Create makes (see t_print_plan_view_create)
 PLOT_TYPES = ["DynaviewBoundaryCollection", "PlanGridSheetSet", "Boundary"]
 
 
+# Print Plan View (printplanview) -> Create (never Print) a plotbox MCP_PLOTBOX at scale 50 centred on the test
+# rectangle: all three PLOT_TYPES appear with that name. They go to MADE for deletion.
 def t_print_plan_view_create():
     # Create (never Print) makes a printable setup named after the plotbox: DynaviewBoundaryCollection + its
     # Boundary + PlanGridSheetSet (+ BasicSheet, DynaViews). Deleting the first three removes all of it.
@@ -451,6 +561,7 @@ def t_print_plan_view_create():
     record("Print Plan View (Create plotbox)", ok, "%s (nothing was printed)" % [(x["type"].split(".")[-1], x["name"]) for x in new], r)
 
 
+# Create Plan Set (createplanset) MCP_TEST_PLANSET: a new PlanSet/SheetSet object with that name (added to MADE).
 def t_plan_set():
     before = set(x["serial"] for x in find_types(["PlanSet", "SheetSet"]))
     open_cmd("createplanset")
@@ -462,9 +573,12 @@ def t_plan_set():
     record("Create Plan Set", ok, "%s" % new, r)
 
 
+# 3D PDF output file inside tests\ (tests/*.pdf is in .gitignore)
 PDF = os.path.join(os.path.dirname(os.path.abspath(__file__)), "mcp_test_3d.pdf")
 
 
+# Create 3D PDF (create3dpdf) to PDF with "ModifyProjectSettings" off: the file exists and is over 1000 bytes.
+# The file is then deleted (if TBC still holds it, the next run's first step deletes it).
 def t_create_3d_pdf():
     import os
     if os.path.exists(PDF):
@@ -488,6 +602,9 @@ def coord(x, y):
     return "%.3f, %.3f" % (N0 + y, E0 + x)
 
 
+# Line Label Table (createlinelabeltable): label a line, create the table at U, add the line in the Edit Label
+# Table panel that OK opens. Passes when a new Table is on the layer or a new LabelTable exists anywhere
+# (those not on the layer go to MADE).
 def t_line_label_table():
     line = ln("DR_TBL_LINE", [(0, 0), (100, 0)])
     open_cmd("labellines")
@@ -511,6 +628,8 @@ def t_line_label_table():
            "on layer %s; anywhere %s; edit panel %s" % ([e["type"] for e in new], anywhere, tx), r)
 
 
+# Labeling Scale Factor (planarscalefactor): "Use a fixed scale factor" 1.0 -> Apply; the panel's scale factor
+# text must show 1.0 afterwards. This is a project setting and the test doesn't restore the previous value.
 def t_labeling_scale_factor():
     open_cmd("planarscalefactor")
     before = panel_texts()
@@ -521,6 +640,8 @@ def t_labeling_scale_factor():
     record("Labeling Scale Factor", ok, "before %s; after %s (fixed factor 1.0 = no ground scaling)" % (before[:1], after[:1]), r)
 
 
+# Create Dynaview Boundary Set (createdynaviewboundarycollection) MCP_DVB_SET, 1 row x 2 columns, origin at the
+# test origin (typed as "northing, easting"): a new collection with that name (added to MADE).
 def t_dynaview_boundary_set():
     before = set(x["serial"] for x in find_types(["DynaviewBoundaryCollection"]))
     open_cmd("createdynaviewboundarycollection")
@@ -532,6 +653,8 @@ def t_dynaview_boundary_set():
     record("Dynaview Boundary Set", ok, "%s" % [(x["type"].split(".")[-1], x["name"]) for x in new], r)
 
 
+# Create Sheet Set (createsheetset) MCP_TEST_SHEETSET, Standard, ISO A1 landscape: a new set with that name
+# (added to MADE).
 def t_sheet_set():
     before = set(x["serial"] for x in find_types(["SheetSet", "PlanSet"]))
     open_cmd("createsheetset")
@@ -544,6 +667,8 @@ def t_sheet_set():
     record("Create Sheet Set", ok, "%s" % [(x["type"].split(".")[-1], x["name"]) for x in new], r)
 
 
+# Create Scale Bar (createscalebar), specified scale 1:50, "Alternating Scale Bar", 80 below the test origin:
+# at least one new ScaleBar object (found by type, added to MADE).
 def t_scale_bar():
     b = ents_before()
     open_cmd("createscalebar")
@@ -557,12 +682,19 @@ def t_scale_bar():
     record("Create Scale Bar", ok, "%s (specified scale 1:50)" % [x["type"] for x in new], r)
 
 
+# image file for t_insert_image, written in tests\ (tests/*.bmp is in .gitignore); the test doesn't delete it
 IMG = os.path.join(os.path.dirname(os.path.abspath(__file__)), "mcp_test_image.bmp")
 
 
+# Insert Image (insertimage) of a generated 4 x 4 BMP, lower corner 100 north of the origin, scale 1: at least
+# one new object on the layer. In MANUAL, not run: the note above MANUAL says Apply creates nothing (the image
+# is placed and sized with grips in the view).
 def t_insert_image():
     import os, struct
     # tiny 4x4 24-bit BMP made here (no external file needed)
+    # each pixel is the bytes 00 80 ff (BMP stores blue, green, red); rows are padded to a multiple of 4 bytes.
+    # Header: 14-byte BITMAPFILEHEADER ("BM", file size, reserved, pixel offset 54) + 40-byte BITMAPINFOHEADER
+    # (4 x 4, 1 plane, 24 bits, no compression, 2835 pixels per metre = 72 dpi)
     w = h = 4
     row = b"\x00\x80\xff" * w + b"\x00" * ((4 - (w * 3) % 4) % 4)
     pix = row * h
@@ -578,7 +710,10 @@ def t_insert_image():
     record("Insert Image", ok, "%s" % [e["type"] for e in new], r)
 
 
+# throwaway surface for t_quick_profile; deleted by name in the teardown
 SURF = "MCP_DR_SURF"
+# IronPython run inside TBC: {serial: "<full type> | <name>"} for every object reached by walking the project's
+# containers up to 3 levels deep. Taken before and after a command to see everything it made.
 SNAP = r"""
 out = {}
 def walk(c, d=0):
@@ -594,9 +729,15 @@ result = out
 
 
 def snap():
+    """Snapshot of every object in the project (see SNAP); slow on big projects, hence the 300 s timeout."""
     return S.call_bridge("execute_python", {"code": SNAP, "transaction": False}, timeout=300)["result"]
 
 
+# Quick Profile (createquickprofile) across a throwaway surface MCP_DR_SURF (made from A, B, C, D, M) from
+# (0,25) to (100,25), named MCP_QPROFILE, placed 150 below the origin: a new object named MCP_QPROFILE appears
+# in the project snapshot. The panel's WPF boxes have no labels, so they are filled by generated ids
+# (ClientAreaTextBox, ClientAreaTextBox#2 ...). Note: snap() returns JSON, so its serial keys come back as
+# strings, and the int() conversion for MADE happens here.
 def t_quick_profile():
     # small throwaway surface from A, B, C, D, M
     open_cmd("surfacecreate", select=[SER[k] for k in ("A", "B", "C", "D", "M")])
@@ -618,6 +759,7 @@ def t_quick_profile():
 
 
 def cleanup_made():
+    """Delete the collected non-layer test objects (MADE) with TBC's own Delete command; errors are printed."""
     print("cleanup: non-layer test objects", sorted(set(MADE)))
     if MADE:
         try:
@@ -637,6 +779,8 @@ TESTS = [t_text, t_edit_text, t_linear_dimension, t_label_points, t_label_lines,
 MANUAL = [t_angular_dimension, t_insert_image]
 
 if __name__ == "__main__":
+    # teardown (unless --keep): delete the non-layer objects first, then the surface, the layer's contents,
+    # the layer and leftover windows
     run(TESTS, sys.argv[1:], setup,
         lambda: None if "--keep" in sys.argv else (cleanup_made(), cleanup([LAYER], surface_names=[SURF], base_forms=BASE_FORMS)))
     json.dump({"results": __import__("tbc_testkit").results}, open("drafting_results.json", "w"), indent=1)

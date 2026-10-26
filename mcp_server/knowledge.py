@@ -50,10 +50,14 @@ VERSION_RULE = ("Verified on TBC %s. If something here does not work on a newer 
 
 
 def set_tbc_version(release, build=None):
+    """Record the running TBC release and build (the server calls this from tbc_version() once it has asked TBC).
+    New knowledge is stamped with it."""
     _tbc["release"], _tbc["build"] = release, build
 
 
 def current_release():
+    """The TBC release new knowledge is stamped with: the running one once the server has asked TBC, else the
+    baseline (2026.10)."""
     return _tbc["release"] or BASELINE_RELEASE
 
 
@@ -68,19 +72,28 @@ def version_note(versions):
 
 
 class KnowledgeError(Exception):
+    """A knowledge-base request that can't be done: bad input, not found, or refused by a rule. The server returns
+    the message to the AI as a tool error, so messages say what to do instead."""
     pass
 
 
 def _now():
+    """Local time, ISO 8601 to the second: the timestamp of general knowledge (lessons, preferences, skills,
+    scripts). Shared project notes use UTC in toISOString form instead (projects._now)."""
     return datetime.datetime.now().isoformat(timespec="seconds")
 
 
 def _check_name(name, what="name"):
+    """Raise KnowledgeError unless the value is 1-80 letters, digits, '_' or '-'. Used for skill and script names
+    and categories, which become file and folder names."""
     if not name or not NAME_RE.match(name):
         raise KnowledgeError("%s must be 1-80 chars of letters, digits, '_' or '-': %r" % (what, name))
 
 
 def _write(path, text):
+    """Write a knowledge file atomically: a uniquely named temp file in the same folder, then os.replace over the
+    target, so a crash (or a second server writing at the same time) never leaves half a file. UTF-8, LF line
+    endings."""
     os.makedirs(os.path.dirname(path), exist_ok=True)
     # unique temp name: two AI chats (two servers) can write the same knowledge folder at once
     tmp = os.path.join(os.path.dirname(path), ".%s.%d.%d.tmp" % (os.path.basename(path), os.getpid(), int(time.time() * 1000)))
@@ -90,15 +103,19 @@ def _write(path, text):
 
 
 def _read(path):
+    """Read a knowledge file as text (tolerates a UTF-8 BOM)."""
     with open(path, "r", encoding="utf-8-sig") as f:
         return f.read()
 
 
 def _tokens(s):
+    """Lowercase search tokens: runs of letters/digits, 2 or more characters long."""
     return [t for t in re.split(r"[^a-z0-9]+", (s or "").lower()) if len(t) > 1]
 
 
 def _score(query, *texts):
+    """Search relevance of the texts for a query: how often each query token occurs, plus 10 per token when every
+    token occurs. 0 means no match."""
     q = _tokens(query)
     if not q:
         return 0
@@ -209,6 +226,9 @@ def check_general(what, *texts):
 # skills
 # ---------------------------------------------------------------------------
 def parse_frontmatter(text):
+    """Split a .skill.md into (frontmatter dict, markdown body). Values are parsed as JSON when they can be (lists,
+    booleans, quoted strings), else kept as plain strings. A doubled opening '---' is tolerated; text without
+    frontmatter returns ({}, text)."""
     lines = text.splitlines()
     i = 0
     while i < len(lines) and lines[i].strip() == "---":
@@ -230,6 +250,7 @@ def parse_frontmatter(text):
 
 
 def _skill_files():
+    """Yield the path of every *.skill.md under knowledge\\skills, in every category folder."""
     for dp, _, fns in os.walk(SKILLS):
         for fn in fns:
             if fn.endswith(".skill.md"):
@@ -237,6 +258,9 @@ def _skill_files():
 
 
 def _skill_info(path):
+    """(info, body) for one skill file. info: name, category (frontmatter, else the folder name), description,
+    requires_write, verified, tbc_versions (default: the baseline release) and path, plus version_note when the
+    running TBC isn't a release the skill was verified on."""
     meta, body = parse_frontmatter(_read(path))
     name = meta.get("name") or os.path.basename(path)[:-len(".skill.md")]
     versions = meta.get("tbc_versions") or [BASELINE_RELEASE]
@@ -250,6 +274,7 @@ def _skill_info(path):
 
 
 def list_skills(category=None):
+    """Summaries of every skill, or of one category, without file paths: what tbc_skills action=list returns."""
     out = []
     for p in sorted(_skill_files()):
         info, _ = _skill_info(p)
@@ -261,6 +286,7 @@ def list_skills(category=None):
 
 
 def _skill_path(name):
+    """Path of the skill whose frontmatter name or file name is `name`, or None."""
     for p in _skill_files():
         info, body = _skill_info(p)
         if info["name"] == name or os.path.basename(p) == name + ".skill.md":
@@ -269,6 +295,8 @@ def _skill_path(name):
 
 
 def read_skill(name):
+    """Full text of a skill for tbc_skills action=read, with a VERSION NOTE line on top when it was verified on
+    another TBC release. KnowledgeError when there's no such skill."""
     p = _skill_path(name)
     if not p:
         raise KnowledgeError("No skill named %r. Use tbc_skills action=list or search." % name)
@@ -280,6 +308,10 @@ def read_skill(name):
 
 
 def save_skill(name, category, description, body, requires_write=False, parameters=None, overwrite=False):
+    """Create or replace knowledge\\skills\\<category>\\<name>.skill.md, stamped with the running release
+    (frontmatter tbc_versions plus a banner stating the add-never-delete rule). Refused: an existing skill
+    without overwrite=True, a skill verified on another release (use append_version_section instead), and text
+    that names a job (check_general). Returns {saved, tbc_version}."""
     _check_name(name)
     _check_name(category, "category")
     if not body or not body.strip():
@@ -330,6 +362,8 @@ def append_version_section(name, body, release=None):
 # scripts
 # ---------------------------------------------------------------------------
 def parse_script(text):
+    """Split a saved script into (metadata dict, code). The metadata is the JSON inside the leading docstring that
+    starts with 'tbc-script'; KnowledgeError when that header is missing or isn't valid JSON."""
     m = re.match(r'\s*(?:"""|\'\'\')\s*' + SCRIPT_HEADER + r'\s*\n(.*?)(?:"""|\'\'\')', text, re.S)
     if not m:
         raise KnowledgeError("Script is missing its metadata header (docstring starting with '%s')" % SCRIPT_HEADER)
@@ -341,11 +375,14 @@ def parse_script(text):
 
 
 def _script_path(name):
+    """knowledge\\scripts\\<name>.py, after checking the name is safe as a file name."""
     _check_name(name)
     return os.path.join(SCRIPTS, name + ".py")
 
 
 def list_scripts():
+    """Summary of every saved script (name, description, mode, script_version, tbc_versions, parameter names,
+    version_note). A script whose header can't be read is listed with its error instead of being hidden."""
     out = []
     if not os.path.isdir(SCRIPTS):
         return out
@@ -367,6 +404,7 @@ def list_scripts():
 
 
 def read_script(name):
+    """Full text (header and code) of a saved script; KnowledgeError when there's no such script."""
     p = _script_path(name)
     if not os.path.exists(p):
         raise KnowledgeError("No script named %r" % name)
@@ -374,6 +412,9 @@ def read_script(name):
 
 
 def build_script(name, description, mode, parameters, code):
+    """Assemble a new script's text: the 'tbc-script' JSON header (name, description, mode read|write, typed
+    parameters, script_version 1, the running TBC release and build, timestamp) followed by the code. Checks the
+    mode and every parameter's type."""
     if mode not in ("read", "write"):
         raise KnowledgeError("mode must be 'read' or 'write'")
     for prm in parameters or []:
@@ -387,6 +428,8 @@ def build_script(name, description, mode, parameters, code):
 
 
 def _with_meta(text, **changes):
+    """The script text with some header fields replaced (save_script uses it to bump script_version and record
+    releases)."""
     meta, code = parse_script(text)
     meta.update(changes)
     return '"""' + SCRIPT_HEADER + "\n" + json.dumps(meta, indent=1) + '\n"""\n' + code
@@ -460,6 +503,7 @@ def bind_args(meta, given):
 # memory (lessons learned)
 # ---------------------------------------------------------------------------
 def _lessons():
+    """Every lesson in memory\\lessons.jsonl (one JSON object per line). Blank or unreadable lines are skipped."""
     if not os.path.exists(MEMORY):
         return []
     out = []
@@ -475,6 +519,11 @@ def _lessons():
 
 
 def add_lesson(text, topic=None, tags=None):
+    """Append a lesson {id, ts, topic, tags, text, tbc_version} to memory\\lessons.jsonl. The topic is lowercased
+    ('general' by default); when it is a command key the lesson is shown whenever that command's panel opens
+    (remembered_for_command) and when code names the command (lessons_relevant_to). The same text, in any case,
+    is never stored twice: the existing lesson comes back with action='unchanged'. Text that names a job is
+    refused (check_general)."""
     if not text or not text.strip():
         raise KnowledgeError("text is required")
     check_general("lesson", text, topic, tags)
@@ -492,6 +541,7 @@ def add_lesson(text, topic=None, tags=None):
 
 
 def list_lessons(topic=None):
+    """Every lesson, or only those with this topic."""
     ls = _lessons()
     if topic:
         ls = [l for l in ls if l.get("topic") == topic.strip().lower()]
@@ -535,10 +585,13 @@ def delete_lesson(lid):
 # remembered command panels
 # ---------------------------------------------------------------------------
 def _cmd_path(key):
+    """knowledge\\commands\\<key>.json for a TBC command key (lowercased; characters unsafe in file names replaced
+    by '_')."""
     return os.path.join(COMMANDS, re.sub(r"[^A-Za-z0-9_\-.]", "_", key.lower()) + ".json")
 
 
 def get_command(key):
+    """The remembered panel layout and notes of a command, or None when there are none or the file can't be read."""
     p = _cmd_path(key)
     if os.path.exists(p):
         try:
@@ -556,6 +609,8 @@ PROJECT_LIST_RE = re.compile(r"layer|surface|style|block|folder|plan ?set|sheet 
 
 
 def _project_list(f):
+    """True when a dropdown's entries are project data (layers, surfaces, styles, names ...) judging by its label
+    and id, or when it has no label: such options are never recorded in the shared knowledge base."""
     if not (f.get("label") or "").strip():
         return True  # unlabelled dropdown: purpose unknown, so treat its entries as project data
     return bool(PROJECT_LIST_RE.search("%s %s" % (f.get("id") or "", f.get("label") or "")))
@@ -594,6 +649,8 @@ def record_command(state):
 
 
 def add_command_note(key, text):
+    """Attach a note to a command's record (created if needed), stamped with the running release; it is shown the
+    next time that command is opened. Text that names a job is refused (check_general)."""
     check_general("command note", key, text)
     rec = get_command(key) or {"key": key, "fields": [], "buttons": [], "notes": []}
     rec.setdefault("notes", []).append({"ts": _now(), "text": text.strip(), "tbc_version": current_release()})
@@ -602,6 +659,8 @@ def add_command_note(key, text):
 
 
 def remembered_for_command(key):
+    """What to show the AI when a command's panel opens: the command's notes and the lessons whose topic is the
+    command key, each prefixed [TBC <release>] when it comes from another release. None when there is nothing."""
     rec = get_command(key) or {}
     tag = lambda v: "" if (v or BASELINE_RELEASE) == current_release() else "[TBC %s] " % (v or BASELINE_RELEASE)
     lessons = [tag(l.get("tbc_version")) + l["text"] for l in list_lessons(key.lower())]
@@ -616,6 +675,8 @@ PREFS = os.path.join(ROOT, "preferences.json")
 
 
 def list_prefs():
+    """The user's preferences from preferences.json (a JSON list of {id, topic, text, added, updated?}); [] when the
+    file is missing or unreadable."""
     if not os.path.exists(PREFS):
         return []
     try:
@@ -625,6 +686,8 @@ def list_prefs():
 
 
 def add_pref(text, topic=None):
+    """Add a standing rule from the user. The same text, in any case, returns the existing preference
+    (action='unchanged'); text that names a job is refused (check_general)."""
     if not text or not text.strip():
         raise KnowledgeError("text is required")
     check_general("preference", text, topic)
@@ -640,6 +703,8 @@ def add_pref(text, topic=None):
 
 
 def update_pref(pid, text):
+    """Replace a preference's text and stamp 'updated'. Text that names a job is refused; KnowledgeError for an
+    unknown id."""
     check_general("preference", text)
     ps = list_prefs()
     for p in ps:
@@ -652,6 +717,7 @@ def update_pref(pid, text):
 
 
 def remove_pref(pid):
+    """Delete a preference the user has retracted; KnowledgeError for an unknown id."""
     ps = list_prefs()
     keep = [p for p in ps if p.get("id") != int(pid)]
     if len(keep) == len(ps):
@@ -661,6 +727,8 @@ def remove_pref(pid):
 
 
 def prefs_text():
+    """The preferences as the block the server appends to its MCP instructions, so every AI in every chat follows
+    them; '' when there are none."""
     ps = list_prefs()
     if not ps:
         return ""
@@ -672,6 +740,9 @@ def prefs_text():
 # unified search
 # ---------------------------------------------------------------------------
 def search(query, kinds=None, limit=15):
+    """One ranked search across skills, saved scripts, lessons and remembered command panels (`kinds` picks which),
+    used by tbc_skills action=search and tbc_memory action=search. Each hit says its type and the TBC release(s)
+    it was verified on; at most `limit` hits."""
     kinds = kinds or ["skill", "script", "lesson", "command"]
     hits = []
     if "skill" in kinds:

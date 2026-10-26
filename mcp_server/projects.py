@@ -79,6 +79,8 @@ _migration_checked = [False]
 
 
 def _documents():
+    """The user's Documents folder the way Civil 3D MCP finds it (<home>\\Documents, not a redirected shell folder),
+    so every tool agrees on the default shared folder."""
     return os.path.join(os.path.expanduser("~"), "Documents")
 
 
@@ -98,6 +100,8 @@ def migrate_legacy_folder(documents=None):
 
 
 def shared_root():
+    """The shared knowledge folder: CIVIL3D_KNOWLEDGE_DIR when set, else Documents\\Civil3DMcp-KnowledgeBase (first
+    moving the pre-2.2.0 folder there, once per run, as Civil 3D MCP does)."""
     configured = os.environ.get("CIVIL3D_KNOWLEDGE_DIR", "").strip()
     if configured:
         return configured
@@ -109,6 +113,7 @@ def shared_root():
 
 
 def projects_dir():
+    """<shared dir>\\projects, where each job's <slug>.json and its files folder live."""
     return os.path.join(shared_root(), "projects")
 
 
@@ -118,19 +123,25 @@ def slug(name):
 
 
 def one_line(value):
+    """Collapse line breaks into spaces and trim: every note is one line."""
     return re.sub(r"[\r\n]+", " ", value or "").strip()
 
 
 def normalize_folder(folder):
+    """Absolute folder path without a trailing slash, for comparing linked folders."""
     return os.path.abspath(folder).rstrip("\\/")
 
 
 def _now():
     # Same form as JavaScript's toISOString(), which the other tools write
+    """UTC time in JavaScript's toISOString() form (2026-10-25T21:42:47.123Z), the timestamp format of the shared
+    files."""
     return datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="milliseconds").replace("+00:00", "Z")
 
 
 def _write_atomically(path, text):
+    """Write text to a temp file in the same folder, then rename it over the target (contract rule 3): UTF-8 without
+    BOM, LF line endings."""
     os.makedirs(os.path.dirname(path), exist_ok=True)
     tmp = os.path.join(os.path.dirname(path), ".%s.%d.%d.tmp" % (os.path.basename(path), os.getpid(),
                                                                   int(datetime.datetime.now().timestamp() * 1000)))
@@ -140,6 +151,7 @@ def _write_atomically(path, text):
 
 
 def project_file(name):
+    """<shared dir>\\projects\\<slug>.json for a job name; KnowledgeError when the name has no letters or digits."""
     key = slug(name)
     if not key:
         raise KnowledgeError("Give the project a name with letters or digits.")
@@ -178,6 +190,7 @@ def _load_for_write(name):
 def _save(project):
     # json.dumps keeps every key in its original order, and indent=2 + ensure_ascii=False is the layout
     # JavaScript's JSON.stringify(project, null, 2) writes, so other tools' entries stay byte-for-byte the same
+    """Write a job file back atomically, with every field kept as loaded."""
     _write_atomically(project_file(project["name"]), json.dumps(project, indent=2, ensure_ascii=False) + "\n")
 
 
@@ -200,10 +213,14 @@ def _private_folders():
 
 
 def _profile():
+    """The user's profile folder, normalized and lowercased, for the privacy checks."""
     return normalize_folder(os.path.expanduser("~")).lower()
 
 
 def check_private_text(text):
+    """Raise KnowledgeError when text holds a registered private value (bridge session token, license fingerprint)
+    or a path inside the user's profile. Used for shared notes, and by knowledge.check_general for general
+    knowledge."""
     low = (text or "").lower().replace("/", "\\")
     found = sorted({what for value, what in _private.items() if value in low})
     if _profile() and _profile() + "\\" in low:
@@ -214,6 +231,8 @@ def check_private_text(text):
 
 
 def check_private_folder(folder):
+    """Raise KnowledgeError when a folder is the profile root, or inside AppData, temp or TBC MCP's private folder:
+    those can never be linked to a shared job."""
     f = normalize_folder(folder).lower()
     if f == _profile() or any(f == r or f.startswith(r + "\\") for r in _private_folders()):
         raise KnowledgeError("%s is a private per-user folder (user profile, AppData or temp), so it can't be linked to "
@@ -226,6 +245,7 @@ def format_hints(text):
 
 
 def list_projects():
+    """Every job in the shared projects folder, as dicts. Files that don't parse are skipped, never rewritten."""
     d = projects_dir()
     if not os.path.isdir(d):
         return []
@@ -240,6 +260,7 @@ def list_projects():
 
 
 def find_project(name):
+    """The job with this name, read fresh from disk, or None when there is no such file."""
     return _load_for_write(name)
 
 
@@ -274,10 +295,14 @@ def origin(note):
 
 
 def _present_notes(project):
+    """A job's notes as returned to the AI: each gets 'by' (the tool that wrote it); entries that aren't objects are
+    left out."""
     return [dict(n, by=origin(n)) for n in project["notes"] if isinstance(n, dict)]
 
 
 def list_files(directory, limit=500):
+    """Files under a job's files folder: relative path, size and UTC modified time, sorted, at most `limit`. Returns
+    (files, truncated)."""
     files, truncated = [], False
     if os.path.isdir(directory):
         for dp, dns, fns in os.walk(directory):
@@ -298,6 +323,7 @@ def list_files(directory, limit=500):
 
 
 def _ensure_files_dir(name):
+    """The job's files folder, created when missing (Civil 3D MCP does the same when a project is listed)."""
     d = files_dir(name)
     os.makedirs(d, exist_ok=True)
     return d
@@ -581,6 +607,8 @@ def locate(path, name, active_path):
 
 
 def describe(project):
+    """Everything tbc_project_notes action=list returns for one job: folders, notes with their authors, the job
+    file's path, the files folder with its file count, and Project Analyzer's hint."""
     d = _ensure_files_dir(project["name"])
     files, _ = list_files(d)
     r = {"project": project["name"], "folders": project["folders"], "notes": _present_notes(project),
@@ -608,6 +636,8 @@ def resolve(name, active_path):
 
 
 def list_notes(name, active_path):
+    """action=list: the named job, or the job the open .vce belongs to. When no job matches, the known jobs and a
+    hint to link one."""
     if name:
         return describe(resolve(name, None))
     project = project_for_path(active_path)
@@ -622,6 +652,9 @@ def list_notes(name, active_path):
 
 
 def link(name, folder, active_path):
+    """action=link: create a job, or add a folder to one (default: the open .vce's folder). The folder is also
+    recorded in TBC's own tbc_linked_folders field; a folder already linked by any tool changes nothing; private
+    per-user folders are refused."""
     target = folder or (os.path.dirname(active_path) if active_path and os.path.isabs(active_path) else None)
     if not target:
         raise KnowledgeError("No folder given and the open TBC project's folder isn't known (save the project first).")
@@ -646,6 +679,8 @@ def link(name, folder, active_path):
 
 
 def unlink(name, folder):
+    """action=unlink: drop a folder TBC linked itself (contract rule 2: never another tool's). The job and its notes
+    stay."""
     if not folder:
         raise KnowledgeError("folder is required")
     project = _load_for_write(name) if slug(name or "") else None
@@ -673,6 +708,7 @@ def _fresh(project):
 
 
 def _clean_note(note):
+    """A note's text made one line and checked for private data; KnowledgeError when it is empty or private."""
     text = one_line(note)
     if not text:
         raise KnowledgeError("The note is empty.")
@@ -681,6 +717,7 @@ def _clean_note(note):
 
 
 def _with_hints(result, text):
+    """Add reference-format reminders to a write result when the note wasn't written in the suite's formats."""
     hints = format_hints(text)
     if hints:
         result["format_hints"] = ("Saved. Next time use the suite's reference formats so Project Analyzer connects the "
@@ -689,6 +726,8 @@ def _with_hints(result, text):
 
 
 def add_note(note, name, active_path):
+    """action=add: append {id: note-N, note, added, source: 'tbc'} to the job, merged into the file as it is on disk
+    now. The same text, in any case, returns the existing note (action='unchanged')."""
     text = _clean_note(note)
     project = _fresh(resolve(name, active_path))  # merge into what's on disk now
     duplicate = next((n for n in project["notes"] if isinstance(n, dict) and n.get("note", "").lower() == text.lower()), None)
@@ -703,6 +742,7 @@ def add_note(note, name, active_path):
 
 
 def _own_note(project, note_id):
+    """The note with this id when TBC wrote it; KnowledgeError for an unknown id or another tool's note."""
     entry = next((n for n in project["notes"] if isinstance(n, dict) and n.get("id") == note_id), None)
     if not entry:
         raise KnowledgeError("No note %r in project %r." % (note_id, project["name"]))
@@ -713,6 +753,8 @@ def _own_note(project, note_id):
 
 
 def update_note(note_id, note, name, active_path):
+    """action=update: replace the text of one of TBC's own notes and stamp 'updated' (unknown fields on the note are
+    kept)."""
     text = _clean_note(note)
     project = _fresh(resolve(name, active_path))
     entry = _own_note(project, note_id)
@@ -723,6 +765,8 @@ def update_note(note_id, note, name, active_path):
 
 
 def remove_note(note_id, name, active_path):
+    """action=remove: delete one of TBC's own notes. Another tool's note is refused; it is corrected by adding a
+    note instead."""
     project = _fresh(resolve(name, active_path))
     entry = _own_note(project, note_id)
     project["notes"] = [n for n in project["notes"] if n is not entry]
@@ -731,6 +775,8 @@ def remove_note(note_id, name, active_path):
 
 
 def project_files(name, active_path):
+    """action=files: the job's files folder listing, Project Analyzer's hint, and its interactive pages for the user
+    to open."""
     project = resolve(name, active_path)
     d = _ensure_files_dir(project["name"])
     files, truncated = list_files(d)
@@ -749,6 +795,8 @@ def project_files(name, active_path):
 
 
 def _is_intel_page(full, d):
+    """True for this job's analysis\\intel\\graph.html or timeline.html, which action=read answers with 'open it in
+    a browser' instead of the HTML."""
     return (os.path.basename(full).lower() in INTEL_PAGES
             and os.path.normcase(os.path.dirname(full)) == os.path.normcase(os.path.join(d, "analysis", "intel")))
 
@@ -793,6 +841,10 @@ _announced = set()
 
 
 def notes_once(active_path):
+    """What the first result of a session carries for the open job: its notes and files, Project Analyzer's hint,
+    the open problems from CHECKS.md and the count of missing referenced files. None when there's nothing to
+    show, when this job was already announced in this server run, or on any error (project notes are advice and
+    never break a call)."""
     try:
         project = project_for_path(active_path)
         if not project or project["name"] in _announced:

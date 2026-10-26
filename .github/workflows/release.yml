@@ -4,8 +4,17 @@
 # Maintainer steps (GitHub Desktop): bump SERVER_VERSION in mcp_server/tbc_mcp_server.py and commit; History tab ->
 # right-click the commit -> Create Tag "v<version>"; Push origin. Check the run under the repository's Actions tab.
 # Preview the same zip locally with: powershell -ExecutionPolicy Bypass -File tools\make_release.ps1  (-> dist\)
+#
+# How it works: one job on GitHub's Ubuntu runner. It checks out the tagged commit, copies each path in
+# release_files.txt into dist/tbc-mcp-<tag>/, removes __pycache__, *.pyc, crash_log.md, tbc_errors.log, *.tmp
+# and knowledge/license (the same clean-up as make_release.ps1), zips that folder to dist/tbc-mcp-<tag>.zip,
+# and creates the GitHub Release <tag> with that zip attached, fixed install notes and GitHub's generated
+# change list. If a release for the tag already exists, only the zip is replaced (--clobber); its notes are
+# left as they are. The zip name comes from the tag, not from SERVER_VERSION, so keep the two in step.
+# No TBC and no Python are involved; nothing is tested here.
 name: Release package
 
+# runs only when a tag starting with "v" is pushed (not on ordinary commits)
 on:
   push:
     tags:
@@ -21,19 +30,27 @@ jobs:
       - name: Check out the tagged code
         uses: actions/checkout@v4
 
+      # GITHUB_REF_NAME is the pushed tag (e.g. v0.3.0), so the folder and zip are named tbc-mcp-v0.3.0
       - name: Build the zip from release_files.txt
         run: |
           name="tbc-mcp-${GITHUB_REF_NAME}"
           mkdir -p "dist/${name}"
+          # release_files.txt minus comment and blank lines; each path (file or whole folder) is copied in
           grep -v '^\s*#' release_files.txt | sed '/^\s*$/d' | while read -r item; do
             cp -r "$item" "dist/${name}/"
           done
+          # strip generated and per-machine files (same list as tools/make_release.ps1)
           find "dist/${name}" -name '__pycache__' -prune -exec rm -rf {} +
           find "dist/${name}" \( -name '*.pyc' -o -name 'crash_log.md' -o -name 'tbc_errors.log' -o -name '*.tmp' \) -delete
           rm -rf "dist/${name}/knowledge/license"
+          # zip from inside dist/ so the archive holds one top-level folder tbc-mcp-<tag>/
           (cd dist && zip -qr "${name}.zip" "${name}")
           echo "Built dist/${name}.zip with $(find "dist/${name}" -type f | wc -l) files"
 
+      # The gh CLI (preinstalled on the runner) authenticates with the job's own token (GH_TOKEN). The release
+      # notes are written to notes.md first; the backslash-escaped backticks keep the shell from running them
+      # as commands inside the unquoted heredoc, while ${GITHUB_REF_NAME} is still filled in.
+      # Release exists already (e.g. the workflow was re-run): replace the zip only. Otherwise create it.
       - name: Publish the GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}

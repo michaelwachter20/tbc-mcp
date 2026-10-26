@@ -1,14 +1,46 @@
 # Written for and verified on Trimble Business Center 2026.10 (build 44.0.9666.28609). For a newer release, ADD handling for it and keep the 2026.10 behaviour (see README > TBC versions).
 """Live usage tests for the Linework tab on throwaway objects (layer MCP_LWTEST). py -3.12 linework_tests.py [names]
-Reference locations are numeric points (user preference) typed as point IDs into TBC's coordinate boxes."""
+Reference locations are numeric points (user preference) typed as point IDs into TBC's coordinate boxes.
+
+Needs TBC
+    Yes: TBC 2026.10 with a project open (use a copy) and the MCP Bridge macro on; talks to TBC at import
+    time. Uses tests\\tbc_testkit.py. Commands the license doesn't include are refused by the server's
+    license check and show up as FAILs.
+
+How to run
+    py -3.12 tests\\linework_tests.py                (the README's command; from the repository root)
+    py -3.12 tests\\linework_tests.py offset join    only these (function names without "t_")
+    Add --keep (with test names: it also counts as a name) to skip the teardown.
+    Only tests in TESTS can run; MANUAL (Capture Outline, Fillet/Chamfer) is never run by this script.
+
+What it creates and cleans up
+    Layer MCP_LWTEST, 3000 east of the Plan View centre, with numeric reference points (see setup()), one or
+    more lines per test, and a small surface MCP_LW_SURF for the breakline test. The teardown deletes the
+    surface, everything on the layer, the layer, and windows opened during the run.
+    Detect Crossing Geometry removes the flags it creates ("Remove All Flags").
+
+What it writes
+    linework_results.json in the CURRENT directory ({"results": [...]}). .gitignore only covers
+    tests/*_results.json, so run from tests\\ (py -3.12 linework_tests.py) to keep it out of git.
+
+Pass / fail
+    Each test reads the new or changed object's geometry back from TBC (geom()) and compares vertex
+    positions relative to (E0, N0), radii, lengths or counts with what the command should produce.
+    "N/M passed" at the end; FAILs don't change the exit code.
+"""
 import json, math, sys
 from tbc_testkit import S, record, close, base, points, entities, make_points, make_line, open_cmd, fill, click, cleanup, run, done
 
 LAYER = "MCP_LWTEST"
 E0, N0 = base(3000)
 P = {}  # alias -> point ID
+# windows already open before the run; cleanup() closes any other non-modal window left behind
 BASE_FORMS = set(f["id"] for f in S.run_ipy("command_ui", "forms", {}))
 
+# IronPython run inside TBC with args = one serial: the object's type, name, its geometry as points (from
+# ComputePolySeg, converted from internal units to display units with bridge.factor; an undefined z is NaN,
+# hence `p.Z == p.Z`, and becomes None) and, where the object has them, Radius/Closed/Elevation/Area/Length
+# (lengths scaled by f, area by f squared). Works for linestrings, CAD polylines, circles and arcs alike.
 GEOM = r"""
 import math
 o = bridge.lookup(prj, args)
@@ -32,18 +64,27 @@ result = out
 
 
 def geom(serial):
+    """Geometry and key properties of one object, read inside TBC with GEOM (display units)."""
     return S.call_bridge("execute_python", {"code": "args = %d\n" % serial + GEOM, "transaction": False})["result"]
 
 
 def new_objects(before):
+    """Non-point objects on the test layer whose serial isn't in `before` (what the last command made)."""
     return [e for e in entities(LAYER) if e["serial"] not in before and not e["type"].endswith("Point")]
 
 
 def rel(pts):
+    """Points made relative to the test origin (x - E0, y - N0), rounded to 3 decimals, so checks read as
+    small numbers like (100, 50)."""
     return [(round(x - E0, 3), round(y - N0, 3), None if z is None else round(z, 3)) for x, y, z in pts]
 
 
 def setup():
+    """Create the layer and the reference points (all z 10), offsets from (E0, N0):
+    A (0,0), B (100,0), C (100,50), D (0,50) - a 100 x 50 rectangle; M (50,50) on its top edge;
+    R1 (0,200), R2 (40,230) for the three-point rectangle; Q (50,100) as a circle centre;
+    O1-O8 two per rectangle edge for Capture Outline; IN (50,25) inside the rectangle for Track Region.
+    """
     S.call_bridge("create_layer", {"name": LAYER})
     coords = {"A": (0, 0, 10), "B": (100, 0, 10), "C": (100, 50, 10), "D": (0, 50, 10), "M": (50, 50, 10),
               "R1": (0, 200, 10), "R2": (40, 230, 10), "Q": (50, 100, 10),
@@ -58,10 +99,13 @@ def setup():
 
 
 def ents_before():
+    """Serials of everything on the test layer now; compared with new_objects() after a command."""
     return set(e["serial"] for e in entities(LAYER))
 
 
 # ---------------------------------------------------------------- creation tools
+# Create Polyline (createpolyline), "Specify individual points": A, B, C each typed into "Next point" and
+# added with "Add Point". One new object whose first vertex is A and last is C.
 def t_polyline():
     b = ents_before()
     open_cmd("createpolyline")
@@ -76,6 +120,8 @@ def t_polyline():
     record("Create Polyline", ok, "%s -> %s vertices %s" % ([x["type"] for x in new], len(v), v[:4]), r)
 
 
+# Create Circle (createcircle): centre Q, radius 20. Every sampled point of the new object must be 20 (within
+# 0.05) from Q.
 def t_circle():
     b = ents_before()
     open_cmd("createcircle")
@@ -89,6 +135,7 @@ def t_circle():
     record("Create Circle", ok, "%s radius from vertices %s (expected 20 about Q)" % ([x["type"] for x in new], [round(rr, 3) for rr in radii[:4]]), r)
 
 
+# Three-Point Circle (createthreepointcircle) through A, B, M.
 def t_three_point_circle():
     b = ents_before()
     open_cmd("createthreepointcircle")
@@ -103,6 +150,8 @@ def t_three_point_circle():
     record("Three-Point Circle", ok, "%s radius %s (expected 50, centre E0+50,N0)" % ([x["type"] for x in new], [round(rr, 3) for rr in radii[:3]]), r)
 
 
+# Create Arc (createarc) through start A, middle M, end B (same circle as above). The detail also lists the
+# "Create arc using" methods the panel offers.
 def t_arc():
     b = ents_before()
     st = open_cmd("createarc")
@@ -119,6 +168,8 @@ def t_arc():
     record("Create Arc", ok, "%s ends %s on r50 circle %s (3-point A-M-B); methods: %s" % ([x["type"] for x in new], ends, on, opts), r)
 
 
+# Create Rectangle (createrectangle) from corner A to corner C: the vertices' x values are {0, 100} and y
+# values {0, 50}.
 def t_rectangle():
     b = ents_before()
     open_cmd("createrectangle")
@@ -132,6 +183,8 @@ def t_rectangle():
     record("Create Rectangle", ok, "%s corners x %s y %s (expected A..C = 100 x 50)" % ([x["type"] for x in new], xs, ys), r)
 
 
+# Three-Point Rectangle (createthreepointrectangle): corners R1, R2 and width 10. Only checks that one object
+# with at least 4 vertices was made; the vertices are printed for inspection (`side` is for the detail line).
 def t_three_point_rectangle():
     b = ents_before()
     open_cmd("createthreepointrectangle")
@@ -147,8 +200,12 @@ def t_three_point_rectangle():
 
 def edit_linestring_vertices(keys):
     """In the Edit Linestring pane (after OK in Create Linestring/Polygon/Breakline): Type = Point ID, then one
-    Save per vertex. Returns the edited line's serial."""
+    Save per vertex. Returns the edited line's serial.
+
+    keys are aliases from P (A, B, ...); their point IDs are typed into the "Point ID" box.
+    """
     st = S.run_ipy("command_ui", "state", {})
+    # the pane's "Line" field holds the line just created; its value carries the serial
     line = [f for f in st["fields"] if f["label"] == "Line"][0]["value"]["serial"]
     fill([["LocationTypeComboBox", "Point ID"]])
     for k in keys:
@@ -158,6 +215,8 @@ def edit_linestring_vertices(keys):
     return line
 
 
+# Create Linestring (createlinestring) + Edit Linestring with point IDs A, B, C: the vertices are exactly
+# A, B, C and take z 10 from the points.
 def t_linestring():
     open_cmd("createlinestring")
     r = fill([["Name", "LW_LS"], ["Layer", LAYER]], press="OK", wait=2)
@@ -168,6 +227,7 @@ def t_linestring():
     record("Create Linestring", ok, "%s vertices %s (z from the points)" % (g.get("type"), v), r)
 
 
+# Create Polygon (createpolygon) + Edit Linestring with A, B, C, D: the 100 x 50 rectangle.
 def t_polygon():
     open_cmd("createpolygon")
     r = fill([["Name", "LW_PG"], ["Layer", LAYER]], press="OK", wait=2)
@@ -179,9 +239,12 @@ def t_polygon():
     record("Create Polygon", ok, "%s vertices %s area %s closed %s" % (g.get("type"), v, g.get("area"), g.get("closed")), r)
 
 
+# throwaway surface made by t_breakline; deleted by name in the teardown
 SURF = "MCP_LW_SURF"
 
 
+# Create Breakline (createbreakline) A -> C, added to a throwaway surface built first with Create Surface
+# (surfacecreate) from A, B, C, D, M. Passes when the breakline runs A -> C and the surface exists.
 def t_breakline():
     # small throwaway surface from A,B,C,D,M (the project's own surface is 1M triangles: too slow to recompute)
     ser = [S.call_bridge("list_points", {"name_contains": P[k], "limit": 5})["points"][0]["serial"] for k in ("A", "B", "C", "D", "M")]
@@ -201,6 +264,8 @@ def t_breakline():
     record("Create Breakline", ok, "%s vertices %s; surface %s" % (g.get("type"), v, surf), r)
 
 
+# Create Boundary (createboundary), "Polygon (from a line)" with a rectangle A..C as the source line (picker
+# m_ctrlExistingEntity takes its serial): the new boundary has the rectangle's corners.
 def t_boundary():
     # Polygon mode keeps only Point + the last Additional point when points are typed (vertices need view picks),
     # so build the boundary from an existing closed line: Create Rectangle A..C, then "Polygon (from a line)".
@@ -222,6 +287,8 @@ def t_boundary():
     record("Create Boundary", ok, "%s vertices %s" % ([x["type"] for x in new], v), r)
 
 
+# Quick Line (quickline): A, B, C typed into its WPF "Coordinate" box, each followed by a newline, then Apply.
+# The new line's vertices are exactly A, B, C. The per-step fill results are printed as diagnostics.
 def t_quick_line():
     b = ents_before()
     open_cmd("quickline")
@@ -240,8 +307,11 @@ def t_quick_line():
     record("Quick Line", ok, "%s vertices %s" % ([x["type"] for x in new], v), r)
 
 
+# Best-Fit Line (bestfitline), "Straight Line 2D (Plan View)" through selected points A and B: every vertex
+# of the new line lies on y = 0.
 def t_best_fit_line():
     b = ents_before()
+    # look up the points' serials by ID (list_points name_contains; the first hit is taken)
     ser = [S.call_bridge("list_points", {"name_contains": P[k], "limit": 5})["points"][0]["serial"] for k in ("A", "B")]
     open_cmd("bestfitline", select=ser)
     r = fill([["Line type", "Straight Line 2D (Plan View)"], ["Layer", LAYER]], press="OK", wait=2)
@@ -253,6 +323,8 @@ def t_best_fit_line():
     record("Best-Fit Line", ok, "%s through A,B: vertices %s" % ([x["type"] for x in new], v), r)
 
 
+# Capture Outline (captureoutline): eight edge points O1-O8, then "Close outline" and Ok; the outline's
+# corners should be the rectangle's corners. In MANUAL, not run: the README says it needs Plan View picks.
 def t_outline():
     b = ents_before()
     open_cmd("captureoutline")
@@ -270,6 +342,7 @@ def t_outline():
 
 
 def rect_polyline(name):
+    """Make a rectangle A..C with Create Rectangle and return its serial (source object for other tests)."""
     b = ents_before()
     open_cmd("createrectangle")
     fill([["Name", name], ["Layer", LAYER], ["Elevation", "5"], ["Corner one", P["A"]], ["Corner two", P["C"]]], press="OK", wait=1.5)
@@ -283,6 +356,8 @@ def ln(name, pts):
     return make_line(LAYER, name, [(E0 + x, N0 + y, 10) for x, y in pts])
 
 
+# Convert To Linestring (anz_converttolinestring) on a rectangle made by Create Rectangle: exactly one new
+# object, a Linestring with the rectangle's four corners. Reports whether the source was kept.
 def t_convert_to_linestring():
     src = rect_polyline("LW_CONV_SRC")
     b = ents_before()
@@ -298,6 +373,7 @@ def t_convert_to_linestring():
     record("Convert To Linestring", ok, "%s corners %s; source polyline kept: %s" % ([x["type"] for x in new], corners, src_left), r)
 
 
+# Offset (offsetlinestring) 10 to the Left of an eastward line A-B: the new line lies on y = 10 (north).
 def t_offset():
     line = ln("LW_OFF_SRC", [(0, 0), (100, 0)])
     b = ents_before()
@@ -310,6 +386,8 @@ def t_offset():
     record("Offset", ok, "%s vertices %s (10 left of an eastward line = north)" % ([x["type"] for x in new], v), r)
 
 
+# Fillet/Chamfer (filletchamfer), radius 10 on the whole line A-B-C: the corner at B is replaced by an arc
+# with tangent points (90,0) and (100,10). In MANUAL, not run: the README says it needs Plan View picks.
 def t_fillet():
     line = ln("LW_FIL", [(0, 0), (100, 0), (100, 50)])
     open_cmd("filletchamfer")
@@ -323,6 +401,8 @@ def t_fillet():
     record("Fillet", ok, "vertices %s (r10 fillet at B: tangent points (90,0) and (100,10))" % v[:8], r)
 
 
+# Trim/Extend (trimextendlines), "Multiple lines to bounding lines": a short line (0,20)-(50,20) is extended to
+# the vertical bounding line x = 100; its last vertex must become (100, 20).
 def t_trim_extend():
     bound = ln("LW_TE_BOUND", [(100, -20), (100, 70)])
     line = ln("LW_TE", [(0, 20), (50, 20)])
@@ -338,6 +418,8 @@ def t_trim_extend():
     record("Trim/Extend", ok, "line now %s (extended to the bounding line x=100)" % v, r)
 
 
+# Divide Lines (divideline) "by number of separated objects" = 4 on a 100-long line: four pieces of 25 each
+# (the original line's serial is counted along with the new objects, in case it is kept as one of the pieces).
 def t_divide_lines():
     line = ln("LW_DIV", [(0, 0), (100, 0)])
     b = ents_before()
@@ -351,6 +433,8 @@ def t_divide_lines():
     record("Divide Lines", ok, "%d parts, lengths %s (100 ft into 4)" % (len(parts), lens), r)
 
 
+# Break (breakline) at distance 40 along a 100-long line: two pieces spanning x 0-40 and 40-100.
+# Note the command key "breakline" is Break; Create Breakline is "createbreakline".
 def t_break():
     line = ln("LW_BRK", [(0, 0), (100, 0)])
     b = ents_before()
@@ -365,14 +449,18 @@ def t_break():
 
 
 def lines_now(b):
+    """Non-point objects on the test layer not in `b` (same as new_objects)."""
     return [e for e in entities(LAYER) if not e["type"].endswith("Point") and e["serial"] not in b]
 
 
 def span(serial):
+    """An object's vertices as (x, y) relative to the test origin."""
     v = rel(geom(serial)["points"])
     return [p[:2] for p in v]
 
 
+# Explode Lines (anz_explodelines), "Every segment", on A-B-C: segments A-B and B-C both exist afterwards.
+# `b` leaves the source line out so it counts too, whether TBC keeps or reuses it.
 def t_explode_lines():
     line = ln("LW_EXP", [(0, 0), (100, 0), (100, 50)])
     b = ents_before() - {line}
@@ -385,6 +473,8 @@ def t_explode_lines():
     record("Explode Lines", ok, "%d lines %s (A-B-C -> 2 segments); original kept: %s" % (len(parts), spans, any(e["serial"] == line for e in parts)), r)
 
 
+# Join (joinlines), "Two lines": (0,0)-(50,0) and (50,0)-(100,0) become one line from (0,0) to (100,0);
+# only one of the two serials is left.
 def t_join():
     l1 = ln("LW_J1", [(0, 0), (50, 0)])
     l2 = ln("LW_J2", [(50, 0), (100, 0)])
@@ -397,6 +487,8 @@ def t_join():
     record("Join", ok, "lines left %s, joined span %s" % (left, s), r)
 
 
+# Clip (cliplines), "Remove lines outside bounding lines", a line crossing the rectangle A..C at y 25 from
+# x -20 to 120: the only piece left (besides the rectangle) runs (0,25) to (100,25).
 def t_clip():
     rect = rect_polyline("LW_CLIP_BND")
     line = ln("LW_CLIP", [(-20, 25), (120, 25)])
@@ -410,6 +502,8 @@ def t_clip():
     record("Clip", ok, "remaining pieces %s (outside the rectangle removed)" % spans, r)
 
 
+# Set Line Elevation (setlineelevation) 25 on a 2D line: passes when either get_entity's effective vertex
+# elevations or the polyseg z values are all 25 (TBC may store the elevation outside the vertices).
 def t_set_line_elevation():
     # TBC refuses lines with 3D vertices ("Linestrings with 3D coordinates cannot be given a constant elevation"): 2D line
     line = make_line(LAYER, "LW_ELEV", [(E0, N0, None), (E0 + 100, N0, None)])
@@ -425,6 +519,8 @@ def t_set_line_elevation():
         print("      get_entity:", json.dumps(eff, default=str)[:900])
 
 
+# Delete Segment (deletelinesegment) on a linestring A-B-C: the last entry in the panel's segment list is
+# deleted; the line must be left with 2 vertices starting at A or B.
 def t_delete_segment():
     open_cmd("createlinestring")
     fill([["Name", "LW_DELSEG"], ["Layer", LAYER]], press="OK", wait=2)
@@ -433,6 +529,7 @@ def t_delete_segment():
     open_cmd("deletelinesegment")
     r = fill([["Line", line]])
     st = S.run_ipy("command_ui", "state", {})
+    # the panel's segment list appears once the line is set; read its entries to pick one
     items = [f.get("options") for f in st["fields"] if f["kind"] == "list"][0]
     r = fill([["list", items[-1]]], press="Delete", wait=2)
     S.run_ipy("command_ui", "close", {})
@@ -441,6 +538,8 @@ def t_delete_segment():
     record("Delete Segment", ok, "segments %s, deleted '%s' -> line now %s" % (items, items[-1], s), r)
 
 
+# Insert Segment (standardinsertlinesegment) on a pre-selected linestring A-B, location M: the line gains
+# a vertex at (50,50) and has 3 vertices.
 def t_insert_segment():
     open_cmd("createlinestring")
     fill([["Name", "LW_INSSEG"], ["Layer", LAYER]], press="OK", wait=2)
@@ -455,6 +554,10 @@ def t_insert_segment():
     record("Insert Segment", ok, "Line box '%s'; line now %s (vertex at M inserted)" % ([f.get("value") for f in st["fields"] if f["label"] == "Line"], s), r)
 
 
+# Divide Area (dividearea) of the polygon A-B-C-D into 2 subareas along A -> B. "Area to Divide" must be set
+# and confirmed before Origin is typed (the server's FILL_ORDER_GUARDS: TBC crashed otherwise); the test stops
+# with a FAIL if the area didn't take. Passes when at least 2 new objects appear; areas are reported. Runs last
+# in TESTS.
 def t_divide_area():
     open_cmd("createpolygon")
     fill([["Name", "LW_DIVA"], ["Layer", LAYER]], press="OK", wait=2)
@@ -481,6 +584,8 @@ def t_divide_area():
     print("      original polygon still there:", any(e["serial"] == poly for e in entities(LAYER)))
 
 
+# Create Composite Geometry (createcompositegeometry), "Composite polyline" from (0,0)-(50,0) and
+# (50,0)-(100,50): one new object running from (0,0) to (100,50).
 def t_composite_geometry():
     l1 = ln("LW_CG1", [(0, 0), (50, 0)])
     l2 = ln("LW_CG2", [(50, 0), (100, 50)])
@@ -495,6 +600,8 @@ def t_composite_geometry():
     record("Composite Geometry", ok, "%s span %s" % ([e["type"] for e in new], s), r)
 
 
+# Track Region Outline (trackregionoutline): two lines forming the rectangle's outline and reference point IN
+# inside it: one new region with the rectangle's four corners.
 def t_track_region():
     l1 = ln("LW_TR1", [(0, 0), (100, 0), (100, 50)])
     l2 = ln("LW_TR2", [(100, 50), (0, 50), (0, 0)])
@@ -509,6 +616,9 @@ def t_track_region():
     record("Track Region", ok, "%s corners %s" % ([e["type"] for e in new], corners), r)
 
 
+# Detect Crossing Geometry (crossinggeometry): LW_X1 at z 10 and LW_X2 at z 20 cross once. The results grid
+# must show exactly one crossing with LW_X2 higher, LW_X1 lower and a vertical difference of 10. The flags
+# TBC places are removed again with "Remove All Flags".
 def t_crossing_geometry():
     l1 = ln("LW_X1", [(0, 0), (100, 50)])
     l2 = make_line(LAYER, "LW_X2", [(E0, N0 + 50, 20), (E0 + 100, N0, 20)])
@@ -524,6 +634,8 @@ def t_crossing_geometry():
     record("Detect Crossing Geometry", ok, "%s; crossings (higher, lower, dZ, dE, dN) %s; flags removed afterwards" % (st.get("texts"), got), r)
 
 
+# Append Tracked (appendtrackedline): base line (0,0)-(50,0) plus line to append (60,0)-(100,0): the base
+# line still exists and now ends at (100,0).
 def t_append_tracked():
     base_l = ln("LW_AT_BASE", [(0, 0), (50, 0)])
     app = ln("LW_AT_APP", [(60, 0), (100, 0)])
@@ -544,5 +656,6 @@ TESTS = [t_polyline, t_circle, t_three_point_circle, t_arc, t_rectangle, t_three
 MANUAL = [t_outline, t_fillet]
 
 if __name__ == "__main__":
+    # teardown (unless --keep): delete MCP_LW_SURF, the layer's contents, the layer and leftover windows
     run(TESTS, sys.argv[1:], setup, lambda: None if "--keep" in sys.argv else cleanup([LAYER], surface_names=[SURF], base_forms=BASE_FORMS))
     json.dump({"results": __import__("tbc_testkit").results}, open("linework_results.json", "w"), indent=1)

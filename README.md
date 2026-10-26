@@ -514,10 +514,15 @@ Each ribbon tab is surveyed (every button opened, its panel recorded and its hel
 | **Linework** | 55 / 55 | **29 of 31 licensed tools** | `linework_tools_usage`; Capture Outline and Fillet/Chamfer need Plan View picks |
 | **Drafting** | 47 / 47 | **22 tools**: text, dimensions, labels, label tables, leaders, blocks (create, insert, import, purge), hatch, quick profile, plotbox, plan/sheet sets, dynaview boundaries, scale bar, 3D PDF | `drafting_tools_usage`; style managers documented; Angular Dimension, Insert Image and sheet-view tools need the view; nothing is ever printed |
 | **Home** | Import, Export, Selection | export to CSV, DXF, LandXML; import of CSV points and DXF linework; all 12 selection tools | `home_import_export`, `selection_tools`; never delete import records |
-Run the Linework suite yourself (it cleans up after itself):
+Run the Linework suite yourself (it cleans up after itself). Run it from the `tests` folder, because it writes
+`linework_results.json` to the current folder:
 
 ```bash
-py -3.12 tests\linework_tests.py
+cd tests
+```
+
+```bash
+py -3.12 linework_tests.py
 ```
 
 ---
@@ -576,6 +581,8 @@ All settings are optional environment variables.
 | Path | What it is |
 |---|---|
 | `tbc_macro\TbcMcpBridge.py` | the bridge macro that runs inside TBC |
+| [`docs\ARCHITECTURE.md`](docs/ARCHITECTURE.md) | how it all works inside: the pieces, the life of a tool call, the bridge, the safety layer, both knowledge bases, tests, release and known issues |
+| [`CLAUDE.md`](CLAUDE.md) | the guide for whoever changes the code (AI or person): layout, checks, rules, adding a tool |
 | `mcp_server\tbc_mcp_server.py` | the MCP server (38 tools) |
 | `mcp_server\ipy\` | code sent into TBC on each call: panel engine, view, license, import/export |
 | `mcp_server\knowledge.py`, `projects.py`, `tbc_help.py` | knowledge base, shared project knowledge and offline help reader |
