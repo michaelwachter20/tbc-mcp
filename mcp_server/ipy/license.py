@@ -128,7 +128,8 @@ def fingerprint(args):
     """ACTION "fingerprint": a short anonymous id for this license. Returns {fingerprint, licensed_feature_count}.
 
     Hash input: key id (empty if unreadable) + "|" + comma-joined sorted names of licensed features that are usable
-    (a feature without a "usable" value counts as usable). Only the first 16 hex characters are returned.
+    (a feature without a "usable" value counts as usable; GetFeatures' error entry, which has no name, is not a
+    feature). Only the first 16 hex characters are returned.
     """
     svc = _service()
     key = ""
@@ -137,8 +138,8 @@ def fingerprint(args):
     except Exception:
         pass
     lic, _ = _features(svc) if svc is not None else ([], [])
-    # Note: if GetFeatures failed, its {"error": ...} entry has no name and counts here as one feature named "".
-    names = sorted(f.get("name", "") for f in lic if f.get("usable", True))
+    # Only real features count: when GetFeatures failed, its {"error": ...} entry has no name and is left out
+    names = sorted(f["name"] for f in lic if "name" in f and f.get("usable", True))
     return {"fingerprint": _sha(key + "|" + ",".join(names))[:16], "licensed_feature_count": len(names)}
 
 

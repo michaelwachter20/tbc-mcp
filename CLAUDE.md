@@ -35,7 +35,7 @@ AI client --stdio JSON-RPC--> mcp_server/tbc_mcp_server.py --TCP 127.0.0.1 + ses
 
 ## Checking a change
 
-Offline (no TBC needed), run all three before committing:
+Offline (no TBC needed), run all four before committing:
 
 ```bash
 py -3.12 tests\test_project_knowledge.py
@@ -46,13 +46,17 @@ py -3.12 tests\test_knowledge_audit.py
 ```
 
 ```bash
+py -3.12 tests\test_server_fixes.py
+```
+
+```bash
 py -3.12 tests\test_watchdog.py
 ```
 
 With TBC open and the MCP Bridge switched on (green), the live suites exercise real commands on throwaway
-objects and clean up after themselves. Run them from `tests\` (they write `<suite>_results.json` to the current
-folder, and `.gitignore` only covers `tests\`), e.g. `cd tests` then `py -3.12 linework_tests.py`. Each file's
-docstring says what it needs, what it changes and how to run it.
+objects and clean up after themselves, e.g. `py -3.12 tests\linework_tests.py`; results go to
+`tests\<suite>_results.json` (git-ignored). Each file's docstring says what it needs, what it changes and how
+to run it.
 
 ## Rules
 

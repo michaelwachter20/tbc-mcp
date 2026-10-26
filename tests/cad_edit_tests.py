@@ -31,8 +31,8 @@ Pass / fail
     or the JSON file).
 
 Note: this suite predates tests\\tbc_testkit.py and has its own copies of record(), close() and the run loop.
-Its cleanup and the explode test delete through the bridge's raw "delete_entities" method (container
-removal), not through the server's delete_entities tool (TBC's own Delete command) that the other suites use.
+Its cleanup and the explode test delete through the server's delete_entities tool (S.t_delete_entities: TBC's
+own Delete command), like the other suites; the bridge's raw container removal is no longer used anywhere.
 """
 import json, math, os, sys, time
 here = os.path.dirname(os.path.abspath(__file__))
@@ -215,24 +215,6 @@ def t_name():
     record("Name Objects", nm == "RENAMED_BY_MCP", "name -> %s" % nm, r)
 
 
-def make_poly3d(pts):
-    """Create a CAD Poly3D on LAYER directly through the API (execute_python); returns its serial.
-
-    pts are [(x, y, z)] in display units; dividing by bridge.factor(prj) converts them to the project's
-    internal units. Not called by any test: t_explode's comment says creating CAD entities through the raw
-    API crashed TBC on 2026-10-13, so the explode test copies an existing block reference instead.
-    """
-    code = ("from Trimble.Vce.ForeignCad import Poly3D\n"
-            "f = bridge.factor(prj)\n"
-            "p = wv.Add(clr.GetClrType(Poly3D))\n"
-            "for x, y, z in args:\n"
-            "    p.Append(Point3D(x / f, y / f, z / f))\n"
-            "p.Layer = Layer.FindOrCreateLayer(prj, %r).SerialNumber\n"
-            "result = int(p.SerialNumber)\n") % LAYER
-    code = "args = %r\n" % (pts,) + code
-    return S.call_bridge("execute_python", {"code": code})["result"]
-
-
 # Explode (explode) on a copy of an existing block reference moved onto the test layer: the copy must be gone
 # afterwards and the layer must hold at least as many objects as before (the exploded parts).
 def t_explode():
@@ -249,9 +231,9 @@ def t_explode():
     copies = [e for e in S.call_bridge("list_entities", {"type_contains": "ForeignCad", "limit": 100000})["entities"] if e["serial"] not in before_all]
     if len(copies) != 1:
         record("Explode", False, "copy step produced %d new CAD objects" % len(copies), r0)
-        # remove whatever the copy produced (bridge raw delete, not TBC's Delete command)
-        for c in copies:
-            S.call_bridge("delete_entities", {"serials": [c["serial"]]})
+        # remove whatever the copy produced, with TBC's own Delete command
+        if copies:
+            S.t_delete_entities({"serials": [c["serial"] for c in copies]})
         return
     s = copies[0]["serial"]
     # move the copy onto the test layer so cleanup() removes it and its exploded parts
@@ -322,25 +304,27 @@ TESTS = [t_move, t_rotate, t_scale, t_mirror, t_copy, t_change_elev, t_relayer, 
 
 def cleanup():
     """Close panels, clear the selection, then delete MCP_DRAPE_TEST, everything on both test layers and the
-    layers themselves. Uses the bridge's raw delete_entities method (see the module note). Prints leftover
-    popups."""
+    layers themselves, each through the server's delete_entities tool (TBC's own Delete command, which also
+    deletes layers). Prints leftover popups."""
+    def delete(serials):
+        """Delete with TBC's Delete command; report a failure and carry on, so one leftover doesn't stop cleanup."""
+        if not serials:
+            return
+        try:
+            S.t_delete_entities({"serials": serials})
+        except S.BridgeError as ex:
+            print("cleanup: could not delete %s: %s" % (serials[:10], str(ex)[:300]))
     try:
         S.run_ipy("command_ui", "close", {"all": True})
     except S.BridgeError:
         pass
     S.call_bridge("set_selection", {"serials": []})
-    for x in S.call_bridge("list_surfaces")["surfaces"]:
-        if x["name"] == "MCP_DRAPE_TEST":
-            S.call_bridge("delete_entities", {"serials": [x["serial"]]})
+    delete([x["serial"] for x in S.call_bridge("list_surfaces")["surfaces"] if x["name"] == "MCP_DRAPE_TEST"])
     for lay in (LAYER, LAYER2):
         ents = on_layer(lay)
         pts = S.call_bridge("list_points", {"layer": lay, "limit": 1000})["points"]
-        ser = sorted(set([e["serial"] for e in ents] + [p["serial"] for p in pts]))
-        if ser:
-            S.call_bridge("delete_entities", {"serials": ser})
-    for l in S.call_bridge("list_layers", {"with_counts": False})["layers"]:
-        if l["name"] in (LAYER, LAYER2):
-            S.call_bridge("delete_entities", {"serials": [l["serial"]]})
+        delete(sorted(set([e["serial"] for e in ents] + [p["serial"] for p in pts])))
+    delete([l["serial"] for l in S.call_bridge("list_layers", {"with_counts": False})["layers"] if l["name"] in (LAYER, LAYER2)])
     left = S.dialogs_snapshot()
     print("cleanup done; leftover popups:", left)
 

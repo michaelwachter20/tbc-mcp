@@ -43,9 +43,7 @@ if ($FindType) { Get-Types | ? { $_.FullName -match $FindType } | % { $_.FullNam
 $t = $asm.GetType($Type, $true)
 "TYPE $($t.FullName)  : $($t.BaseType)"
 if ($t.IsEnum) { [Enum]::GetNames($t) | % { "  $_ = $([Convert]::ToInt64([Enum]::Parse($t, $_)))" }; return }
-# Note: $bf is assigned twice and only the second value is used, so inherited public members are listed too
-# (the DeclaredOnly/FlattenHierarchy variant on the first line has no effect).
-$bf = [Reflection.BindingFlags]'Public,Instance,Static,DeclaredOnly,FlattenHierarchy'
+# Public instance and static members, inherited ones included (what code written against the type can call)
 $bf = [Reflection.BindingFlags]'Public,Instance,Static'
 # property get/set accessors and other compiler-generated methods (IsSpecialName) are skipped
 foreach ($m in $t.GetMembers($bf)) {

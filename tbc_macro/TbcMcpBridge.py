@@ -92,8 +92,8 @@ params "units" == "meters"; TBC stores everything in meters internally)
   create_layer      name, color ("#RRGGBB") -> {serial, name}    (one undo step)
   set_properties    serial or serials, properties {Name: value} ->
                     {updated, properties}                        (one undo step)
-  delete_entities   serials -> {deleted}  (removes from the container in code;
-                    the MCP tool of that name uses TBC's Delete command instead)
+  delete_entities   refused with an explanation: raw removal from containers crashed
+                    TBC; the MCP tool of that name uses TBC's Delete command instead
   save_project      -> {saved}
   run_command       key, args -> {queued: true}  (async, see Threading)
   execute_python    code, transaction (True) -> {stdout, result}
@@ -555,12 +555,17 @@ class BridgeServer(object):
         """Stop listening and delete the info file. Safe to call more than once; never raises.
 
         listener.Stop() makes the blocked AcceptTcpClient() in _accept_loop throw, which ends that thread.
-        Open client threads end after their current line (they check self.running) or when the client
-        disconnects.
+        Open client threads end when the client disconnects or with their next line, which they no longer
+        handle once self.running is False.
         """
         self.running = False
         try:
             self.listener.Stop()
+        except:
+            pass
+        try:
+            # start() hooked ProcessExit for this instance; unhook it so handlers don't pile up across restarts
+            AppDomain.CurrentDomain.ProcessExit -= self._on_process_exit
         except:
             pass
         try:
@@ -610,6 +615,8 @@ class BridgeServer(object):
                 line = reader.ReadLine()
                 if line is None:
                     break  # client closed the connection
+                if not self.running:
+                    break  # stop() ran while this thread was waiting for the line: don't handle it
                 if not line.strip():
                     continue
                 writer.WriteLine(self._handle_line(line))
@@ -1227,7 +1234,8 @@ class TbcHandlers(object):
         """Create a linestring of straight segments (one undo step "MCP: create linestring").
 
         Params: vertices [{x, y, z (optional)}] (at least 2), closed (bool), name, layer (name or serial), units.
-        Returns {serial, name, vertices (element count)}.
+        Returns {serial, name, vertices (element count)}, plus "closed" (and a "warning" if closing failed) when
+        closed=true was asked.
         Built the SDK way: add an empty Linestring to the WorldView (wv.Add takes a .NET Type, hence
         clr.GetClrType), then append one element per vertex made by ElementFactory as a straight segment with an
         XYZ location.
@@ -1250,12 +1258,15 @@ class TbcHandlers(object):
                 z = v.get("z")
                 e.Position = Point3D(x, y, self.to_m(prj, z, units)) if z is not None else Point3D(x, y)
                 l.AppendElement(e)
+            closed = None
             if p.get("closed"):
-                # Tries IsClosed, then Closed, and uses the first one that can be set; if neither works the
-                # linestring is silently left open.
+                # Tries IsClosed, then Closed, and uses the first one that can be set; the reply says whether it
+                # worked, so a linestring left open is reported instead of passing silently
+                closed = False
                 for attr in ("IsClosed", "Closed"):
                     try:
                         setattr(l, attr, True)
+                        closed = True
                         break
                     except:
                         pass
@@ -1263,7 +1274,12 @@ class TbcHandlers(object):
                 l.Name = str(p["name"])
             if p.get("layer") is not None:
                 l.Layer = self.layer_serial(prj, p["layer"])
-            return {"serial": int(l.SerialNumber), "name": _safe(lambda: str(l.Name)), "vertices": int(l.ElementCount)}
+            out = {"serial": int(l.SerialNumber), "name": _safe(lambda: str(l.Name)), "vertices": int(l.ElementCount)}
+            if closed is not None:
+                out["closed"] = closed
+                if not closed:
+                    out["warning"] = "closed=true was asked but the linestring could not be closed; it is open"
+            return out
         return self.transact(prj, "MCP: create linestring", work)
 
     def h_create_layer(self, p):
@@ -1310,30 +1326,16 @@ class TbcHandlers(object):
         return {"updated": done, "properties": list(props.keys())}
 
     def h_delete_entities(self, p):
-        """Remove objects by serial from their containers in code (one undo step "MCP: delete").
+        """Refuse: deleting objects by removing them from their containers in code is no longer allowed.
 
-        Params: serials. Returns {deleted: [serials]}.
-        Each object is removed from its site (the container returned by GetSite(), if it has Remove), else from the
-        WorldView. NOTE: the MCP server's delete_entities TOOL does not use this handler; it selects the objects and
-        runs TBC's own Delete command and refuses import records (see working_safely_in_tbc and
-        home_import_export: deleting an import's FileProperties record broke the next import). This handler has
-        no such guard; tests/cad_edit_tests.py calls it directly to clean up.
+        Raw removal skipped TBC's own cleanup and is the prime suspect for three HOOPS graphics-engine crashes on
+        2026-10-13; it also had no guard for import records (deleting an import's FileProperties record broke the
+        next import, see home_import_export). Deletion goes through the MCP server's delete_entities tool, which
+        selects the objects and runs TBC's own Delete command (undoable, import records refused). This handler
+        only stays so that an old caller gets a clear message instead of "unknown method".
         """
-        prj = self.project()
-        serials = [int(s) for s in p["serials"]]
-        def work():
-            """Inside the transaction: remove each object from its site or the WorldView."""
-            gone = []
-            for s in serials:
-                o = self.lookup(prj, s)
-                site = _safe(lambda: o.GetSite())
-                if site is not None and hasattr(site, "Remove"):
-                    site.Remove(UInt32(s))
-                else:
-                    self.wv(prj).Remove(UInt32(s))
-                gone.append(s)
-            return gone
-        return {"deleted": self.transact(prj, "MCP: delete", work)}
+        raise Exception("delete_entities is not available on the bridge: delete through the MCP delete_entities tool "
+                        "(TBC's own Delete command). Raw removal from containers crashed TBC.")
 
     def h_save_project(self, p):
         """Save the current project through TBC's UI-level project object (CurrentProject.Save()). Returns {saved}."""

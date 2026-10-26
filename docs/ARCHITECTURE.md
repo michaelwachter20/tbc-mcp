@@ -45,7 +45,7 @@ flowchart LR
 | `tbc_macro/TbcMcpBridge.py` | The bridge macro |
 | `install_macro.ps1` | Copies the macro into `C:\ProgramData\Trimble\MacroCommands3\MCP` (asks for admin; `-Uninstall` removes it) |
 | `knowledge/` | The general knowledge base (data): `skills/`, `scripts/`, `memory/lessons.jsonl`, `commands/*.json`, `preferences.json` |
-| `tests/` | Offline tests (`test_project_knowledge.py`, `test_knowledge_audit.py`, `test_watchdog.py`), live suites per ribbon tab, the tab surveyor, smoke tests, shared helpers (`tbc_testkit.py`) |
+| `tests/` | Offline tests (`test_project_knowledge.py`, `test_knowledge_audit.py`, `test_server_fixes.py`, `test_watchdog.py`), live suites per ribbon tab, the tab surveyor, smoke tests, shared helpers (`tbc_testkit.py`) |
 | `tests/tab_data/` | Survey results per ribbon tab, used to write the tab overview skills |
 | `tests/dev/` | One-off development probes, and `run_ipy.ps1` to run TBC's IronPython outside TBC |
 | `tools/` | `make_release.ps1` (local release zip), `reflect.ps1` (type members from TBC's DLLs), `sdkdoc.py` (SDK doc search) |
@@ -56,7 +56,10 @@ flowchart LR
 
 Using `command_ui_fill` as the example:
 
-1. The AI client writes one JSON-RPC line on the server's stdin. `main()` parses it and calls `handle()`.
+1. The AI client writes one JSON-RPC line on the server's stdin. `main()` parses it and queues it for the single
+   tool-call worker thread, which handles requests one at a time, in order, so TBC never gets two at once. (Pings
+   and notifications are answered by the reader thread at once, so the client hears back even while a tool call
+   waits for TBC.)
 2. `handle()` looks the tool up in `TOOL_MAP` and calls its handler, here `t_command_ui_fill(args)`.
 3. The handler applies the safety layer: `wait_idle()` (TBC must not be computing), then `guard_fill()` (field
    order rules).
@@ -93,8 +96,9 @@ Simple tools skip step 4: `list_points`, `create_layer` and the like call a brid
   queued with `BeginInvoke` and answered at once with `{queued: true}`, because a command can open a modal panel.
 - **Handlers.** `ping`, `project_info`, `list_entities`, `get_entity`, `list_points`, `list_layers`,
   `list_surfaces`, `surface_elevation`, `get_selection`, `set_selection`, `list_commands`, `run_command`,
-  `create_points`, `create_linestring`, `create_layer`, `set_properties`, `delete_entities` (raw; the server no
-  longer uses it, see Known issues), `save_project`, `execute_python`. Writing handlers run as one undo step
+  `create_points`, `create_linestring`, `create_layer`, `set_properties`, `delete_entities` (refuses: raw removal
+  from containers crashed TBC; the MCP tool deletes with TBC's Delete command), `save_project`, `execute_python`.
+  Writing handlers run as one undo step
   (`transact()`); `execute_python` does too when `transaction=true`, and rolls back on an exception.
 - **Units.** TBC stores coordinates in meters; handlers convert to the project's display units unless asked for
   meters.
@@ -183,12 +187,13 @@ Environment variables are listed in the README's Configuration table and at the 
 Files written outside the repo: the bridge info file and log in `%TEMP%`, license profiles in
 `%LOCALAPPDATA%\TBC-MCP\license`, screenshots in `%TEMP%\tbc_mcp_view.png`, and shared project notes in the shared
 folder. Inside the repo: `knowledge/` (general knowledge), `knowledge/memory/tbc_errors.log` and `crash_log.md`
-(both git-ignored), and the live suites' `tests/*_results.json` (git-ignored; run the suites from `tests/`).
+(both git-ignored), and the live suites' `tests/*_results.json` (git-ignored).
 The server logs to stderr; stdout carries only MCP messages.
 
 ## 10. Tests and release
 
-- **Offline:** `tests/test_project_knowledge.py`, `tests/test_knowledge_audit.py`, `tests/test_watchdog.py`. Run
+- **Offline:** `tests/test_project_knowledge.py`, `tests/test_knowledge_audit.py`, `tests/test_server_fixes.py`,
+  `tests/test_watchdog.py`. Run
   them before every commit.
 - **Live** (TBC open, bridge green): `cad_edit_tests.py`, `survey_cogo_tests.py`, `linework_tests.py`,
   `drafting_tests.py`, `home_tests.py`, `selection_tests.py`, plus `test_mcp_stdio.py` and `test_v2_e2e.py`. They
@@ -200,32 +205,45 @@ The server logs to stderr; stdout carries only MCP messages.
 
 ## 11. Known issues
 
-Found while documenting the code. None has been fixed: the documentation pass changed comments only. Each is also
-described in a comment at its place in the code.
+The documentation pass found a list of problems; they were then fixed and are covered by
+`tests/test_server_fixes.py` where that is possible without TBC. Changes to code that runs inside TBC
+(`tbc_macro/`, `mcp_server/ipy/`) are syntax-checked only until they are run against a live TBC.
 
-Verified:
+Fixed:
 
-- **`TBC_MCP_INFO` only half works.** The server reads the info file from `TBC_MCP_INFO`, but the bridge always
-  writes it to `%TEMP%`, so setting the variable stops the server from finding the bridge.
-- **`cad_edit_tests.py` deletes the old way.** Its cleanup and explode test call the bridge's raw `delete_entities`
-  (removal from the container), which the server's own comments name as the prime suspect for the HOOPS crashes on
-  2026-10-13. The MCP tool `delete_entities` uses TBC's Delete command instead.
-- **A non-object JSON-RPC message crashes the server.** In `main()`, valid JSON that isn't an object (a batch array,
-  say) fails in `handle()`, and the error handler calls `msg.get` again outside any `try`.
-- **`create_points` with `start_id` can make duplicates.** Numbers counted up from an explicit `start_id` aren't
-  checked against existing point IDs.
-- **Live suites write results to the current folder.** Run them from `tests/`; from the repo root they leave an
-  untracked `*_results.json` there.
+- **Server:** a valid JSON message that isn't an object no longer crashes the server (`-32600`); pings are
+  answered while a tool call waits for TBC (tool calls still run one at a time, in order, on a worker thread);
+  `guard_fill` also refuses a required field that comes after the field needing it; `safe_dismiss` closes popups
+  from the highest index down, so closing one can't shift the next; `ui_grid` re-reads a clicked row by its index,
+  beyond row 500 too; `create_points` refuses numbers counted from `start_id` that already exist; `tbc_export` checks
+  the path before opening the pane and doesn't call an untouched old file "exported"; `tbc_memory` with `command=`
+  stores the lesson under the command, so the confirm gate and the panel reminder apply to it; `run_command` is
+  marked destructive; dead code (`post_click`, `LAYER_TYPE_CODE`) removed.
+- **Bridge (needs reinstalling the macro to take effect):** the raw `delete_entities` handler now refuses (deletion
+  goes through TBC's Delete command only); `create_linestring` reports when `closed=true` couldn't be applied; a
+  connection no longer handles a request after the bridge stopped; the exit hook is removed on stop.
+- **Inside TBC (`mcp_server/ipy/`):** `license.py` no longer counts GetFeatures' error entry as a feature;
+  `command_ui.py` restores hidden grid columns when a click is aborted, measures empty grids correctly, shows plain
+  list boxes' on-screen text, refuses to un-select a WPF radio option (as for WinForms) and explains an empty button
+  name.
+- **Tests and tools:** `cad_edit_tests.py` deletes through TBC's Delete command; the live suites write results into
+  `tests/` from any folder and accept `--keep` on its own; `test_v2_e2e.py` works on a copy of the knowledge base,
+  places its point relative to the Plan View and sets an exit code; `drafting_tests.py` restores the Labeling Scale
+  Factor and the block folder setting and deletes its test image; superseded, never-run tests removed;
+  `write_tab_skill.py` works without a `tab` key (and `cad_tab_survey.py` writes one); `sdkdoc.py` honors
+  `TBC_SDK_DOCS`, refreshes its cache and never caches an empty result; `reflect.ps1` lost a dead line;
+  `tbc_help.py` lost its unused `html.parser` class.
+- **Docs:** `TBC_MCP_INFO` was described as moving the bridge's info file. It only tells the server where to look
+  (for tests with a stand-in bridge); the macro always writes to `%TEMP%`.
 
-Reported by the documentation pass, not yet checked against a live TBC:
+Still open (left as they are, with the reason):
 
-- `t_memory` stores a lesson under `topic` when both `topic` and `command` are given, so `check_known_danger` doesn't
-  gate the command although the returned warning says it will.
-- `t_export` with `overwrite=true` reports success from the old file's size even if TBC wrote nothing.
-- `ui_grid` checkbox `set` re-reads the row by list position with a 500-row limit.
-- Tool calls run one at a time: a long `wait_idle` (up to 900 s) blocks every other MCP message, pings included.
-- `layer_serial` (bridge) creates a layer whenever a name doesn't exist, including a numeric string.
-- `import_export.py` relies on a non-public field named `a`, which may change between TBC releases.
-- Smaller ones are listed in the comments: unused helpers (`post_click`, `LAYER_TYPE_CODE`, `tbc_help._Text`),
-  `--keep` alone in the live suites runs no tests, `cad_tab_survey.py` output lacks the `tab` key
-  `write_tab_skill.py` needs, `sdkdoc.py`'s `--members` isn't implemented.
+- `import_export.py` relies on a non-public field named `a`, which may change between TBC releases: needs a live
+  TBC to find a stable replacement.
+- `command_ui.py` counts every visible WPF window as a popup, and some Infragistics paths (`_u_set`'s
+  `UltraGridAction` lookup, `editor_button`, `UltraTabStrip` tabs) are unverified: changing them without a live TBC
+  could break popup handling that works today.
+- The bridge's `cmdData.Version` (0.1) differs from `BRIDGE_VERSION` (0.2.0): it is TBC's macro metadata, and
+  changing it may affect how TBC registers the macro.
+- Not bugs: `layer_serial` creates a layer for a name that doesn't exist (documented: "Layer name (created if
+  missing)"), and `jsonable` always expands Python dicts and lists returned by your own `execute_python` code.

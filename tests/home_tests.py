@@ -14,9 +14,8 @@ How to run
     py -3.12 home_tests.py                          all tests in TESTS
     py -3.12 home_tests.py export_csv import_csv    only these (function names without "t_")
     py -3.12 home_tests.py export_csv --keep        skip the teardown (leave layer, objects and temp folders);
-                                                    "--keep" also counts as a test name, so give real names too
-    Run from tests\\ so home_results.json lands where .gitignore expects it (it is written to the current
-    directory). Import DXF needs the file written by Export DXF in the same run.
+                                                    --keep alone runs every test and keeps everything
+    Run it from any folder. Import DXF needs the file written by Export DXF in the same run.
 
 What it creates and cleans up
     Layer MCP_HOMETEST with three coded points (code MCPX, via the Create Point panel) and one linestring,
@@ -26,7 +25,7 @@ What it creates and cleans up
     The teardown deletes the layer's contents, the layer, leftover windows and both temp folders.
 
 What it writes
-    home_results.json in the current directory ({"results": [...]}); exported files in mcp_export_tmp
+    tests\\home_results.json ({"results": [...]}, git-ignored); exported files in mcp_export_tmp
     (deleted by the teardown).
 
 Pass / fail
@@ -203,7 +202,6 @@ def teardown():
 
 
 if __name__ == "__main__":
-    # "--keep" skips the teardown; note it is also passed to run() as a test name, where it matches nothing,
-    # so "--keep" alone runs no tests (combine it with test names)
+    # "--keep" skips the teardown (run() ignores "--" options when picking tests)
     run(TESTS, sys.argv[1:], setup, lambda: None if "--keep" in sys.argv else teardown())
-    json.dump({"results": __import__("tbc_testkit").results}, open("home_results.json", "w"), indent=1)
+    __import__("tbc_testkit").save_results("home_results.json")

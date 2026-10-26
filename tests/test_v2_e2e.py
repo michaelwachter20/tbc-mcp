@@ -21,11 +21,10 @@ What it exercises
 
 What it creates, changes and cleans up
     Point MCPE2E1 (deleted at the end) and a lesson "E2E TEST LESSON - delete me" (deleted at the end).
-    It saves knowledge\\scripts\\points_in_box.py and relayer_points_by_code.py with overwrite=True; these
-    are the knowledge base's real scripts, so a run rewrites them (the README says saving again bumps
-    script_version and archives the old file in knowledge\\scripts\\_archive\\).
-    The coordinates used (the points_in_box box near E 969300 N 827000, the point at N 10540 E 20540) are
-    fixed numbers, not derived from the open project. relayer_points_by_code runs in its default dry_run mode,
+    The server runs on a temporary COPY of knowledge\\ (TBC_MCP_KNOWLEDGE_DIR), removed at the end, so saving
+    points_in_box and relayer_points_by_code with overwrite=True never rewrites the knowledge base's real scripts.
+    The test point goes 2000 display units east of the Plan View centre (tbc_view info), away from the user's
+    work, and the points_in_box box is drawn around it. relayer_points_by_code runs in its default dry_run mode,
     so no points are moved.
 
 What it writes
@@ -33,13 +32,17 @@ What it writes
 
 Pass / fail
     A call passes when its isError matches what was expected. Extra failures are recorded when the
-    duplicate popup didn't appear or the point check failed. The exit code is not set from the result.
+    duplicate popup didn't appear or the point check failed. Exit code 0 when everything passed, else 1.
 """
-import json, os, subprocess, sys
+import json, os, shutil, subprocess, sys, tempfile
 
 here = os.path.dirname(os.path.abspath(__file__))
 server = os.path.join(here, "..", "mcp_server", "tbc_mcp_server.py")
-p = subprocess.Popen([sys.executable, server], stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True, encoding="utf-8")
+# a throwaway copy of the knowledge base, so the scripts and the lesson saved below never touch the real one
+kb_copy = os.path.join(tempfile.mkdtemp(prefix="tbc_mcp_e2e_"), "knowledge")
+shutil.copytree(os.path.join(here, "..", "knowledge"), kb_copy)
+p = subprocess.Popen([sys.executable, server], stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True, encoding="utf-8",
+                     env=dict(os.environ, TBC_MCP_KNOWLEDGE_DIR=kb_copy))
 # request id counter (a list so the function can change it without `global`); names of failed checks
 n = [0]
 fails = []
@@ -75,6 +78,11 @@ def tool(name, args=None, expect_error=False, show=600):
 rpc("initialize", {"protocolVersion": "2025-06-18", "capabilities": {}})
 names = [t["name"] for t in rpc("tools/list", {})["result"]["tools"]]
 print("tools (%d): %s" % (len(names), ", ".join(names)))
+
+# where the test point goes: 2000 display units east of what the user is looking at
+view = tool("tbc_view", {"action": "info"}, show=200)
+E = round(view["center"]["x"] + 2000, 2)
+N = round(view["center"]["y"], 2)
 
 # --- knowledge -------------------------------------------------------------------
 tool("tbc_skills", {"action": "list"}, show=300)
@@ -130,7 +138,7 @@ tool("tbc_script", {"action": "save", "name": "relayer_points_by_code", "overwri
 tool("tbc_script", {"action": "save", "name": "broken", "mode": "read", "code": "def oops(:\n  pass"}, expect_error=True, show=200)
 tool("tbc_script", {"action": "list"}, show=400)
 tool("tbc_script", {"action": "run", "name": "points_in_box",
-                    "args": {"min_e": 969300, "min_n": 827000, "max_e": 969400, "max_n": 827100, "limit": 3}})
+                    "args": {"min_e": E - 50, "min_n": N - 50, "max_e": E + 50, "max_n": N + 50, "limit": 3}})
 tool("tbc_script", {"action": "run", "name": "relayer_points_by_code", "args": {"code_prefix": "SAND", "layer": "X"}})
 tool("tbc_script", {"action": "run", "name": "points_in_box", "args": {"min_e": 1}}, expect_error=True, show=200)
 
@@ -142,9 +150,9 @@ tool("tbc_memory", {"action": "search", "query": "E2E TEST LESSON"}, show=300)
 # Create Point panel; "remembered" holds lessons recorded for this command
 st = tool("command_ui_open", {"key": "addpoint"}, show=300)
 print("    remembered:", st.get("remembered") if isinstance(st, dict) else None)
-f = tool("command_ui_fill", {"values": {"Point ID": "MCPE2E1", "Feature code": "E2E", "Northing": "10540",
-                                        "Easting": "20540", "Elevation": "7"}, "press": "Add"}, show=900)
-dup = tool("command_ui_fill", {"values": [["Point ID", "MCPE2E1"], ["Northing", "10550"], ["Easting", "20550"]],
+f = tool("command_ui_fill", {"values": {"Point ID": "MCPE2E1", "Feature code": "E2E", "Northing": str(N),
+                                        "Easting": str(E), "Elevation": "7"}, "press": "Add"}, show=900)
+dup = tool("command_ui_fill", {"values": [["Point ID", "MCPE2E1"], ["Northing", str(N + 10)], ["Easting", str(E + 10)]],
                                "press": "Add"}, show=900)
 # the same ID again must make TBC ask about the duplicate; answering "No" keeps a single MCPE2E1
 if isinstance(dup, dict) and dup.get("after", {}).get("dialogs"):
@@ -165,3 +173,5 @@ if isinstance(les, dict):
 print("\nRESULT:", "ALL PASS" if not fails else "FAILURES: %s" % fails)
 p.stdin.close()
 p.wait(timeout=10)
+shutil.rmtree(os.path.dirname(kb_copy), ignore_errors=True)
+sys.exit(1 if fails else 0)

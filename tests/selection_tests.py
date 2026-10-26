@@ -13,8 +13,7 @@ How to run
     cd tests
     py -3.12 selection_tests.py                        all tests in TESTS
     py -3.12 selection_tests.py select_by_polygon      only these (function names without "t_")
-    Add --keep (together with test names: it also counts as a name) to skip the teardown.
-    Run from tests\\ so selection_results.json lands where .gitignore expects it (current directory).
+    Add --keep (alone or with test names) to skip the teardown. Run it from any folder.
 
 What it creates and cleans up
     Layer MCP_SELTEST, 3000 east / 2400 north of the Plan View centre, with four coded points made through
@@ -23,7 +22,7 @@ What it creates and cleans up
     selection and deletes the layer's contents, the layer and leftover windows. Nothing else is changed.
 
 What it writes
-    selection_results.json in the current directory ({"results": [...]}).
+    tests\\selection_results.json ({"results": [...]}, git-ignored).
 
 Pass / fail
     Each test compares the set of our objects in get_selection with the expected set. Select Observations
@@ -239,4 +238,4 @@ TESTS = [t_select_points, t_select_points_by_id, t_add_to_selection, t_select_du
 if __name__ == "__main__":
     # teardown (unless --keep): clear the selection, then delete the layer's contents, the layer and leftover windows
     run(TESTS, sys.argv[1:], setup, lambda: None if "--keep" in sys.argv else (clear(), cleanup([LAYER], base_forms=BASE_FORMS)))
-    json.dump({"results": __import__("tbc_testkit").results}, open("selection_results.json", "w"), indent=1)
+    __import__("tbc_testkit").save_results("selection_results.json")

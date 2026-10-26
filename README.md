@@ -514,15 +514,11 @@ Each ribbon tab is surveyed (every button opened, its panel recorded and its hel
 | **Linework** | 55 / 55 | **29 of 31 licensed tools** | `linework_tools_usage`; Capture Outline and Fillet/Chamfer need Plan View picks |
 | **Drafting** | 47 / 47 | **22 tools**: text, dimensions, labels, label tables, leaders, blocks (create, insert, import, purge), hatch, quick profile, plotbox, plan/sheet sets, dynaview boundaries, scale bar, 3D PDF | `drafting_tools_usage`; style managers documented; Angular Dimension, Insert Image and sheet-view tools need the view; nothing is ever printed |
 | **Home** | Import, Export, Selection | export to CSV, DXF, LandXML; import of CSV points and DXF linework; all 12 selection tools | `home_import_export`, `selection_tools`; never delete import records |
-Run the Linework suite yourself (it cleans up after itself). Run it from the `tests` folder, because it writes
-`linework_results.json` to the current folder:
+Run the Linework suite yourself (it cleans up after itself, and writes its results to
+`tests\linework_results.json`):
 
 ```bash
-cd tests
-```
-
-```bash
-py -3.12 linework_tests.py
+py -3.12 tests\linework_tests.py
 ```
 
 ---
@@ -541,7 +537,7 @@ All settings are optional environment variables.
 | `TBC_MCP_KNOWLEDGE_DIR` | `knowledge\` | use a different (e.g. shared) knowledge base |
 | `CIVIL3D_KNOWLEDGE_DIR` | `Documents\Civil3DMcp-KnowledgeBase` | the project knowledge base shared with Civil 3D MCP and Project Analyzer (set it the same for all three) |
 | `TBC_MCP_USER_DIR` | `%LOCALAPPDATA%\TBC-MCP` | private per-user folder for license profiles |
-| `TBC_MCP_INFO` | `%TEMP%\tbc_mcp_bridge.json` | where the bridge publishes its port and token |
+| `TBC_MCP_INFO` | `%TEMP%\tbc_mcp_bridge.json` | where the server looks for the bridge's port and token; for tests with a stand-in bridge only (the macro in TBC always writes to `%TEMP%`) |
 | `TBC_MCP_PORT` / `TBC_MCP_TOKEN` | from the info file | connect to a bridge manually |
 | `TBC_HELP_DIR` | installed TBC help | location of TBC's HTML help |
 | `TBC_SDK_DOCS` | `C:\Program Files (x86)\Trimble\Macros SDK` | location of the Macros SDK docs |
@@ -586,7 +582,7 @@ All settings are optional environment variables.
 | `mcp_server\tbc_mcp_server.py` | the MCP server (38 tools) |
 | `mcp_server\ipy\` | code sent into TBC on each call: panel engine, view, license, import/export |
 | `mcp_server\knowledge.py`, `projects.py`, `tbc_help.py` | knowledge base, shared project knowledge and offline help reader |
-| `tests\` | live usage suites on throwaway objects (`cad_edit_tests.py`, `survey_cogo_tests.py`, `linework_tests.py`, `drafting_tests.py`, `home_tests.py`, `selection_tests.py`), the ribbon-tab surveyor (`tab_survey.py` + `write_tab_skill.py`), smoke tests (`test_watchdog.py`, `test_project_knowledge.py` and `test_knowledge_audit.py` offline, `test_mcp_stdio.py`, `test_v2_e2e.py`) and shared helpers in `tbc_testkit.py` |
+| `tests\` | live usage suites on throwaway objects (`cad_edit_tests.py`, `survey_cogo_tests.py`, `linework_tests.py`, `drafting_tests.py`, `home_tests.py`, `selection_tests.py`), the ribbon-tab surveyor (`tab_survey.py` + `write_tab_skill.py`), smoke tests (`test_watchdog.py`, `test_project_knowledge.py`, `test_knowledge_audit.py` and `test_server_fixes.py` offline, `test_mcp_stdio.py`, `test_v2_e2e.py`) and shared helpers in `tbc_testkit.py` |
 | `tests\tab_data\` | survey results per ribbon tab (every button, its panel and help), used to write the tab overview skills |
 | `tests\dev\` | one-off development probes (`ui_dev.py`, `explore_command_ui.py`, IronPython checks, `run_ipy.ps1` to run TBC's IronPython outside TBC) |
 | `tools\` | `reflect.ps1` (type signatures from TBC's DLLs) and `sdkdoc.py` (search the SDK docs) |

@@ -18,56 +18,11 @@ Standard library only, like the rest of the server.
 import html
 import os
 import re
-from html.parser import HTMLParser
 
 HELP_DIR = os.environ.get("TBC_HELP_DIR") or r"C:\Program Files\Trimble\Trimble Business Center Help\iv\Help"
 # search index, built on first use by _load() and kept for the life of the process:
 # list of (topic id = file name without .htm, title, keywords, lower-cased text)
 _index = None
-
-
-class _Text(HTMLParser):
-    """HTMLParser-based text extractor (title, Keywords meta tag, text with line breaks at block tags).
-
-    Not used anywhere in this module: parse() below does the same job with regular expressions, because
-    html.parser crashed CPython 3.15 on these pages (see parse()).
-    """
-    SKIP = {"script", "style", "head"}
-    BLOCK = {"p", "li", "tr", "h1", "h2", "h3", "h4", "div", "br", "table", "td"}
-
-    def __init__(self):
-        """Start with no text; `skip` counts open script/style/head elements."""
-        HTMLParser.__init__(self)
-        self.parts, self.skip, self.title, self.keywords, self._in_title = [], 0, "", "", False
-
-    def handle_starttag(self, tag, attrs):
-        """Track skipped/title elements, read the Keywords meta tag, add line breaks and list bullets."""
-        if tag in self.SKIP:
-            self.skip += 1
-        if tag == "title":
-            self._in_title = True
-        if tag == "meta":
-            a = dict(attrs)
-            if (a.get("name") or "").lower() == "keywords":
-                self.keywords = a.get("content") or ""
-        if tag in self.BLOCK:
-            self.parts.append("\n")
-        if tag == "li":
-            self.parts.append("- ")
-
-    def handle_endtag(self, tag):
-        """Close skipped/title elements."""
-        if tag in self.SKIP:
-            self.skip = max(0, self.skip - 1)
-        if tag == "title":
-            self._in_title = False
-
-    def handle_data(self, data):
-        """Collect title text, or body text outside skipped elements."""
-        if self._in_title:
-            self.title += data
-        elif not self.skip:
-            self.parts.append(data)
 
 
 # any HTML tag (or comment), removed after the block tags have been turned into line breaks

@@ -23,9 +23,9 @@ What it creates and cleans up
     panel is closed, and StateButtonTool toggles (docked panes) are run a second time to toggle them back.
 
 What it writes
-    tests\\tab_data\\cad_tab_survey.json: {"start", "end", "results"}; start/end are (modified, point count,
-    top-level count). Unlike tab_survey.py it writes no "tab", "tbc_version" or help fields, which
-    write_tab_skill.py reads.
+    tests\\tab_data\\cad_tab_survey.json: {"tab": "CAD", "start", "end", "results"}; start/end are (modified,
+    point count, top-level count). Unlike tab_survey.py it writes no "tbc_version" or help fields
+    (write_tab_skill.py then uses its defaults).
 
 Pass / fail
     Not a pass/fail test: a recorder. Watch the console for "PROJECT MODIFIED".
@@ -142,4 +142,4 @@ for group, t in tools:
 
 end = info()
 print("end:   modified=%s points=%s top=%s" % end)
-json.dump({"start": start, "end": end, "results": results}, open(os.path.join(here, "tab_data", "cad_tab_survey.json"), "w"), indent=1)
+json.dump({"tab": "CAD", "start": start, "end": end, "results": results}, open(os.path.join(here, "tab_data", "cad_tab_survey.json"), "w"), indent=1)

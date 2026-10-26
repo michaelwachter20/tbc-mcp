@@ -34,7 +34,8 @@ ARCHITECTURE
 HOW THE BRIDGE IS FOUND
   When the user clicks Macros > MCP > 'MCP Bridge' in TBC, the macro binds a loopback port (47821, or one of the
   next 9 if that is taken), makes a fresh random token and writes {"port", "token", "pid", "version", "started"}
-  to the info file %TEMP%\\tbc_mcp_bridge.json (TBC_MCP_INFO overrides the path). bridge_endpoint() reads that
+  to the info file %TEMP%\\tbc_mcp_bridge.json (TBC_MCP_INFO changes where THIS server looks, for tests with a
+  stand-in bridge; the macro itself always writes to %TEMP%). bridge_endpoint() reads that
   file on EVERY call, so a restarted bridge with a new port/token is picked up without restarting this server,
   and it checks that the recorded TBC pid is still alive. TBC_MCP_PORT + TBC_MCP_TOKEN bypass the file (and the
   watchdog) for a manually started bridge.
@@ -54,7 +55,7 @@ SECTIONS (in file order)
      project_info, execute_python, tbc_project_notes, tbc_memory
   8. SDK documentation search (offline, Macros SDK XML files)
   9. Tool definitions: TOOLS, TOOL_MAP, INSTRUCTIONS
- 10. MCP JSON-RPC over stdio: send, handle, RpcError, watch_tbc (the watchdog), main
+ 10. MCP JSON-RPC over stdio: send, handle, RpcError, watch_tbc (the watchdog), respond, _work, main
 
 LIFE CYCLE
   main() starts the watchdog thread (unless TBC_MCP_EXIT_WITH_TBC=0 or TBC_MCP_PORT is set), then reads stdin
@@ -65,6 +66,8 @@ LIFE CYCLE
                   message text (written for the AI to read); any other exception also becomes an isError result
                   ("<ExceptionType>: <message>").
     ping, resources/list, prompts/list -> trivial answers; notifications (no id) are ignored.
+  Pings and notifications are answered by the reader thread at once; every other request is queued for one
+  worker thread, so tool calls run one at a time, in order, while pings still get answered during a long call.
   Nothing talks to TBC at startup: a missing bridge is reported per tool call, so the server may start before TBC.
   watch_tbc() polls the info file every 2 s; once it has seen a live TBC pid and that pid is gone, it removes the
   stale info file and ends the process (os._exit), so no orphaned server is left behind (tests/test_watchdog.py).
@@ -82,7 +85,8 @@ ADDING A TOOL
   4. Add the tool to README > Tool catalog.
 
 Environment variables (all optional):
-  TBC_MCP_INFO      path of the bridge info file (default %TEMP%\\tbc_mcp_bridge.json)
+  TBC_MCP_INFO      path of the bridge info file the server reads (default %TEMP%\\tbc_mcp_bridge.json); for
+                    tests with a stand-in bridge: the macro in TBC always writes to %TEMP%
   TBC_MCP_PORT      override port      (with TBC_MCP_TOKEN)
   TBC_MCP_TOKEN     override token
   TBC_MCP_TIMEOUT   seconds to wait for TBC to answer (default 120)
@@ -100,10 +104,12 @@ import glob
 import itertools
 import json
 import os
+import queue
 import re
 import socket
 import sys
 import tempfile
+import threading
 import time
 import xml.etree.ElementTree as ET
 
@@ -488,7 +494,9 @@ def safe_dismiss(dialogs=None):
         wait_idle()
         dialogs = dialogs_snapshot()
     actions = []
-    for d in dialogs:
+    # Highest index first: closing a popup renumbers the ones after it, so working backwards keeps every index in
+    # this snapshot pointing at the popup it was read from (native dialogs are addressed by hwnd and keep their place)
+    for d in sorted(dialogs, key=lambda x: -x.get("index", -1) if not x.get("native") else 1):
         if is_busy_dialog(d):
             # Pressing Cancel on a progress window would abort TBC's computation
             actions.append({"dialog": d.get("title"), "action": "left alone (TBC is computing)"})
@@ -915,21 +923,24 @@ def guard_fill(pairs):
     """Refuse a fill that would type a guarded field before its prerequisite (FILL_ORDER_GUARDS).
 
     pairs: [[label_or_id, value], ...] about to be filled into the open command panel.
-    Passes when the open command is not guarded, no trigger field is being filled, the required field is part of
-    the same fill (by exact label), or it already has a value in the panel. Otherwise raises BridgeError.
-    Note: when the required field is in the same fill, its position in the list is not checked.
-    Read-only: one ui_state call.
+    Passes when the open command is not guarded, no trigger field is being filled, the required field already has
+    a value in the panel, or it comes BEFORE the first trigger field in this same fill (fields are filled in list
+    order, so a required field later in the list would still be empty when the trigger is typed). Otherwise raises
+    BridgeError. Read-only: one ui_state call.
     """
     st = ui_state(include_text=False)
     key = (st.get("command") or {}).get("key")
     for cmd, needs, req in FILL_ORDER_GUARDS:
-        if key != cmd or not any(str(p[0]).strip().lower() in needs for p in pairs):
+        triggers = [i for i, p in enumerate(pairs) if str(p[0]).strip().lower() in needs]
+        if key != cmd or not triggers:
             continue
         cur = [f for f in st.get("fields", []) if (f.get("label") or "") == req]
-        if any(str(p[0]) == req for p in pairs) or (cur and str(cur[0].get("value") or "").strip()):
-            continue
-        raise BridgeError("%s: fill '%s' first (it is empty). Typing %s before it is set has crashed TBC."
-                          % (cmd, req, "/".join(needs)))
+        if cur and str(cur[0].get("value") or "").strip():
+            continue  # already set in the panel
+        if any(str(p[0]) == req for p in pairs[:triggers[0]]):
+            continue  # set earlier in this fill, before the first trigger field
+        raise BridgeError("%s: fill '%s' first (it is empty, or comes after %s in this fill). Typing %s before it "
+                          "is set has crashed TBC." % (cmd, req, pairs[triggers[0]][0], "/".join(needs)))
 
 
 def t_command_ui_fill(a):
@@ -1042,20 +1053,6 @@ def t_view(a):
     raise BridgeError("action must be info, screenshot or set_extents")
 
 
-def post_click(hwnd, x, y):
-    """Deliver a genuine left click to a window's client point (TBC sees it exactly like a user click).
-
-    hwnd: window handle; x, y: client coordinates in pixels. Posts WM_LBUTTONDOWN + WM_LBUTTONUP (asynchronous).
-    NOTE: nothing in the server calls this at present - ui_grid's clicks are delivered inside TBC by
-    command_ui.grid_click (in-process mouse messages).
-    """
-    import ctypes
-    u = ctypes.windll.user32
-    lp = ((int(y) & 0xFFFF) << 16) | (int(x) & 0xFFFF)  # lParam = MAKELPARAM(x, y): y in the high word
-    u.PostMessageW(hwnd, 0x0201, 0x0001, lp)  # WM_LBUTTONDOWN, MK_LBUTTON
-    u.PostMessageW(hwnd, 0x0202, 0x0000, lp)  # WM_LBUTTONUP
-
-
 def t_ui_grid(a):
     """Tool ui_grid: read and edit tables inside TBC panels, popups and panes (e.g. Layer Manager).
 
@@ -1076,8 +1073,9 @@ def t_ui_grid(a):
         return run_ipy("command_ui", "grid_read", dict(base, where=a.get("where"), limit=a.get("limit", 200)))
     if act == "set":
         # Read the target row(s) and find the column first: a dict row is used as grid_read's filter, an integer
-        # row is picked out by its "_row" index
-        cur = run_ipy("command_ui", "grid_read", dict(base, where=a["row"] if isinstance(a["row"], dict) else None, limit=500))
+        # row is picked out by its "_row" index (so read at least that many rows)
+        cur = run_ipy("command_ui", "grid_read", dict(base, where=a["row"] if isinstance(a["row"], dict) else None,
+                                                       limit=500 if isinstance(a["row"], dict) else max(500, int(a["row"]) + 1)))
         rows = cur["rows"] if isinstance(a["row"], dict) else [x for x in cur["rows"] if x["_row"] == a["row"]]
         col = next((c for c in cur["columns"] if a["column"].lower() in (c["name"].lower(), (c["header"] or "").lower())), None)
         if rows and col and col["type"] == "CheckBoxColumn":
@@ -1089,9 +1087,10 @@ def t_ui_grid(a):
             pt = run_ipy("command_ui", "grid_click", dict(base, row=a["row"], column=a["column"]))
             r = {"column": col["name"], "clicked": True}
             r["after"] = ui_after(float(a.get("wait_seconds", 0.8)))
-            # Re-read the clicked row to report the value TBC actually holds now. pt["row"] is the grid row index,
-            # used here as a position in the unfiltered row list.
-            now = run_ipy("command_ui", "grid_read", dict(base, limit=500))["rows"][pt["row"]].get(col["name"])
+            # Re-read the clicked row to report the value TBC actually holds now. pt["row"] is the grid row index:
+            # read at least that many rows and find the row by its "_row" index, not by list position
+            after = run_ipy("command_ui", "grid_read", dict(base, limit=max(500, int(pt["row"]) + 1)))["rows"]
+            now = next((x for x in after if x.get("_row") == pt["row"]), {}).get(col["name"])
             r["now"] = now
             if now != want:
                 r["warning"] = "value did not change; TBC may have refused (check 'after')"
@@ -1297,13 +1296,6 @@ EXISTS_CODE = r"""
 from System import UInt32
 result = [int(s) for s in args if prj.Concordance.Lookup(UInt32(int(s))) is not None]
 """
-# LAYER_TYPE_CODE: which of the serials are layers. Not referenced anywhere in the repository at present.
-LAYER_TYPE_CODE = r"""
-from System import UInt32
-result = [int(s) for s in args if prj.Concordance.Lookup(UInt32(int(s))).GetType().Name == 'Layer']
-"""
-
-
 # IMPORT_RECORD_CODE: which of the serials are import records (FileProperties objects, one per imported file),
 # with the imported file's name - delete_entities refuses to delete those (see there)
 IMPORT_RECORD_CODE = r"""
@@ -1330,7 +1322,7 @@ def t_delete_entities(a):
     Raises BridgeError when import records are included, or when objects survive the Delete command (the
     message lists the survivors and any open popups, e.g. a confirmation TBC asked).
     Changes TBC: deletes objects (one TBC Delete, undoable with Ctrl+Z) and changes / clears the selection.
-    The bridge still has its own h_delete_entities (raw removal); this server no longer calls it.
+    The bridge's own delete_entities method refuses: this is the only way objects are deleted.
     """
     serials = [int(s) for s in a["serials"]]
     if not serials:
@@ -1434,8 +1426,9 @@ def t_create_points(a):
     Tool create_points. a: {"points": [{"name"?, "easting", "northing", "elevation"?, "feature_code"?,
     "layer"?}], "start_id"?: int, "allow_duplicates": bool, "units": "display" | "meters"}.
     IDs: names given by the caller are checked against the project (BridgeError if taken, unless
-    allow_duplicates); points without a name get consecutive numbers from start_id, else from the highest
-    numeric point ID + 1 (working_safely_in_tbc: point IDs are plain numbers, descriptions go in Feature code).
+    allow_duplicates); points without a name get consecutive numbers from start_id (also checked: BridgeError if
+    any is taken), else from the highest numeric point ID + 1 (working_safely_in_tbc: point IDs are plain numbers,
+    descriptions go in Feature code).
     Two paths:
       no feature codes at all -> the bridge's create_points API call: fast, one undo step.
       any feature code        -> EVERY point is typed into TBC's Create Point panel ("addpoint") and Add is
@@ -1453,12 +1446,21 @@ def t_create_points(a):
     if info["taken"] and not a.get("allow_duplicates"):
         raise BridgeError("Point ID(s) already exist: %s. Omit 'name' to get the next free numbers, or pass "
                           "allow_duplicates=true." % info["taken"][:20])
-    # Note: numbers counted up from an explicit start_id are not checked against existing IDs
     nxt = int(a.get("start_id") or info["max_numeric"] + 1)
+    auto = []
     for p in pts:
         if p.get("name") in (None, ""):
             p["name"] = str(nxt)
+            auto.append(p["name"])
             nxt += 1
+    if auto and a.get("start_id") and not a.get("allow_duplicates"):
+        # Numbers counted up from an explicit start_id can run into existing points (from the highest ID + 1 they
+        # can't): check them too, and refuse rather than silently skip, so the numbering stays what was asked for
+        clash = call_bridge("execute_python", {"code": "args = %r\n" % auto + NEXT_ID_CODE, "transaction": False})["result"]["taken"]
+        if clash:
+            raise BridgeError("Point ID(s) %s already exist (numbering from start_id %s). Pick another start_id, omit it "
+                              "to continue after the highest numeric ID (%d), or pass allow_duplicates=true."
+                              % (clash[:20], a["start_id"], info["max_numeric"]))
     if not any(p.get("feature_code") for p in pts):
         r = call_bridge("create_points", {"points": [{k: v for k, v in p.items() if k != "feature_code"} for p in pts],
                                           "units": units})
@@ -1562,21 +1564,27 @@ def t_export(a):
     export:  refuses a relative path (TBC's default target would be the project folder) and an existing file
              unless overwrite=true; chooses the exporter (import_export.export_choose), types the serials into
              the exporter's data box (the field whose value reads "Selected: N"), the path into TargetFileBox and
-             any settings, presses Export, waits for TBC to be idle and reports the file size on disk:
-             {"exported": size > 0, "path", "bytes", "exporter", "fill"}.
+             any settings, presses Export, waits for TBC to be idle and reports the file on disk:
+             {"exported": the file is new or was rewritten (and isn't empty), "path", "bytes", "exporter", "fill"}.
+    The path is checked before the Export pane is opened, so a bad path leaves TBC untouched. With overwrite=true
+    an existing file only counts as exported when TBC rewrote it (its modified time or size changed).
     Side effects: opens the Export pane (always closed again in `finally`), writes the target file.
-    Note: with overwrite=true an existing file's size also counts as "exported", even if TBC wrote nothing.
     """
     act = a.get("action", "export")
-    t_command_ui_open({"key": "export"})  # license check, pacing, panel settle - like any command
-    try:
-        if act == "formats":
-            return {"formats": run_ipy("import_export", "export_formats", {"category": a.get("category")})}
-        path = a.get("path") or ""
+    path = a.get("path") or ""
+    before = None
+    if act != "formats":
         if not os.path.isabs(path):
             raise BridgeError("path must be a full file path (the default would be the project folder)")
         if os.path.exists(path) and not a.get("overwrite"):
             raise BridgeError("%s already exists; pass overwrite=true to replace it" % path)
+        if os.path.exists(path):
+            st0 = os.stat(path)
+            before = (st0.st_mtime, st0.st_size)
+    t_command_ui_open({"key": "export"})  # license check, pacing, panel settle - like any command
+    try:
+        if act == "formats":
+            return {"formats": run_ipy("import_export", "export_formats", {"category": a.get("category")})}
         chosen = run_ipy("import_export", "export_choose", {"category": a["category"], "format": a["format"]})
         time.sleep(FILL_SETTLE_S)  # settle pause after choosing the exporter, before its fields are read
         st = ui_state(include_text=False)
@@ -1592,7 +1600,11 @@ def t_export(a):
         r = t_command_ui_fill({"values": values, "press": "Export", "wait_seconds": float(a.get("wait_seconds", 3))})
         wait_idle()
         size = os.path.getsize(path) if os.path.exists(path) else 0
-        return {"exported": size > 0, "path": path, "bytes": size, "exporter": chosen, "fill": r}
+        rewritten = before is None or (os.path.exists(path) and (os.stat(path).st_mtime, size) != before)
+        r_out = {"exported": size > 0 and rewritten, "path": path, "bytes": size, "exporter": chosen, "fill": r}
+        if size and not rewritten:
+            r_out["warning"] = "The file was already there and TBC didn't rewrite it: check 'fill' for what went wrong."
+        return r_out
     finally:
         _close_pane()
 
@@ -2049,8 +2061,10 @@ def t_memory(a):
     a: {"action": "list" (default) | "add" | "search" | "delete", "text", "topic", "command", "tags",
         "query", "id", "limit" (search, 20)}.
     add:    K.add_lesson (duplicates are returned "unchanged"; knowledge.py refuses job-specific details). The
-            lesson's topic is `topic`, else `command`. With `command` the text is also stored as a note on that
-            command's recorded panel, so it shows next time the command is opened. A lesson containing
+            lesson's topic is `command` when given (lessons reach a command by their topic: remembered_for_command,
+            check_known_danger, lessons_relevant_to), and a separate `topic` is then kept as a tag; else `topic`.
+            With `command` the text is also stored as a note on that command's recorded panel, so it shows next
+            time the command is opened. A lesson containing
             DANGER_WORDS makes check_known_danger require confirm=true for its topic: the answer says so.
     search / list: lessons (and recorded commands for search).
     delete: K.delete_lesson (knowledge.py only allows deleting lessons of the running release).
@@ -2063,7 +2077,10 @@ def t_memory(a):
         except BridgeError:
             pass
     if act == "add":
-        rec = K.add_lesson(a["text"], a.get("topic") or a.get("command"), a.get("tags"))
+        tags = list(a.get("tags") or [])
+        if a.get("command") and a.get("topic") and a["topic"].strip().lower() != a["command"].strip().lower():
+            tags.append(a["topic"])  # the command key becomes the topic; keep the given topic as a tag
+        rec = K.add_lesson(a["text"], a.get("command") or a.get("topic"), tags)
         if rec.get("action") == "unchanged":
             return rec  # already recorded: don't add the command note a second time either
         if a.get("command"):
@@ -2249,7 +2266,7 @@ TOOLS = [
      "refuses unlicensed commands instead of triggering TBC's license popups. Runs asynchronously.",
      obj({"key": {"type": "string"}, "args": {"type": "array", "items": {}},
           "confirm": {"type": "boolean", "default": False, "description": "Required for commands the knowledge base marks as acting immediately; only after the user agreed."}}, ["key"]),
-     t_run_command, {"readOnlyHint": False}),
+     t_run_command, {"readOnlyHint": False, "destructiveHint": True}),  # any TBC command, some act immediately
     # --- Create and change ---
     # create_points -> t_create_points: next free numeric IDs; API path without feature codes, Create Point panel
     # with them
@@ -2281,8 +2298,8 @@ TOOLS = [
      obj({"serial": {"type": "integer"}, "serials": {"type": "array", "items": {"type": "integer"}},
           "properties": {"type": "object"}}, ["properties"]),
      lambda a: call_bridge("set_properties", a), {"readOnlyHint": False, "destructiveHint": True}),
-    # delete_entities -> t_delete_entities: select + TBC's own Delete command (NOT the bridge's raw
-    # h_delete_entities), refuses import records, verifies the objects are gone
+    # delete_entities -> t_delete_entities: select + TBC's own Delete command (the bridge's raw removal method
+    # refuses), refuses import records, verifies the objects are gone
     ("delete_entities", "Delete objects by serial number through TBC's own Delete command (select + Delete), then confirm they are gone. Works for layers too (select the layer serial). Ctrl+Z in TBC restores them. Import records (FileProperties, "
      "one per imported file) are refused: deleting them broke the next import on TBC 2026.10 - delete the imported data instead.",
      obj({"serials": {"type": "array", "items": {"type": "integer"}},
@@ -2619,14 +2636,21 @@ INSTRUCTIONS = (
 # ---------------------------------------------------------------------------
 # MCP's stdio transport: newline-delimited JSON-RPC 2.0 messages, requests on stdin, responses on stdout.
 # Nothing else may be printed to stdout (log() writes to stderr).
+# Two threads write answers (the stdin reader answers pings, the tool-call worker everything else): one line at a time
+_send_lock = threading.Lock()
+
+
 def send(msg):
     """Write one JSON-RPC message to stdout as a single line and flush at once (the client waits for it).
 
     ensure_ascii=False keeps non-ASCII text readable; main() switches stdout to UTF-8 with "\\n" newlines so
-    Windows does not turn the line end into CRLF or use a legacy code page.
+    Windows does not turn the line end into CRLF or use a legacy code page. Thread-safe (_send_lock), so two
+    answers never interleave on one line.
     """
-    sys.stdout.write(json.dumps(msg, ensure_ascii=False) + "\n")
-    sys.stdout.flush()
+    line = json.dumps(msg, ensure_ascii=False) + "\n"
+    with _send_lock:
+        sys.stdout.write(line)
+        sys.stdout.flush()
 
 
 def result_text(value):
@@ -2678,8 +2702,8 @@ def handle(msg):
         if t is None:
             raise RpcError(-32602, "Unknown tool: %s" % name)
         try:
-            # t[3] = the handler. Runs synchronously on this (only) request thread: while a tool waits for TBC
-            # (e.g. wait_idle, up to TBC_MCP_IDLE_TIMEOUT) no other message is read.
+            # t[3] = the handler. Tool calls run one at a time on main()'s worker thread, so TBC never gets two
+            # requests at once; pings are answered meanwhile by the stdin reader (see main()).
             value = t[3](params.get("arguments") or {})
             # Internal key, not part of the text result: the PNG to attach (tbc_view screenshot)
             img = value.pop("_image_path", None) if isinstance(value, dict) else None
@@ -2740,19 +2764,48 @@ def watch_tbc(poll=2.0):
             os._exit(0)
 
 
+def respond(msg):
+    """Handle one decoded request or notification and send its answer: {"result": ...}, or {"error": ...} for an
+    RpcError (its code) or an unexpected failure inside handle() itself (-32603). Notifications get nothing."""
+    try:
+        res = handle(msg)
+        if msg.get("id") is not None:  # notifications are never answered
+            send({"jsonrpc": "2.0", "id": msg["id"], "result": res})
+    except RpcError as ex:
+        send({"jsonrpc": "2.0", "id": msg.get("id"), "error": {"code": ex.code, "message": str(ex)}})
+    except Exception as ex:
+        # Unexpected errors inside handle() itself become a JSON-RPC internal error (-32603)
+        send({"jsonrpc": "2.0", "id": msg.get("id"), "error": {"code": -32603, "message": str(ex)}})
+
+
+def _work(q):
+    """Worker-thread body: answer queued requests one at a time, in arrival order, until the None sentinel."""
+    while True:
+        msg = q.get()
+        if msg is None:
+            return
+        respond(msg)
+
+
 def main():
     """Entry point: start the watchdog, then serve JSON-RPC messages from stdin until the client closes it.
 
     The watchdog is skipped when TBC_MCP_EXIT_WITH_TBC=0 or for a manual TBC_MCP_PORT connection (no info
     file / pid to watch). stdin/stdout are switched to UTF-8 with "\\n" line ends (instead of Windows' default
-    code page and CRLF translation). Each non-empty input line is one message:
-    invalid JSON -> parse error (-32700); requests get {"result": ...} or {"error": ...}; notifications get
-    nothing. Messages are handled one at a time, in order.
+    code page and CRLF translation). Each non-empty input line is one message: invalid JSON -> parse error
+    (-32700); valid JSON that isn't an object -> invalid request (-32600); requests get {"result": ...} or
+    {"error": ...}; notifications get nothing.
+    Threads: this (reader) thread answers pings and notifications at once; every other request goes to ONE worker
+    thread that handles them strictly in order, so tool calls never overlap (TBC gets one request at a time) while
+    a long one (wait_idle can take up to TBC_MCP_IDLE_TIMEOUT) no longer leaves the client's pings unanswered.
+    When stdin closes, the requests already queued are finished before main() returns.
     """
     if EXIT_WITH_TBC and not os.environ.get("TBC_MCP_PORT"):
-        import threading
         # daemon=True: the thread never keeps the process alive after stdin closes and main() returns
         threading.Thread(target=watch_tbc, name="tbc-watchdog", daemon=True).start()
+    calls = queue.Queue()
+    worker = threading.Thread(target=_work, args=(calls,), name="tool-calls", daemon=True)
+    worker.start()
     try:
         sys.stdin.reconfigure(encoding="utf-8")
         sys.stdout.reconfigure(encoding="utf-8", newline="\n")
@@ -2768,15 +2821,17 @@ def main():
         except ValueError:
             send({"jsonrpc": "2.0", "id": None, "error": {"code": -32700, "message": "Parse error"}})
             continue
-        try:
-            res = handle(msg)
-            if msg.get("id") is not None:  # notifications are never answered
-                send({"jsonrpc": "2.0", "id": msg["id"], "result": res})
-        except RpcError as ex:
-            send({"jsonrpc": "2.0", "id": msg.get("id"), "error": {"code": ex.code, "message": str(ex)}})
-        except Exception as ex:
-            # Unexpected errors inside handle() itself become a JSON-RPC internal error (-32603)
-            send({"jsonrpc": "2.0", "id": msg.get("id"), "error": {"code": -32603, "message": str(ex)}})
+        if not isinstance(msg, dict):
+            # Valid JSON but not a request object (e.g. a JSON-RPC batch array, which MCP doesn't use): answer
+            # "Invalid Request" instead of failing in handle() and again in the error handler (that crashed the server)
+            send({"jsonrpc": "2.0", "id": None, "error": {"code": -32600, "message": "Invalid Request: expected a JSON object"}})
+            continue
+        if msg.get("method") == "ping" or msg.get("id") is None:
+            respond(msg)  # pings never touch TBC and notifications need no answer: no need to queue them
+        else:
+            calls.put(msg)
+    calls.put(None)  # stdin closed: finish what is queued, then stop
+    worker.join()
 
 
 if __name__ == "__main__":

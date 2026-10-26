@@ -660,8 +660,8 @@ def _fit_column(g, c):
         k.Visible = False
         hidden.append(k)
         g.PerformLayout()  # re-layout now so Displayed / the cell rectangle reflect the hidden column
-        # note: unlike the check above, this one always measures row 0 (it assumes the grid has rows)
-        if c.Displayed and g.GetCellDisplayRectangle(c.Index, 0, False).Width >= c.Width - 1:
+        # same measure as above: row 0, or the header row (-1) when the grid has no rows
+        if c.Displayed and g.GetCellDisplayRectangle(c.Index, 0 if g.RowCount else -1, False).Width >= c.Width - 1:
             break
     return hidden
 
@@ -720,7 +720,8 @@ def grid_click(args):
     the cell centre (grid_cell_point), re-check the row's values, then QUEUE the click with MainForm.BeginInvoke and
     return at once. The click therefore runs after this bridge call has returned, so a confirmation popup it opens
     cannot block the bridge; the server then waits and reports popups (ui_after). Columns hidden by _fit_column are
-    made visible again inside the queued callback, after the click. Errors during the click itself are swallowed:
+    made visible again inside the queued callback, after the click, or at once when the click is aborted (the row
+    moved, or the cell has no on-screen area). Errors during the click itself are swallowed:
     the server re-reads the grid to see whether anything changed.
     Returns grid_cell_point's result plus "temporarily_hidden_columns": [names].
     DataGridView only (uses _col/_row and DataGridView APIs); there is no UltraGrid click.
@@ -731,13 +732,24 @@ def grid_click(args):
     g = _grid(root, args.get("grid"))
     c = _col(g, args["column"])
     hidden = _fit_column(g, c)
-    pt = grid_cell_point(args)
-    r = g.Rows[pt["row"]]
-    # re-verify the row identity right before clicking
-    for k, v in (args["row"].items() if isinstance(args["row"], dict) else []):
-        if str(_cell_text(r.Cells[_col(g, k).Index].Value)).lower() != str(v).lower():
-            # note: columns hidden by _fit_column above are not restored on this path
-            raise Exception("Row moved before click; aborted")
+
+    def restore():
+        """Make the columns _fit_column hid visible again."""
+        for k in hidden:
+            try:
+                k.Visible = True
+            except Exception:
+                pass
+    try:
+        pt = grid_cell_point(args)
+        r = g.Rows[pt["row"]]
+        # re-verify the row identity right before clicking
+        for k, v in (args["row"].items() if isinstance(args["row"], dict) else []):
+            if str(_cell_text(r.Cells[_col(g, k).Index].Value)).lower() != str(v).lower():
+                raise Exception("Row moved before click; aborted")
+    except Exception:
+        restore()  # no click will happen: don't leave the grid with hidden columns
+        raise
     def go():
         """Queued on the UI thread: click the cell centre, then restore the temporarily hidden columns."""
         try:
@@ -745,11 +757,7 @@ def grid_click(args):
         except Exception:
             pass
         finally:
-            for k in hidden:  # restore the columns hidden to make the cell fit
-                try:
-                    k.Visible = True
-                except Exception:
-                    pass
+            restore()  # the columns hidden to make the cell fit
     TrimbleOffice.TheOffice.MainForm.BeginInvoke(Action(go))  # async so a confirmation popup can't block us
     pt["temporarily_hidden_columns"] = [str(k.Name) for k in hidden]
     return pt
@@ -763,8 +771,8 @@ def grid_cell_point(args):
     Returns {"hwnd": grid window handle, "x", "y": client point of the cell centre, "row": row index,
     "row_values": {column: value} of the visible non-image columns (identifies the row in the reply),
     "column": column name}.
-    History: the hwnd/x/y were meant for a click posted from the server process (post_click in the server); posted
-    messages did not reach TBC (lesson 3), so grid_click now clicks x/y in-process. The server's ui_grid action=click
+    History: the hwnd/x/y were meant for a click posted from the server process (a former post_click helper);
+    posted messages did not reach TBC (lesson 3), so grid_click now clicks x/y in-process. The server's ui_grid action=click
     still calls this first on its own, to scroll the cell into view and let the grid redraw before clicking.
     Side effects: scrolls the grid vertically and/or horizontally. Raises when the cell still has no on-screen area.
     """
@@ -1221,8 +1229,8 @@ def _value(f):
         if f.kind == "list":
             if hasattr(t, "CheckedItems"):  # checkbox list: the ticked items are its value
                 return [_item_text(t, x) for x in t.CheckedItems]
-            # note: plain list boxes report str(item), not _item_text, so object items may show a type name here
-            return [str(x) for x in t.SelectedItems]
+            # on-screen text, as for every other list (str() would show a type name for object items)
+            return [_item_text(t, x) for x in t.SelectedItems]
         # an Infragistics editor with Checked but no Items is an UltraCheckEditor
         if f.kind == "ultra" and hasattr(t, "Checked") and not hasattr(t, "Items"):
             return bool(t.Checked)
@@ -1442,7 +1450,10 @@ def _set(root, f, v):
     if f.kind in ("bool", "radio"):
         b = v if isinstance(v, bool) else str(v).strip().lower() in ("1", "true", "yes", "on", "checked")
         if f.tech == "wpf":
-            # WPF: set IsChecked directly (no click). Note: unlike WinForms, this also lets a radio be set to False.
+            # A radio option is turned off by choosing another one, in WPF as in WinForms (below)
+            if f.kind == "radio" and not b:
+                raise Exception("Can't un-select a radio option directly; select another option instead")
+            # WPF: set IsChecked directly (no click)
             t.IsChecked = b
             return
         # Click like a user so the panel's own Click/CheckedChanged handlers run (setting .Checked in code
@@ -1745,10 +1756,11 @@ def _find_button(buttons, key):
     """The button meant by key: first by control Name (exact, case-insensitive), else by caption.
 
     If several buttons share the caption, the LAST one in tree order is taken (see the comment below). Raises with
-    the list of buttons when nothing matches. Note: _clean(key) returns None for an empty key, which then fails
-    with an AttributeError rather than a friendly message. Read-only.
+    the list of buttons when nothing matches, or when key is empty. Read-only.
     """
-    k = _clean(key).lower()
+    k = (_clean(key) or "").lower()
+    if not k:
+        raise Exception("No button given. Buttons: %s" % [_btn_desc(b) for b in buttons])
     for b in buttons:
         if (_name_of(b) or "").lower() == k:
             return b

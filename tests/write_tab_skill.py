@@ -20,7 +20,8 @@ What it writes
     knowledge\\skills\\<category>\\<tab>_tab_overview.skill.md, overwritten whole, with frontmatter
     (tbc_versions taken from the survey's "tbc_version", default 2026.10) and the version banner the
     knowledge base uses. The "verified" date in the frontmatter is a fixed string, not today's date.
-    Needs the survey's "tab" key (written by tab_survey.py; cad_tab_survey.py's output has none).
+    The tab's display name comes from the survey's "tab" key (tab_survey.py and cad_tab_survey.py write it),
+    else from the <tab> argument, upper-cased.
 
 Pass / fail
     Prints "wrote <path> <n> lines"; any error is a Python exception.
@@ -37,7 +38,7 @@ rel = d.get("tbc_version", "2026.10")
 # L collects the output lines: YAML frontmatter, version banner, "Read first" bullets, then the tables
 L = ["---", "name: %s_tab_overview" % tab, "tbc_versions: [\"%s\"]" % rel, "category: %s" % category,
      'description: "Every tool on the TBC 2026 %s ribbon tab: what it does (from TBC help), command key, help topic, '
-     'license, what opens (panel fields/buttons, dialog, view window), and which tools act immediately."' % d["tab"],
+     'license, what opens (panel fields/buttons, dialog, view window), and which tools act immediately."' % d.get("tab", tab.upper()),
      "requires_write: false", "parameters: []",
      'verified: "2026-10-13 live survey on TBC 2026.10 (opened with nothing selected, nothing applied)"', "---",
      "", "> Verified on TBC %s. If something here does not work on a newer TBC release, ADD a section '## TBC <release>' (tbc_skills action=append_version_section) with what changed - never delete or rewrite the %s information." % (rel, rel), "",

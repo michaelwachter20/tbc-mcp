@@ -128,33 +128,6 @@ def t_explode_points():
            "point %s (%d observations): points %d -> %d after Explode, %d after Undo" % (pid, n, total0, total1, total2), r)
 
 
-def t_merge_explode():
-    """Merge two nearby points with Merge Points (mergepoints, "Ignored" + a 0.1 distance tolerance), then split
-    the merged point back with Explode Points (explodepointcmd); counts on the layer must go n -> n-1 -> n.
-
-    Not listed in TESTS, so it never runs (t_merge and t_explode_points cover these commands instead).
-    It reads `st` and `grids` but doesn't use them.
-    """
-    pts = make_points(LAYER, [(E0, N0 + 40, 3), (E0 + 0.02, N0 + 40.01, 3.01)])
-    n0 = len(points(LAYER))
-    open_cmd("mergepoints", [p["serial"] for p in pts])
-    # points 0.022 ft apart: the default 0.003 ft tolerance leaves the 2nd point 'Included: False' -> widen it
-    r = fill([["Ignored", True], ["chkSelectPointsWithin", True], ["MinimumDistance", "0.1"]], press="OK", wait=2)
-    n1 = len(points(LAYER))
-    record("Merge Points", n1 == n0 - 1, "points on layer %d -> %d (2 merged into 1)" % (n0, n1), r)
-    survivors = [p for p in points(LAYER) if p["serial"] in [q["serial"] for q in pts]]
-    if not survivors:
-        record("Explode Points", False, "no merged point to explode")
-        return
-    open_cmd("explodepointcmd", [survivors[0]["serial"]])
-    r1 = click("Find Explodable Points", wait=2)
-    st = S.t_command_ui_inspect({"include_text": False})
-    grids = S.run_ipy("command_ui", "state", {}).get("grids")
-    r2 = click("Explode", wait=2)
-    n2 = len(points(LAYER))
-    record("Explode Points", n2 == n0, "points on layer %d -> %d (merged point split back into 2)" % (n1, n2), [r1, r2])
-
-
 # Move Survey Point (movesurveypoint): the point (given to the "Point ID" picker by serial) is moved onto a
 # second point (given by ID in "To"); its position must match (E0+10, N0+65). The detail line also shows the
 # new name (TBC is expected to add "(MOVED)").
@@ -202,7 +175,7 @@ def t_integrate():
         S.t_delete_entities({"serials": [p["serial"] for p in new]})
 
 
-# run order; t_merge_explode is deliberately absent
+# run order
 TESTS = [t_rename, t_average, t_merge, t_explode_points, t_move_survey_point, t_transform, t_integrate]
 
 if __name__ == "__main__":

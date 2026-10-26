@@ -13,8 +13,7 @@ How to run
     py -3.12 drafting_tests.py text edit_text          only these (function names without "t_"); some tests
                                                        depend on earlier ones (edit_text on text, insert_block
                                                        on create_block, purge_blocks on insert_block)
-    Add --keep (with test names: it also counts as a name) to skip the teardown.
-    Run from tests\\ so drafting_results.json lands where .gitignore expects it (current directory).
+    Add --keep (alone or with test names) to skip the teardown. Run it from any folder.
     MANUAL tests (Angular Dimension, Insert Image) are never run by this script.
 
 What it creates and cleans up
@@ -25,11 +24,11 @@ What it creates and cleans up
     by cleanup_made(). Block definitions MCP_TEST_BLOCK and MCP_IMPORT_* are removed with a narrowed Purge
     Blocks (purge_only / t_purge_blocks), with Undo if more than expected disappeared. Temp files:
     tests\\mcp_blocks_tmp\\ (removed), tests\\mcp_test_3d.pdf (removed if TBC lets go of it).
-    Not undone: Labeling Scale Factor is left set to a fixed factor of 1.0, and Import Blocks sets the
-    'My block folder path' setting back to empty (assumed to have been empty).
+    Settings are put back: Labeling Scale Factor's previous option and factor, and Import Blocks' 'My block
+    folder path' as it was before the test. The Insert Image test (manual only) deletes its tests\\mcp_test_image.bmp.
 
 What it writes
-    drafting_results.json in the current directory ({"results": [...]}).
+    tests\\drafting_results.json ({"results": [...]}, git-ignored).
 
 Pass / fail
     Mostly "the expected new object exists" (by type and name), checked by listing the layer or walking the
@@ -237,18 +236,6 @@ def t_label_polygons():
     record("Label Polygons", ok, "panel %s; new objects %s" % (tx, [x["type"] for x in new]), r)
 
 
-# Point Label Table (createpointlabeltable) at U without labelling points first. Not in TESTS:
-# t_point_label_table_rows replaces it (it labels A and B first).
-def t_point_label_table():
-    b = ents_before()
-    open_cmd("createpointlabeltable")
-    r = fill([["Layer", LAYER], ["Title", "MCP POINT TABLE"], ["LocationCoordinateEdit", P["U"]]], press="OK", wait=2)
-    S.run_ipy("command_ui", "close", {})
-    new = new_objects(b)
-    ok = len(new) >= 1
-    record("Point Label Table", ok, "new objects %s" % [x["type"] for x in new], r)
-
-
 # "points" -> serials of the point labels made by label_points_now (reused by t_leader_lines)
 LABELS = {}
 
@@ -388,6 +375,9 @@ def t_import_blocks():
         f.write("\n".join(dxf) + "\n")
     defs0 = set(x["name"] for x in find_types(["BlockView"]))
     open_cmd("importblocks")
+    # the user's 'My block folder path' setting, put back at the end
+    folder0 = next((f.get("value") or "" for f in S.run_ipy("command_ui", "state", {}).get("fields", [])
+                    if f.get("id") == "browseFile1"), "")
     fill([["browseFile1", BLOCKS_DIR]])
     hit = S.call_bridge("execute_python", {"code": "name = 'MCP_IMPORT_TEST'\n" + TREE, "transaction": False})["result"]
     r = click("Import", wait=3)
@@ -399,10 +389,10 @@ def t_import_blocks():
     # remove every new definition starting MCP_IMPORT (the block and the file-level one)
     pr = purge_only([n for n in new if n.startswith("MCP_IMPORT")])
     print("      purge of the imported test blocks:", pr)
-    # put the user's 'My block folder path' setting back (it was empty) and remove the test file
+    # put the user's 'My block folder path' setting back as it was and remove the test file
     S.pace_command()
     open_cmd("importblocks")
-    fill([["browseFile1", ""]])
+    fill([["browseFile1", folder0]])
     S.run_ipy("command_ui", "close", {})
     shutil.rmtree(BLOCKS_DIR, ignore_errors=True)
 
@@ -629,15 +619,29 @@ def t_line_label_table():
 
 
 # Labeling Scale Factor (planarscalefactor): "Use a fixed scale factor" 1.0 -> Apply; the panel's scale factor
-# text must show 1.0 afterwards. This is a project setting and the test doesn't restore the previous value.
+# text must show 1.0 afterwards. This is a project setting, so the panel's previous choices are put back after.
 def t_labeling_scale_factor():
     open_cmd("planarscalefactor")
     before = panel_texts()
+    # remember the selected option(s) and the factor box, to restore them afterwards
+    orig = [f for f in S.run_ipy("command_ui", "state", {}).get("fields", [])
+            if (f.get("kind") == "radio" and f.get("value") is True) or f.get("id") == "scaleFactorTextBox"]
     r = fill([["Use a fixed scale factor", True], ["scaleFactorTextBox", "1.0"]], press="Apply", wait=2)
     after = panel_texts()
     S.run_ipy("command_ui", "close", {})
     ok = any("1.0" in str(t) for t in after if "scale factor" in str(t).lower())
     record("Labeling Scale Factor", ok, "before %s; after %s (fixed factor 1.0 = no ground scaling)" % (before[:1], after[:1]), r)
+    # put the project setting back: the factor text first (it only applies to the fixed option), then the option
+    # that was selected before
+    back = [[f["id"], f.get("value") or ""] for f in orig if f.get("kind") != "radio"] + \
+           [[f["id"], True] for f in orig if f.get("kind") == "radio"]
+    if back:
+        S.pace_command()
+        open_cmd("planarscalefactor")
+        try:
+            print("      restored the labeling scale factor:", fill(back, press="Apply", wait=2).get("errors"))
+        finally:
+            S.run_ipy("command_ui", "close", {})
 
 
 # Create Dynaview Boundary Set (createdynaviewboundarycollection) MCP_DVB_SET, 1 row x 2 columns, origin at the
@@ -682,7 +686,7 @@ def t_scale_bar():
     record("Create Scale Bar", ok, "%s (specified scale 1:50)" % [x["type"] for x in new], r)
 
 
-# image file for t_insert_image, written in tests\ (tests/*.bmp is in .gitignore); the test doesn't delete it
+# image file for t_insert_image, written in tests\ (tests/*.bmp is in .gitignore) and deleted by the test
 IMG = os.path.join(os.path.dirname(os.path.abspath(__file__)), "mcp_test_image.bmp")
 
 
@@ -708,6 +712,10 @@ def t_insert_image():
     new = new_objects(b)
     ok = len(new) >= 1
     record("Insert Image", ok, "%s" % [e["type"] for e in new], r)
+    try:
+        os.remove(IMG)  # TBC may still hold the file; then it stays (git-ignored)
+    except OSError:
+        pass
 
 
 # throwaway surface for t_quick_profile; deleted by name in the teardown
@@ -783,4 +791,4 @@ if __name__ == "__main__":
     # the layer and leftover windows
     run(TESTS, sys.argv[1:], setup,
         lambda: None if "--keep" in sys.argv else (cleanup_made(), cleanup([LAYER], surface_names=[SURF], base_forms=BASE_FORMS)))
-    json.dump({"results": __import__("tbc_testkit").results}, open("drafting_results.json", "w"), indent=1)
+    __import__("tbc_testkit").save_results("drafting_results.json")

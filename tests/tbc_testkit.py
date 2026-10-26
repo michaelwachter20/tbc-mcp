@@ -22,9 +22,10 @@ How a suite uses it
 
 Pass / fail
     A test passes when every record() call for it had ok=True. Results are collected in the module-level
-    `results` list (home, selection, linework and drafting dump it to <suite>_results.json in the current
-    directory; survey_cogo writes none); nothing here writes files
-    except that TBC error popups are appended to S.ERROR_LOG (knowledge/memory/tbc_errors.log) by the server.
+    `results` list; home, selection, linework and drafting save it with save_results() as
+    tests\\<suite>_results.json (next to this file, wherever the suite is run from, so .gitignore always covers
+    it; survey_cogo writes none). TBC error popups are appended to S.ERROR_LOG (knowledge/memory/tbc_errors.log)
+    by the server.
 """
 import json, os, sys, time
 here = os.path.dirname(os.path.abspath(__file__))
@@ -48,6 +49,13 @@ def record(name, ok, detail, r=None):
     print("%s %-26s %s" % ("PASS" if ok else "FAIL", name, detail))
     if not ok and r is not None:
         print("      " + json.dumps(r, default=str)[:1200])
+
+
+def save_results(file_name):
+    """Write `results` as {"results": [...]} to tests\\<file_name> (next to this file, not the current folder:
+    tests/*_results.json is git-ignored, a copy in the repo root would not be)."""
+    with open(os.path.join(here, file_name), "w") as f:
+        json.dump({"results": results}, f, indent=1)
 
 
 def close(a, b, tol=0.01):
@@ -203,7 +211,8 @@ def run(tests, wanted, setup=None, teardown=None):
     """Run a suite's test functions in order with the safety rules shared by every live suite.
 
     tests     list of functions named t_<name>; <name> (the "t_" prefix stripped) is the test name
-    wanted    names to run (usually sys.argv[1:]); empty runs all
+    wanted    names to run (usually sys.argv[1:]); options starting with "--" (such as --keep) are not names;
+              no names runs all
     setup     called once before the first test (e.g. create the throwaway layer and base points)
     teardown  called once at the end (usually cleanup()), but skipped when a TBC error popup is still open,
               so the user can read it
@@ -212,6 +221,7 @@ def run(tests, wanted, setup=None, teardown=None):
     one second. An exception inside a test is recorded as a FAIL and the suite carries on.
     Prints "N/M passed" (counting record() calls, not test functions) at the end.
     """
+    wanted = [w for w in (wanted or []) if not w.startswith("--")]  # "--keep" alone must still run every test
     if setup:
         setup()
     try:

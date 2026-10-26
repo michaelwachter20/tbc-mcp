@@ -10,7 +10,7 @@ Needs TBC
 How to run
     py -3.12 tests\\linework_tests.py                (the README's command; from the repository root)
     py -3.12 tests\\linework_tests.py offset join    only these (function names without "t_")
-    Add --keep (with test names: it also counts as a name) to skip the teardown.
+    Add --keep (alone or with test names) to skip the teardown.
     Only tests in TESTS can run; MANUAL (Capture Outline, Fillet/Chamfer) is never run by this script.
 
 What it creates and cleans up
@@ -20,8 +20,7 @@ What it creates and cleans up
     Detect Crossing Geometry removes the flags it creates ("Remove All Flags").
 
 What it writes
-    linework_results.json in the CURRENT directory ({"results": [...]}). .gitignore only covers
-    tests/*_results.json, so run from tests\\ (py -3.12 linework_tests.py) to keep it out of git.
+    tests\\linework_results.json ({"results": [...]}, git-ignored), wherever the suite is run from.
 
 Pass / fail
     Each test reads the new or changed object's geometry back from TBC (geom()) and compares vertex
@@ -658,4 +657,4 @@ MANUAL = [t_outline, t_fillet]
 if __name__ == "__main__":
     # teardown (unless --keep): delete MCP_LW_SURF, the layer's contents, the layer and leftover windows
     run(TESTS, sys.argv[1:], setup, lambda: None if "--keep" in sys.argv else cleanup([LAYER], surface_names=[SURF], base_forms=BASE_FORMS))
-    json.dump({"results": __import__("tbc_testkit").results}, open("linework_results.json", "w"), indent=1)
+    __import__("tbc_testkit").save_results("linework_results.json")
