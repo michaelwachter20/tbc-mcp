@@ -110,7 +110,7 @@ Decide by what it is about, and ask the user before saving any of them:
    way of working) -> `tbc_memory`, `tbc_skills`, `tbc_script`, `tbc_preferences`. General: useful on any job.
    - Built-ins ship with TBC MCP in its `knowledge\` folder and are only read.
    - Everything learned on this PC is saved in the learned know-how folder (`TBC_MCP_KNOWLEDGE_DIR`, else the
-     `tbc\` folder inside the suite's shared folder, `Documents\Civil3DMcp-KnowledgeBase`), never in the
+     `tbc\` folder inside the suite's shared folder, `Documents\Project Knowledge`), never in the
      repository. A learned skill, script, command record, lesson or preference wins over the built-in one of the
      same name.
    - In both: `preferences.json` (the user's rules, sent to every AI in the server instructions),

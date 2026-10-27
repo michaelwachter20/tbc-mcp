@@ -34,7 +34,7 @@ server = os.path.join(repo, "mcp_server", "tbc_mcp_server.py")
 work = tempfile.mkdtemp(prefix="tbc_mcp_fixes_")
 general = os.path.join(work, "general")
 os.makedirs(os.path.join(general, "commands"))
-os.environ.update({"TBC_MCP_KNOWLEDGE_DIR": general, "CIVIL3D_KNOWLEDGE_DIR": os.path.join(work, "shared"),
+os.environ.update({"TBC_MCP_KNOWLEDGE_DIR": general, "PROJECT_KNOWLEDGE_DIR": os.path.join(work, "shared"),
                    "TBC_MCP_INFO": os.path.join(work, "no_bridge.json"), "TBC_MCP_EXIT_WITH_TBC": "0",
                    "TBC_MCP_USER_DIR": os.path.join(work, "user")})
 sys.path.insert(0, os.path.join(repo, "mcp_server"))

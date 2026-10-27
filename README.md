@@ -70,8 +70,8 @@ flowchart LR
     B -- "JSON + session token<br/>127.0.0.1:47821" --> C["TbcMcpBridge macro<br/>IronPython 3.4 inside TBC"]
     C -- "TBC SDK on the UI thread" --> D[("Open TBC project")]
     B --> K[("knowledge\ (built in, read only)<br/>preferences · skills · lessons<br/>panel layouts · scripts")]
-    B <--> T[("Documents\Civil3DMcp-KnowledgeBase\tbc<br/>what it learned on this PC")]
-    B <--> S[("Documents\Civil3DMcp-KnowledgeBase\projects\*.db<br/>one database per job, shared with<br/>Civil 3D MCP · Project Analyzer")]
+    B <--> T[("Documents\Project Knowledge\tbc<br/>what it learned on this PC")]
+    B <--> S[("Documents\Project Knowledge\projects\*.db<br/>one database per job, shared with<br/>Civil 3D MCP · Project Analyzer")]
     B <--> G[("...\practices.json<br/>good practices of the suite")]
     B <--> L[("%LOCALAPPDATA%\TBC-MCP<br/>this user's license profile")]
     B <--> H[("Installed TBC help<br/>read offline")]
@@ -169,12 +169,12 @@ TBC restarts.
 ### Updating
 
 Download the new release and unzip it over the old folder. What the AI learned on your PC isn't in that folder (it
-is in `Documents\Civil3DMcp-KnowledgeBase\tbc`), so nothing is lost. Re-run `install_macro.ps1` only when the
+is in `Documents\Project Knowledge\tbc`), so nothing is lost. Re-run `install_macro.ps1` only when the
 release notes say the macro changed.
 
 Coming from 0.3: lessons, skills, scripts, panel notes and preferences the AI saved into the old folder's
 `knowledge\` are not moved automatically. To keep them, copy what you added (for example new skill files, or your
-own lines of `memory\lessons.jsonl`) into `Documents\Civil3DMcp-KnowledgeBase\tbc\` with the same layout. A job's
+own lines of `memory\lessons.jsonl`) into `Documents\Project Knowledge\tbc\` with the same layout. A job's
 old notes file (`projects\<job>.json`) is moved into the job's database the first time any tool of the suite opens it.
 
 ---
@@ -237,7 +237,7 @@ automatically. It keeps three kinds of knowledge apart, the same way as the rest
 
 - **How to drive TBC** (recipes, gotchas, the layout of panels it opened, your way of working) is TBC's own
   know-how. It's general, so it never names a job, point IDs, coordinates or layers. What ships with TBC MCP is in
-  its `knowledge\` folder; what it learns on your PC is saved in `Documents\Civil3DMcp-KnowledgeBase\tbc`, never in
+  its `knowledge\` folder; what it learns on your PC is saved in `Documents\Project Knowledge\tbc`, never in
   this repository. The next chat starts from both.
 - **Facts about one job** (what its layers and point ranges are for, the control, your decisions) go in the job's
   [project database](#shared-project-knowledge), which Civil 3D MCP and Project Analyzer read too.
@@ -374,7 +374,7 @@ Everything the AI learns about driving TBC is written down, so the next session 
 experienced. It lives in two layers with the same layout:
 
 - **Built in**: `knowledge\` in this repository, shipped with every release. Read only while TBC MCP runs.
-- **Learned on this PC**: `Documents\Civil3DMcp-KnowledgeBase\tbc\` (or `TBC_MCP_KNOWLEDGE_DIR`). Everything the AI
+- **Learned on this PC**: `Documents\Project Knowledge\tbc\` (or `TBC_MCP_KNOWLEDGE_DIR`). Everything the AI
   saves goes here, never into the repository, so nothing you or the AI learn reaches GitHub. Reads merge both, and
   the learned version wins: a skill or script of the same name, a command's panel record, or a lesson or preference
   you changed or removed. Saving over a built-in skill or script writes your own version here; the built-in file
@@ -433,10 +433,11 @@ TBC MCP, [Civil 3D MCP](https://github.com/michaelwachter20/civil3d-mcp-unified)
 in it. Civil 3D MCP and TBC MCP are the workers: they do the work using what it learned, and add what they find.
 
 ```
-Documents\Civil3DMcp-KnowledgeBase\     (or CIVIL3D_KNOWLEDGE_DIR; set it the same for all three)
+Documents\Project Knowledge\     (or PROJECT_KNOWLEDGE_DIR; an existing Civil3DMcp-KnowledgeBase keeps working)
   practices.json                        good practices, shared by all three tools
   projects\<job>.db                     one SQLite database per job
   projects\<job>\User Knowledge\        your own documents for the job (guidelines, requirements, standards)
+  civil3d\                              what Civil 3D MCP learned on this PC
   tbc\                                  what TBC MCP learned on this PC (see above)
 ```
 
@@ -454,7 +455,7 @@ Documents\Civil3DMcp-KnowledgeBase\     (or CIVIL3D_KNOWLEDGE_DIR; set it the sa
   its text), `entity` (a person, structure, sheet or RFI: its files, events and story), `timeline`, `list`, and
   `files` / `read` for the job's User Knowledge (below). *"What happened with RFI 12?"* and *"What do the
   documents say about MH-3?"* work from TBC.
-- **User Knowledge, per job.** `Documents\Civil3DMcp-KnowledgeBase\projects\<job>\User Knowledge\` is for your own
+- **User Knowledge, per job.** `Documents\Project Knowledge\projects\<job>\User Knowledge\` is for your own
   documents about how this job must be done: proposal guidelines, requirements for the building type, a client's
   standards, design manuals, code books (subfolders are fine). It's created the first time a tool opens the job, and
   no tool ever changes what's in it. The overview lists them, `read` opens one (`offset` continues a long one) and
@@ -568,7 +569,7 @@ All settings are optional environment variables.
 | `TBC_MCP_IDLE_TIMEOUT` | `900` | longest wait for Compute Project, in seconds |
 | `TBC_MCP_COMMAND_GAP` | `2.5` | minimum seconds between command launches |
 | `TBC_MCP_KNOWLEDGE_DIR` | `<shared folder>\tbc` | where what the AI learns about driving TBC is saved (the built-ins in `knowledge\` are always read too) |
-| `CIVIL3D_KNOWLEDGE_DIR` | `Documents\Civil3DMcp-KnowledgeBase` | the suite's shared folder: project databases, `practices.json` and (by default) TBC's learned know-how; set it the same for all three tools, on a local disk |
+| `PROJECT_KNOWLEDGE_DIR` | `Documents\Project Knowledge` | the suite's shared folder (`CIVIL3D_KNOWLEDGE_DIR`, its earlier name, still works; an existing `Documents\Civil3DMcp-KnowledgeBase` is used as it is until you rename it to `Project Knowledge`): project databases, `practices.json` and (by default) TBC's learned know-how; set it the same for all three tools, on a local disk |
 | `TBC_MCP_USER_DIR` | `%LOCALAPPDATA%\TBC-MCP` | private per-user folder for license profiles |
 | `TBC_MCP_INFO` | `%TEMP%\tbc_mcp_bridge.json` | where the server looks for the bridge's port and token; for tests with a stand-in bridge only (the macro in TBC always writes to `%TEMP%`) |
 | `TBC_MCP_PORT` / `TBC_MCP_TOKEN` | from the info file | connect to a bridge manually |

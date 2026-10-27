@@ -99,8 +99,9 @@ Environment variables (all optional):
   TBC_SDK_DOCS      folder with the SDK *.xml docs (default C:\\Program Files (x86)\\Trimble\\Macros SDK)
   TBC_MCP_ALLOW_PYTHON  set to 0 to hide the execute_python tool
   TBC_MCP_EXIT_WITH_TBC set to 0 to keep running after TBC closes (default: exit when TBC exits/crashes)
-  CIVIL3D_KNOWLEDGE_DIR the suite's shared folder: project databases, practices.json and (by default) TBC's learned
-                    know-how in its tbc\\ folder (default Documents\\Civil3DMcp-KnowledgeBase, as Civil 3D MCP)
+  PROJECT_KNOWLEDGE_DIR the suite's shared folder: project databases, practices.json and (by default) TBC's learned
+                    know-how in its tbc\\ folder (default Documents\\Project Knowledge; CIVIL3D_KNOWLEDGE_DIR, the
+                    earlier name, still works)
 Also read further down in this file:
   TBC_MCP_IDLE_TIMEOUT  longest wait for Compute Project in wait_idle, seconds (default 900)
   TBC_MCP_COMMAND_GAP   minimum seconds between command launches in pace_command (default 2.5)
@@ -2036,7 +2037,7 @@ PROJECT_ACTIONS = ("list", "overview", "search", "file", "entity", "timeline", "
 
 def t_project_notes(a):
     """Tool tbc_project_notes: one job in the suite's project database shared with Civil 3D MCP and Project
-    Analyzer (projects.py; <shared>\\projects\\<slug>.db, <shared> from CIVIL3D_KNOWLEDGE_DIR).
+    Analyzer (projects.py; <shared>\\projects\\<slug>.db, <shared> from PROJECT_KNOWLEDGE_DIR).
 
     a: {"action": one of PROJECT_ACTIONS (default list), "project": job name (omit = the job the open .vce belongs
         to), plus per action: query + limit (search), file + max_chars (file, read; read also offset), name (entity), from / to
@@ -2570,7 +2571,7 @@ TOOLS += [
           "id": {"type": "integer"}, "limit": {"type": "integer", "default": 20}}),
      t_memory, {"readOnlyHint": False, "destructiveHint": False}),
     # tbc_project_notes -> t_project_notes: projects.py, the suite's project database <shared>\projects\<slug>.db
-    # shared with Civil 3D MCP and Project Analyzer (CIVIL3D_KNOWLEDGE_DIR). The description embeds
+    # shared with Civil 3D MCP and Project Analyzer (PROJECT_KNOWLEDGE_DIR). The description embeds
     # P.REFERENCE_FORMATS; tests/test_project_knowledge.py checks its wording. TBC is only asked for the open
     # project's path.
     ("tbc_project_notes", "Everything about ONE job, from the project database SHARED with Civil 3D MCP and Project "

@@ -12,8 +12,8 @@ fails when it differs from the analyzer's, when that repository is next to this 
                                        standards); only read (Project Analyzer reads them into the database too)
     <shared>\\practices.json           good practices of the whole suite (practices.py)
 
-<shared> follows civil3d-mcp-unified's knowledgeRoot() exactly: CIVIL3D_KNOWLEDGE_DIR, else
-Documents\\Civil3DMcp-KnowledgeBase (moved there from the pre-2.2.0 Documents\\Civil3DMcp once; knowledge.shared_root).
+<shared> is the suite's folder, found the same way by all three tools (knowledge.shared_dir): PROJECT_KNOWLEDGE_DIR,
+else Documents\\Project Knowledge, or an earlier folder (Documents\\Civil3DMcp-KnowledgeBase) used as it is.
 
 What TBC does with it:
   - finds the job of the open .vce: meta.source_root and every `folders` row, across all <shared>\\projects\\*.db,
@@ -45,7 +45,7 @@ import sqlite3
 import urllib.parse
 
 import office_text
-from knowledge import KnowledgeError, shared_root, migrate_legacy_folder  # noqa: F401 (re-exported for callers)
+from knowledge import KnowledgeError, shared_root  # noqa: F401 (re-exported for callers)
 
 TOOL = "tbc"                          # the `tool` value of every row TBC writes
 SCHEMA_VERSION = 1

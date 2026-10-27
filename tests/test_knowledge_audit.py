@@ -14,7 +14,7 @@ sys.path.insert(0, os.path.join(repo, "mcp_server"))
 import knowledge as K  # noqa: E402
 
 # The jobs this computer knows about, read without touching anything (no folder move, no writes)
-shared = os.environ.get("CIVIL3D_KNOWLEDGE_DIR", "").strip() or os.path.join(os.path.expanduser("~"), "Documents", "Civil3DMcp-KnowledgeBase")
+shared = K.shared_dir()
 names = K._job_names(shared) if os.path.isdir(shared) else set()
 
 tracked = subprocess.run(["git", "ls-files", "-z", "knowledge"], cwd=repo, capture_output=True, check=True).stdout

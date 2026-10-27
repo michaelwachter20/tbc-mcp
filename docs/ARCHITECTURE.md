@@ -16,8 +16,8 @@ flowchart LR
     B -- "run_ipy: sends code" --> E["mcp_server/ipy/*.py<br/>panel engine, view, license, import/export"]
     E -. "executed by the bridge's execute_python" .-> C
     B --> K[("knowledge\\ (in the repo, read only)<br/>built-in skills, scripts, lessons, panel layouts, preferences")]
-    B <--> U[("Documents\\Civil3DMcp-KnowledgeBase\\tbc<br/>know-how learned on this PC")]
-    B <--> S[("Documents\\Civil3DMcp-KnowledgeBase\\projects\\*.db<br/>one SQLite database per job, shared with<br/>Civil 3D MCP and Project Analyzer")]
+    B <--> U[("Documents\\Project Knowledge\\tbc<br/>know-how learned on this PC")]
+    B <--> S[("Documents\\Project Knowledge\\projects\\*.db<br/>one SQLite database per job, shared with<br/>Civil 3D MCP and Project Analyzer")]
     B <--> G[("...\\practices.json<br/>good practices of the suite")]
     B <--> L[("%LOCALAPPDATA%\\TBC-MCP\\license<br/>this user's license profile")]
     B --> H[("TBC's installed HTML help,<br/>Macros SDK XML docs")]
@@ -157,8 +157,7 @@ Two layers with the same layout:
 
 - **Built-in**: `knowledge/` in the repository (`K.BUILTIN_ROOT`), shipped in the release zip. Never written at runtime.
 - **Learned**: `TBC_MCP_KNOWLEDGE_DIR`, else `<shared>\tbc` (`K.USER_ROOT`). Every writer writes here, so nothing
-  learned on a PC reaches the repository. Before the first write in it, `shared_root()` moves the pre-2.2.0
-  `Documents\Civil3DMcp` folder, as Civil 3D MCP does.
+  learned on a PC reaches the repository. Nothing renames or moves the shared folder (`shared_dir()`).
 
 | File | Holds | Tool |
 |---|---|---|
@@ -194,7 +193,7 @@ The suite's contract is Project Analyzer's `docs/suite-knowledge.md`; the table 
 `schema/project-db.sql`, copied byte for byte to `mcp_server/project-db.sql` (`tests/test_project_knowledge.py`
 compares the two, and the fixtures, when the analyzer's repository is on the PC). In short:
 
-- **Where.** `<shared>` = `CIVIL3D_KNOWLEDGE_DIR`, else `Documents\Civil3DMcp-KnowledgeBase`. `projects\<slug>.db` is
+- **Where.** `<shared>` = `PROJECT_KNOWLEDGE_DIR`, else `Documents\Project Knowledge`, or an earlier folder used as it is (`Documents\Civil3DMcp-KnowledgeBase`); nothing renames or moves it. `projects\<slug>.db` is
   one SQLite database per job; `projects\<slug>\` holds files the user puts there for the job; `practices.json` the
   good practices. No tool keeps copies of a job's files.
 - **Connections.** WAL journal, 30 s busy timeout, autocommit with explicit `BEGIN IMMEDIATE ... COMMIT` for each

@@ -4,7 +4,7 @@ Tests the project knowledge without TBC: the suite's project database (mcp_serve
 practices (mcp_server/practices.py), following project-analyzer's docs/suite-knowledge.md.
 
 Needs TBC
-    No. Everything runs in a temporary folder (CIVIL3D_KNOWLEDGE_DIR and TBC_MCP_KNOWLEDGE_DIR point into it) on a
+    No. Everything runs in a temporary folder (PROJECT_KNOWLEDGE_DIR and TBC_MCP_KNOWLEDGE_DIR point into it) on a
     copy of tests/fixtures/fixture.db, the suite's made-up test job; the real knowledge bases are never touched.
 
 What it checks
@@ -43,7 +43,7 @@ for var in ("LOCALAPPDATA", "APPDATA", "TEMP", "TMP"):
 os.environ.pop("TBC_MCP_USER_DIR", None)
 shared = os.path.join(work, "shared")
 general = os.path.join(work, "general")
-os.environ["CIVIL3D_KNOWLEDGE_DIR"] = shared
+os.environ["PROJECT_KNOWLEDGE_DIR"] = shared
 os.environ["TBC_MCP_KNOWLEDGE_DIR"] = general
 sys.path.insert(0, os.path.join(repo, "mcp_server"))
 import knowledge as K  # noqa: E402
@@ -427,11 +427,24 @@ check(os.path.join("Guidelines", "Proposal guide.pdf") in first.get("user_knowle
 check(P.notes_once(vce) is None, "...and only once per server run")
 check(P.notes_once(os.path.join(work, "nowhere", "a.vce")) is None, "no job, no overview")
 
-# --- 8. legacy Civil 3D MCP folder is moved, as Civil 3D MCP itself does -------------------------------------
+# --- 8. which shared folder (contract "Where"): nothing is created, renamed or moved ----------------------------
 docs = os.path.join(work, "Documents")
-os.makedirs(os.path.join(docs, "Civil3DMcp", "projects"))
-check(P.migrate_legacy_folder(docs) and os.path.isdir(os.path.join(docs, "Civil3DMcp-KnowledgeBase", "projects")), "Documents\\Civil3DMcp moved to Civil3DMcp-KnowledgeBase")
-check(P.migrate_legacy_folder(docs) is None, "migration runs only once")
+os.makedirs(docs)
+saved_env = os.environ.pop("PROJECT_KNOWLEDGE_DIR")
+check(K.shared_dir(docs) == os.path.join(docs, "Project Knowledge") and not os.listdir(docs),
+      "a new PC gets Documents\\Project Knowledge (nothing created)")
+os.makedirs(os.path.join(docs, "Civil3DMcp"))
+check(K.shared_dir(docs) == os.path.join(docs, "Civil3DMcp"), "the pre-2.2.0 folder is used as it is")
+os.makedirs(os.path.join(docs, "Civil3DMcp-KnowledgeBase"))
+check(K.shared_dir(docs) == os.path.join(docs, "Civil3DMcp-KnowledgeBase"), "an existing Civil3DMcp-KnowledgeBase is used as it is")
+os.makedirs(os.path.join(docs, "Project Knowledge"))
+check(K.shared_dir(docs) == os.path.join(docs, "Project Knowledge"), "once renamed to Project Knowledge, that's the one used")
+os.environ["CIVIL3D_KNOWLEDGE_DIR"] = os.path.join(work, "old-variable")
+check(K.shared_dir(docs) == os.path.join(work, "old-variable"), "CIVIL3D_KNOWLEDGE_DIR (the earlier name) still works")
+os.environ["PROJECT_KNOWLEDGE_DIR"] = saved_env
+check(K.shared_dir(docs) == saved_env, "PROJECT_KNOWLEDGE_DIR comes first")
+del os.environ["CIVIL3D_KNOWLEDGE_DIR"]
+check(sorted(os.listdir(docs)) == ["Civil3DMcp", "Civil3DMcp-KnowledgeBase", "Project Knowledge"], "no folder was moved")
 
 # --- 9. good practices (practices.json) ---------------------------------------------------------------------------
 practices_path = os.path.join(shared, "practices.json")

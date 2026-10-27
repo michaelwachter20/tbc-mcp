@@ -17,8 +17,8 @@ Reads merge both layers and the learned version wins: a skill or script of the s
 same key, a lesson or preference of the same id (a learned entry {"id": N, "retired": ...} hides built-in N). Learned
 lessons and preferences get ids from USER_ID_BASE + 1 up, so they never collide with built-in ones.
 
-<shared> is the suite's shared folder (shared_root: CIVIL3D_KNOWLEDGE_DIR, else Documents\\Civil3DMcp-KnowledgeBase,
-the same rule as Civil 3D MCP and Project Analyzer; the suite contract is project-analyzer's docs/suite-knowledge.md).
+<shared> is the suite's shared folder (shared_dir: PROJECT_KNOWLEDGE_DIR, else Documents\\Project Knowledge or an
+earlier folder, the same rule as Civil 3D MCP and Project Analyzer; the suite contract is project-analyzer's docs/suite-knowledge.md).
 Three kinds of knowledge, three places: how to drive TBC -> here; facts about one job -> the project database
 (projects.py); engineering practice true on every job -> <shared>\\practices.json (practices.py).
 
@@ -42,9 +42,10 @@ import time
 # ---------------------------------------------------------------------------
 # where: the suite's shared folder, the built-in layer (repo) and the learned layer (this PC)
 # ---------------------------------------------------------------------------
-FOLDER_NAME = "Civil3DMcp-KnowledgeBase"
-LEGACY_FOLDER_NAME = "Civil3DMcp"      # Civil 3D MCP's default before 2.2.0
-_migration_checked = [False]
+FOLDER_NAME = "Project Knowledge"
+# Earlier defaults, still used as they are when they exist (newest first): Civil 3D MCP's folder before the suite had
+# its own name, and its folder before 2.2.0
+EARLIER_FOLDER_NAMES = ("Civil3DMcp-KnowledgeBase", "Civil3DMcp")
 
 
 def _documents():
@@ -53,34 +54,25 @@ def _documents():
     return os.path.join(os.path.expanduser("~"), "Documents")
 
 
-def migrate_legacy_folder(documents=None):
-    """Same as Civil 3D MCP's migrateLegacyKnowledgeFolder: Documents\\Civil3DMcp -> Documents\\Civil3DMcp-KnowledgeBase,
-    once, when only the old one exists. Doing it here keeps TBC from creating an empty new folder that would stop
-    Civil 3D MCP from moving the user's existing knowledge."""
+def shared_dir(documents=None):
+    """The suite's shared folder (contract "Where"): PROJECT_KNOWLEDGE_DIR, else CIVIL3D_KNOWLEDGE_DIR (its earlier
+    name), else Documents\\Project Knowledge if it exists, else an earlier default that exists
+    (Documents\\Civil3DMcp-KnowledgeBase, then Documents\\Civil3DMcp) as it is, else Documents\\Project Knowledge.
+    Nothing is created, renamed or moved: a tool of an older version on the same PC would lose a moved folder.
+    `documents` is for tests."""
+    for variable in ("PROJECT_KNOWLEDGE_DIR", "CIVIL3D_KNOWLEDGE_DIR"):
+        configured = os.environ.get(variable, "").strip()
+        if configured:
+            return configured
     documents = documents or _documents()
-    legacy, current = os.path.join(documents, LEGACY_FOLDER_NAME), os.path.join(documents, FOLDER_NAME)
-    if not os.path.isdir(legacy) or os.path.exists(current):
-        return None
-    try:
-        os.rename(legacy, current)
-        return "Knowledge base moved from %s to %s." % (legacy, current)
-    except OSError:
-        return None  # in use or not allowed: the old folder stays intact
-
-
-def shared_dir():
-    """The suite's shared folder, without touching the disk: CIVIL3D_KNOWLEDGE_DIR, else
-    Documents\\Civil3DMcp-KnowledgeBase."""
-    configured = os.environ.get("CIVIL3D_KNOWLEDGE_DIR", "").strip()
-    return configured or os.path.join(_documents(), FOLDER_NAME)
+    for name in (FOLDER_NAME,) + EARLIER_FOLDER_NAMES:
+        if os.path.isdir(os.path.join(documents, name)):
+            return os.path.join(documents, name)
+    return os.path.join(documents, FOLDER_NAME)
 
 
 def shared_root():
-    """The suite's shared folder (shared_dir), first moving the pre-2.2.0 Documents\\Civil3DMcp there once per run,
-    as Civil 3D MCP does. Called before anything is written into it."""
-    if not os.environ.get("CIVIL3D_KNOWLEDGE_DIR", "").strip() and not _migration_checked[0]:
-        _migration_checked[0] = True
-        migrate_legacy_folder()
+    """The suite's shared folder (shared_dir); kept for callers."""
     return shared_dir()
 
 

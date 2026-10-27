@@ -7,7 +7,7 @@ command, the job-data guard), and that a whole session of writes leaves the repo
 
 Needs TBC
     No. A made-up built-in layer and the learned layer live in a temporary folder; the last part runs the real
-    repository's built-ins with only CIVIL3D_KNOWLEDGE_DIR set (a temporary folder) and checks nothing in the
+    repository's built-ins with only PROJECT_KNOWLEDGE_DIR set (a temporary folder) and checks nothing in the
     repository changed.
 
 How to run
@@ -28,7 +28,7 @@ os.environ.pop("TBC_MCP_USER_DIR", None)
 shared = os.path.join(work, "shared")
 learned = os.path.join(work, "learned")
 builtin = os.path.join(work, "builtin")
-os.environ["CIVIL3D_KNOWLEDGE_DIR"] = shared
+os.environ["PROJECT_KNOWLEDGE_DIR"] = shared
 os.environ["TBC_MCP_KNOWLEDGE_DIR"] = learned
 sys.path.insert(0, os.path.join(repo, "mcp_server"))
 import knowledge as K  # noqa: E402
@@ -178,12 +178,12 @@ check(len(K.list_lessons()) == lessons_before + 3 and not os.path.exists(os.path
 with open(os.path.join(shared, "projects", "generic-folders.json"), "w", encoding="utf-8") as f:
     json.dump({"name": "Generic Folders", "folders": [os.path.join(work, "jobs", "Generic", "Survey")], "notes": []}, f)
 check(K.add_lesson("Survey tab tools need a licensed Survey module", "survey").get("id"), "generic folder names (Survey) don't block lessons")
-saved_shared = os.environ["CIVIL3D_KNOWLEDGE_DIR"]
-os.environ["CIVIL3D_KNOWLEDGE_DIR"] = os.path.join(work, "no such folder", "shared")
+saved_shared = os.environ["PROJECT_KNOWLEDGE_DIR"]
+os.environ["PROJECT_KNOWLEDGE_DIR"] = os.path.join(work, "no such folder", "shared")
 try:
     check(K.add_lesson("Compute Project must finish before reading results", "compute").get("id"), "a missing shared folder doesn't break saving")
 finally:
-    os.environ["CIVIL3D_KNOWLEDGE_DIR"] = saved_shared
+    os.environ["PROJECT_KNOWLEDGE_DIR"] = saved_shared
 check(not os.path.exists(os.path.join(work, "no such folder")), "...and isn't created by the check")
 
 # --- the real built-ins load ------------------------------------------------------------------------------------
@@ -193,13 +193,13 @@ check(real.get("working_safely_in_tbc", {}).get("layer") == "built-in", "the rep
 check(len([l for l in K.list_lessons() if l["id"] < K.USER_ID_BASE]) >= 50 and K.get_command("addpoint"), "...and its lessons and command records")
 
 # --- a whole session of writes leaves the repository untouched --------------------------------------------------
-# Only CIVIL3D_KNOWLEDGE_DIR is set (as for a user): the learned layer is then <shared>\tbc
+# Only PROJECT_KNOWLEDGE_DIR is set (as for a user): the learned layer is then <shared>\tbc
 session_shared = os.path.join(work, "session_shared")
 script = r'''
 import json, os, sys
 sys.path.insert(0, sys.argv[1])
 import knowledge as K, projects as P, practices as PR
-assert K.USER_ROOT == os.path.join(os.environ["CIVIL3D_KNOWLEDGE_DIR"], "tbc"), K.USER_ROOT
+assert K.USER_ROOT == os.path.join(os.environ["PROJECT_KNOWLEDGE_DIR"], "tbc"), K.USER_ROOT
 K.add_lesson("A general lesson from the session", "createlinestring")
 K.delete_lesson([l for l in K.list_lessons() if l["id"] < K.USER_ID_BASE][0]["id"])
 K.add_pref("A general preference from the session")
@@ -212,11 +212,11 @@ K.delete_script(name)
 K.add_command_note("addpoint", "A note from the session")
 K.record_command({"command": {"key": "addpoint", "caption": "Add Point"}, "fields": [], "buttons": []})
 PR.add("A practice from the session")
-P.link("Session Job", os.path.join(os.environ["CIVIL3D_KNOWLEDGE_DIR"], "..", "jobs", "Session"), None)
+P.link("Session Job", os.path.join(os.environ["PROJECT_KNOWLEDGE_DIR"], "..", "jobs", "Session"), None)
 P.add_note("A fact from the session", "Session Job", None)
 print("done")
 '''
-env = dict(os.environ, CIVIL3D_KNOWLEDGE_DIR=session_shared, PYTHONDONTWRITEBYTECODE="1",
+env = dict(os.environ, PROJECT_KNOWLEDGE_DIR=session_shared, PYTHONDONTWRITEBYTECODE="1",
            TBC_MCP_INFO=os.path.join(work, "no_bridge.json"), TBC_MCP_EXIT_WITH_TBC="0")
 env.pop("TBC_MCP_KNOWLEDGE_DIR")
 status = lambda: subprocess.run(["git", "status", "--porcelain", "--untracked-files=all"], cwd=repo, capture_output=True, text=True).stdout
