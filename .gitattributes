@@ -10,3 +10,8 @@ release_files.txt export-ignore
 # keep Windows line endings out of the repo; PowerShell scripts stay CRLF so they run as-is on Windows
 * text=auto
 *.ps1 text eol=crlf
+
+# Copies of Project Analyzer's schema and test job: kept byte for byte as there (tests/test_project_knowledge.py)
+mcp_server/project-db.sql text eol=lf
+tests/fixtures/*.json text eol=lf
+tests/fixtures/*.db binary

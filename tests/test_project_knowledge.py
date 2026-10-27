@@ -67,9 +67,11 @@ def raises(fn, text):
     return False
 
 
-def sha(path):
+def sha(path, text=False):
+    """SHA-256 of a file; text=True ignores CRLF vs LF (a checkout may convert line endings)."""
     with open(path, "rb") as f:
-        return hashlib.sha256(f.read()).hexdigest()
+        data = f.read()
+    return hashlib.sha256(data.replace(b"\r\n", b"\n") if text else data).hexdigest()
 
 
 def sql(path, query, args=()):
@@ -87,7 +89,8 @@ for ours, theirs in (("mcp_server/project-db.sql", "schema/project-db.sql"), ("t
                      ("tests/fixtures/fixture-practices.json", "schema/fixture-practices.json")):
     src = os.path.join(analyzer, *theirs.split("/"))
     if os.path.isfile(src):
-        check(sha(os.path.join(repo, *ours.split("/"))) == sha(src), "%s is the same as project-analyzer's %s" % (ours, theirs))
+        text = not ours.endswith(".db")
+        check(sha(os.path.join(repo, *ours.split("/")), text) == sha(src, text), "%s is the same as project-analyzer's %s" % (ours, theirs))
     else:
         print("SKIP %s: project-analyzer's %s isn't on this computer" % (ours, theirs))
 
