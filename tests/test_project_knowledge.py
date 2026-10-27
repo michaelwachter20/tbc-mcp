@@ -412,7 +412,7 @@ def call(i, name, args):
 
 init = rpc(1, "initialize", {"protocolVersion": "2025-06-18", "capabilities": {}})
 ins = init["instructions"]
-check(init["serverInfo"]["version"] == "0.4.0", "server version 0.4.0")
+check(init["serverInfo"]["version"] == "0.4.1", "server version 0.4.1")
 check("THREE KINDS OF KNOWLEDGE" in ins and "tbc_practices" in ins and "tbc_project_notes" in ins, "instructions explain the three kinds of knowledge")
 check("Use numeric point IDs for new points" in ins and "GOOD PRACTICES" in ins and "[practice-1] Storm pipe minimum slope" in ins,
       "instructions carry the user's preferences and the suite's practices")

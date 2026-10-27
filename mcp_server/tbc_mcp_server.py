@@ -137,7 +137,7 @@ IPY_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ipy")
 
 # Reported to the client in the initialize answer (serverInfo)
 SERVER_NAME = "tbc-mcp"
-SERVER_VERSION = "0.4.0"
+SERVER_VERSION = "0.4.1"
 # MCP protocol revisions this server answers with; the first is used when the client asks for one not listed
 SUPPORTED_PROTOCOLS = ["2025-06-18", "2025-03-26", "2024-11-05"]
 
