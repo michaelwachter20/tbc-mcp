@@ -1,5 +1,5 @@
 # --- No job data in this repository (suite contract, rule 8) -------------------------
-# This repo holds code and GENERAL TBC know-how only. Job facts go in the shared project notes (tbc_project_notes,
+# This repo holds code and GENERAL TBC know-how only. Job facts go in the suite's project database (tbc_project_notes,
 # outside every repo); job files stay in the user's own folders. The patterns below are a safety net so job files
 # dropped in here by mistake are never committed. A file that really belongs in the repo can still be added on
 # purpose with `git add -f <file>`; add a "!path" exception below for it so it stays tracked.
@@ -37,13 +37,22 @@
 *.gif
 *.mp4
 *.mov
+# Project databases of the suite (one per job, with their WAL files) and imported JSON notes files. The made-up
+# test job copied from Project Analyzer's schema/ folder is the only database that belongs here.
+*.db
+*.db-wal
+*.db-shm
+*.db-journal
+*.json.imported
+!tests/fixtures/fixture.db
 
 # --- Per-user / per-machine data: never commit ---------------------------------
 # License profiles now live in %LOCALAPPDATA%\TBC-MCP\license (outside the repo); this is a safety net
 # in case an older version or TBC_MCP_USER_DIR ever puts them back in here.
 knowledge/license/
 **/license/*.json
-# Error popups and crash investigations from this machine's TBC sessions
+# Error popups and crash investigations: written to the learned know-how folder outside the repo since 0.4; kept
+# here as a safety net for TBC_MCP_KNOWLEDGE_DIR pointed at the repository
 knowledge/memory/tbc_errors.log
 knowledge/memory/crash_log.md
 # Local MCP client config with your own paths

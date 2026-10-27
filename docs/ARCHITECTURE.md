@@ -10,24 +10,27 @@ Everything here was written for and verified on **Trimble Business Center 2026.1
 
 ```mermaid
 flowchart LR
-    A["AI client<br/>(Claude Code, Claude Desktop, any MCP client)"] -- "MCP: JSON-RPC lines<br/>on stdin / stdout" --> B["mcp_server/tbc_mcp_server.py<br/>CPython 3.12, stdlib only"]
+    A["AI client<br/>(Claude Code, Claude Desktop, any MCP client)"] -- "MCP: JSON-RPC lines<br/>on stdin / stdout" --> B["mcp_server/tbc_mcp_server.py<br/>CPython 3.12, stdlib + zstandard"]
     B -- "one TCP request per call<br/>127.0.0.1:47821+, session token" --> C["tbc_macro/TbcMcpBridge.py<br/>IronPython 3.4 inside TBC"]
     C -- "Dispatcher.Invoke on TBC's UI thread" --> D[("TBC SDK<br/>open project")]
     B -- "run_ipy: sends code" --> E["mcp_server/ipy/*.py<br/>panel engine, view, license, import/export"]
     E -. "executed by the bridge's execute_python" .-> C
-    B <--> K[("knowledge\\ (in the repo)<br/>skills, scripts, lessons, panel layouts, preferences")]
-    B <--> S[("Documents\\Civil3DMcp-KnowledgeBase\\projects<br/>job notes shared with Civil 3D MCP and Project Analyzer")]
+    B --> K[("knowledge\\ (in the repo, read only)<br/>built-in skills, scripts, lessons, panel layouts, preferences")]
+    B <--> U[("Documents\\Civil3DMcp-KnowledgeBase\\tbc<br/>know-how learned on this PC")]
+    B <--> S[("Documents\\Civil3DMcp-KnowledgeBase\\projects\\*.db<br/>one SQLite database per job, shared with<br/>Civil 3D MCP and Project Analyzer")]
+    B <--> G[("...\\practices.json<br/>good practices of the suite")]
     B <--> L[("%LOCALAPPDATA%\\TBC-MCP\\license<br/>this user's license profile")]
     B --> H[("TBC's installed HTML help,<br/>Macros SDK XML docs")]
 ```
 
 | Piece | Runs in | Role |
 |---|---|---|
-| **MCP server** (`mcp_server/tbc_mcp_server.py`) | CPython 3.12, a process the AI client starts | Speaks MCP over stdio, holds the 38 tools, the safety layer and the AI's instructions; talks to the bridge |
+| **MCP server** (`mcp_server/tbc_mcp_server.py`) | CPython 3.12, a process the AI client starts | Speaks MCP over stdio, holds the 39 tools, the safety layer and the AI's instructions; talks to the bridge |
 | **Bridge macro** (`tbc_macro/TbcMcpBridge.py`) | IronPython 3.4 inside TBC | A TBC macro: the ribbon button (Macros > MCP > MCP Bridge) starts a token-protected socket server on 127.0.0.1 and runs requests on TBC's UI thread |
 | **Inside-TBC modules** (`mcp_server/ipy/*.py`) | IronPython 3.4 inside TBC, sent per call | Larger pieces of TBC-side logic: the panel engine (`command_ui.py`), Plan View (`view.py`), license profile (`license.py`), Import/Export panes (`import_export.py`) |
-| **General knowledge** (`mcp_server/knowledge.py` + `knowledge/`) | CPython | How TBC works: skills, saved scripts, lessons, recorded panel layouts, the user's preferences. Committed with the repo |
-| **Shared project knowledge** (`mcp_server/projects.py`) | CPython | Facts about one job, shared with Civil 3D MCP and Project Analyzer through files outside the repo |
+| **TBC know-how** (`mcp_server/knowledge.py`, `knowledge/` + the learned folder) | CPython | How to drive TBC: skills, saved scripts, lessons, recorded panel layouts, the user's preferences. Built-ins committed with the repo (read only); what is learned goes to `<shared>\tbc` |
+| **Project database** (`mcp_server/projects.py`, `project-db.sql`) | CPython | Everything about one job: one SQLite database per job, filled by Project Analyzer, read and added to by Civil 3D MCP and TBC MCP |
+| **Good practices** (`mcp_server/practices.py`) | CPython | Engineering practice true on every job, `<shared>\practices.json`, shared by the suite |
 | **Help reader** (`mcp_server/tbc_help.py`) | CPython | Offline search and reading of TBC's installed HTML help |
 
 ## 2. Repository map
@@ -39,13 +42,17 @@ flowchart LR
 | `mcp_server/ipy/view.py` | Active Plan View: visible extents, screen rectangle, screenshot, zoom |
 | `mcp_server/ipy/license.py` | License fingerprint and profile (features, dates, which commands are licensed) |
 | `mcp_server/ipy/import_export.py` | Drives TBC's Import (WPF) and Export (WinForms) panes; never presses Import or Export itself |
-| `mcp_server/knowledge.py` | General knowledge store and the job-data guard (`check_general`) |
-| `mcp_server/projects.py` | Shared project notes, files folder, Project Analyzer's reports, `locate` for copied folders, privacy checks |
+| `mcp_server/knowledge.py` | TBC know-how in two layers (built-in, learned), the shared folder (`shared_root`) and the job-data guard (`check_general`) |
+| `mcp_server/projects.py` | The project database: finding the job, read actions (overview, search, file, entity, timeline, locate), TBC's facts and folders, JSON notes import, privacy checks |
+| `mcp_server/practices.py` | `practices.json`: list, search, add, update, remove (TBC's own entries only) |
+| `mcp_server/project-db.sql` | Copy of Project Analyzer's `schema/project-db.sql`, run when TBC creates a job's database |
 | `mcp_server/tbc_help.py` | TBC help reader |
 | `tbc_macro/TbcMcpBridge.py` | The bridge macro |
 | `install_macro.ps1` | Copies the macro into `C:\ProgramData\Trimble\MacroCommands3\MCP` (asks for admin; `-Uninstall` removes it) |
-| `knowledge/` | The general knowledge base (data): `skills/`, `scripts/`, `memory/lessons.jsonl`, `commands/*.json`, `preferences.json` |
-| `tests/` | Offline tests (`test_project_knowledge.py`, `test_knowledge_audit.py`, `test_server_fixes.py`, `test_watchdog.py`), live suites per ribbon tab, the tab surveyor, smoke tests, shared helpers (`tbc_testkit.py`) |
+| `knowledge/` | The built-in know-how (data, read only at runtime): `skills/`, `scripts/`, `memory/lessons.jsonl`, `commands/*.json`, `preferences.json` |
+| `requirements.txt` | The one package the server needs besides the standard library: `zstandard` |
+| `tests/` | Offline tests (`test_project_knowledge.py`, `test_knowledge_split.py`, `test_knowledge_audit.py`, `test_server_fixes.py`, `test_watchdog.py`), live suites per ribbon tab, the tab surveyor, smoke tests, shared helpers (`tbc_testkit.py`) |
+| `tests/fixtures/` | Copies of Project Analyzer's `schema/fixture.db` and `fixture-practices.json`: a made-up job for the offline tests |
 | `tests/tab_data/` | Survey results per ribbon tab, used to write the tab overview skills |
 | `tests/dev/` | One-off development probes, and `run_ipy.ps1` to run TBC's IronPython outside TBC |
 | `tools/` | `make_release.ps1` (local release zip), `reflect.ps1` (type members from TBC's DLLs), `sdkdoc.py` (SDK doc search) |
@@ -132,69 +139,112 @@ All in `tbc_mcp_server.py` unless noted. New code that runs commands should go t
 | A panel must stop changing before it is filled | `t_command_ui_open` (field list stable for 1.2 s) |
 | Nothing happens while TBC computes; progress windows are never touched | `tbc_busy`, `wait_idle` (up to `TBC_MCP_IDLE_TIMEOUT`, 900 s) |
 | Popups backed out of safely: only Cancel/Close/No/Abort, else close with X; one pass | `safe_dismiss` |
-| TBC error reports logged and work stopped | `is_error_dialog`, `log_tbc_error` (`knowledge/memory/tbc_errors.log`, not committed) |
+| TBC error reports logged and work stopped | `is_error_dialog`, `log_tbc_error` (`memory/tbc_errors.log` in the learned folder, outside the repo) |
 | Commands known to act at once, or open a browser, need `confirm=true` | `check_known_danger` (lessons containing `DANGER_WORDS`) |
 | Field-order rules | `guard_fill`, `FILL_ORDER_GUARDS` |
 | Deletion through TBC's Delete command; import records refused | `t_delete_entities` |
 | Imports need `confirm=true` | `t_import` |
 | Screenshots of TBC only | `view_covered_by_other_app` (5x5 sample of the view) |
-| Private data never shared | `projects.add_private` (bridge token, license fingerprint), `projects.check_private_text` |
+| Private data never shared | `projects.add_private` (bridge token, license fingerprint), `projects.check_private_text` (facts, practices, know-how) |
 | Server exits when TBC dies | `watch_tbc` |
 
-## 7. General knowledge (`knowledge.py`, `knowledge/`)
+## 7. TBC know-how (`knowledge.py`, `knowledge/`, the learned folder)
+
+The suite keeps three kinds of knowledge apart (Project Analyzer's `docs/suite-knowledge.md`): how to drive one
+program (here), facts about one job (section 8) and good practices for every job (`practices.py`, section 8).
+
+Two layers with the same layout:
+
+- **Built-in**: `knowledge/` in the repository (`K.BUILTIN_ROOT`), shipped in the release zip. Never written at runtime.
+- **Learned**: `TBC_MCP_KNOWLEDGE_DIR`, else `<shared>\tbc` (`K.USER_ROOT`). Every writer writes here, so nothing
+  learned on a PC reaches the repository. Before the first write in it, `shared_root()` moves the pre-2.2.0
+  `Documents\Civil3DMcp` folder, as Civil 3D MCP does.
 
 | File | Holds | Tool |
 |---|---|---|
 | `preferences.json` | The user's standing rules, appended to the server's instructions (`prefs_text`) | `tbc_preferences` |
 | `skills/<category>/<name>.skill.md` | Verified procedures: frontmatter (`name`, `category`, `description`, `tbc_versions` ...) and markdown | `tbc_skills` |
-| `scripts/<name>.py` | Saved IronPython scripts with a JSON `tbc-script` header; old versions in `scripts/_archive/` | `tbc_script` |
+| `scripts/<name>.py` | Saved IronPython scripts with a JSON `tbc-script` header; old versions in `scripts/_archive/` (learned folder) | `tbc_script` |
 | `memory/lessons.jsonl` | One lesson per line `{id, ts, topic, tags, text, tbc_version}` | `tbc_memory` |
 | `commands/<key>.json` | Recorded panel layouts and notes per command; options of project-data dropdowns are never recorded | automatic, `tbc_memory command=` |
+| `memory/tbc_errors.log`, `memory/crash_log.md` | TBC error popups, crash notes (learned folder only) | - |
+
+Reads merge both layers and the learned version wins: a skill or script of the same name, a command record of the
+same key, a lesson or preference of the same id. Learned lessons and preferences are numbered from
+`USER_ID_BASE + 1` (100001), so they never collide with built-in ids; changing a built-in preference stores a
+learned copy with the same id, and removing a built-in lesson or preference stores `{"id", "retired"}` in the
+learned file. Saving over a built-in skill or script (`overwrite=true`) or appending a version section writes a
+learned copy (the built-in script's text is archived as version 1 there). A built-in script can't be retired.
 
 Rules: add, never delete; one release's knowledge is never overwritten by another's (`append_version_section`,
 script versions, lessons stamped with `tbc_version`); duplicates are not stored; writes are atomic. Lessons whose
 topic is a command key surface when that command opens (`remembered_for_command`) and when code names it
 (`lessons_relevant_to`).
 
-**No job data in the repository.** Every writer calls `check_general`, which refuses absolute paths outside the
-program and system folders, network paths, user-profile paths and private values, the names of jobs in the shared
-projects folder, and `.vce`/`.job`/`.jxl` file names. `tests/test_knowledge_audit.py` applies the same rules to
-everything committed under `knowledge/`, and `.gitignore` blocks job file types.
+**No job data in know-how.** Every writer calls `check_general`, which refuses absolute paths outside the program
+and system folders, network paths, user-profile paths and private values, the names of jobs in the shared projects
+folder (from each database's `project_name`, `source_root` and `folders`, and old JSON notes files), and
+`.vce`/`.job`/`.jxl` file names. `tests/test_knowledge_audit.py` applies the same rules to everything committed
+under `knowledge/`, and `.gitignore` blocks job file types and `*.db`. `tests/test_knowledge_split.py` runs every
+writer in a session and checks the repository is unchanged.
 
-## 8. Shared project knowledge (`projects.py`)
+## 8. The project database (`projects.py`) and good practices (`practices.py`)
 
-The suite's contract is Project Analyzer's `docs/shared-project-knowledge.md`. In short:
+The suite's contract is Project Analyzer's `docs/suite-knowledge.md`; the table layout is its
+`schema/project-db.sql`, copied byte for byte to `mcp_server/project-db.sql` (`tests/test_project_knowledge.py`
+compares the two, and the fixtures, when the analyzer's repository is on the PC). In short:
 
-- **Where.** `CIVIL3D_KNOWLEDGE_DIR`, else `Documents\Civil3DMcp-KnowledgeBase` (moved from the old
-  `Documents\Civil3DMcp` once, as Civil 3D MCP does). `projects\<slug>.json` holds a job's name, linked folders and
-  notes; `projects\<slug>\` is its files folder, including Project Analyzer's reports in `analysis\` and
-  `analysis\intel\`.
-- **Matching.** The open `.vce` belongs to the job with the deepest linked folder that contains it. Its notes come
-  back once per job per server run with `project_info` and the first code or panel result (`notes_once`), together
-  with Project Analyzer's hint, open problems from `CHECKS.md` and the number of missing referenced files.
-- **Ownership.** TBC writes notes with `source: "tbc"` and only updates or removes those; it unlinks only the folders
-  it linked (`tbc_linked_folders`). The file is re-read right before every write; unknown fields are kept; a file
-  that doesn't parse is never rewritten.
-- **Copied folders.** `locate` translates a path written in the job's files to its place in a copied job folder,
-  using Project Analyzer's `relink_map.csv`, then `project-analyzer_original_locations`, then a check on disk. It
-  never guesses.
-- **Privacy and formats.** Notes with private data are refused; notes in other reference formats are saved with
-  hints.
+- **Where.** `<shared>` = `CIVIL3D_KNOWLEDGE_DIR`, else `Documents\Civil3DMcp-KnowledgeBase`. `projects\<slug>.db` is
+  one SQLite database per job; `projects\<slug>\` holds files the user puts there for the job; `practices.json` the
+  good practices. No tool keeps copies of a job's files.
+- **Connections.** WAL journal, 30 s busy timeout, autocommit with explicit `BEGIN IMMEDIATE ... COMMIT` for each
+  write (`_write`), so TBC can add a fact while a long Project Analyzer run writes. A database whose
+  `meta.schema_version` is newer than 1 is read, never written.
+- **Finding the job.** `job_index` reads `meta.project_name`, `meta.source_root` and the `folders` rows of every
+  `projects\*.db` (read-only connections), cached per file by size and modified time of the database and its WAL
+  file; old `<slug>.json` notes files without a database count too. The open `.vce` belongs to the job whose folder
+  contains it, compared case-insensitively on normalized absolute paths; the deepest folder wins.
+- **Creating and importing.** `link` creates a new job's database (runs `project-db.sql`, sets `schema_version`,
+  `project_id` (12 random hex), `created`, `project_name`). Opening a database while `<slug>.json` exists imports it
+  once (`import_json_notes`, the same as the analyzer's): name, folders (`tool` civil3d), each note as a fact owned
+  by its `source` (none = civil3d) with its times, `sources` `[{"file": "user", "path": "project note"}]` and
+  `origin` `{"note_id"}`; then the file is renamed `.json.imported` (`meta.json_notes_imported` stops a second import).
+- **Reading.** `overview`, `search` (FTS5 `text_search` with `fts_query`: each word quoted, codes such as MH-3 or
+  12+50 as phrases; snippets from the decompressed part; facts by `LIKE`), `file`, `entity`, `timeline` and
+  `locate`, as the contract's "What to tell the AI" table says. Text is decompressed in memory, block by block
+  (`zstandard`, imported lazily; `zlib` and `none` codecs also read). The first result of a session for a job
+  carries a short overview (`notes_once`): key facts, TBC's own facts, `intel_checks` of severity high, the number
+  of missing referenced files.
+- **Writing.** Only TBC's own rows: facts with `tool = 'tbc'` (`add` checks for the same text among current facts
+  and adds its source to TBC's own instead of a duplicate; `fact-N` is taken inside the write transaction; `update`;
+  `remove` sets `retired`) and folders with `tool = 'tbc'` (`link`, `unlink`). Another tool's fact is corrected by
+  adding one with `supersedes`. A fact's source is the open TBC project (`tbc:<path>`, the file name only when the
+  project is inside the user profile) or the user.
+- **Copied folders.** `locate` translates a path written in the job's files: `refs.normalized` (case-insensitive;
+  its `target_path`, `status`, `expected_path`, `candidates`), then `meta.reference_roots` (original ->
+  `source_root\in_copy\rest`). It never guesses.
+- **Privacy and formats.** Facts and practices with private data are refused; facts in other reference formats are
+  saved with hints.
+- **Practices.** `practices.py` reads and writes `practices.json` by the contract's file rules: `practice-N` ids
+  never reused, removing sets `retired`, duplicate check, only `source: "tbc"` entries changed, unknown fields kept,
+  re-read before writing, atomic UTF-8 (no BOM, LF, 2-space indent) writes, a file that doesn't parse is never
+  rewritten. `practices_text()` is appended to the server's instructions next to the preferences.
 
 ## 9. Configuration, files written, logs
 
 Environment variables are listed in the README's Configuration table and at the top of `tbc_mcp_server.py`.
 Files written outside the repo: the bridge info file and log in `%TEMP%`, license profiles in
-`%LOCALAPPDATA%\TBC-MCP\license`, screenshots in `%TEMP%\tbc_mcp_view.png`, and shared project notes in the shared
-folder. Inside the repo: `knowledge/` (general knowledge), `knowledge/memory/tbc_errors.log` and `crash_log.md`
-(both git-ignored), and the live suites' `tests/*_results.json` (git-ignored).
+`%LOCALAPPDATA%\TBC-MCP\license`, screenshots in `%TEMP%\tbc_mcp_view.png`, learned know-how (including
+`memory/tbc_errors.log`) in `<shared>\tbc`, and project databases and `practices.json` in the shared folder.
+Inside the repo: only the live suites' `tests/*_results.json` (git-ignored).
 The server logs to stderr; stdout carries only MCP messages.
 
 ## 10. Tests and release
 
-- **Offline:** `tests/test_project_knowledge.py`, `tests/test_knowledge_audit.py`, `tests/test_server_fixes.py`,
-  `tests/test_watchdog.py`. Run
-  them before every commit.
+- **Offline:** `tests/test_project_knowledge.py` (project database on a copy of `tests/fixtures/fixture.db`,
+  practices, the server over stdio), `tests/test_knowledge_split.py` (built-in and learned know-how, the job-data
+  guard, nothing written into the repo), `tests/test_knowledge_audit.py`, `tests/test_server_fixes.py`,
+  `tests/test_watchdog.py`. Run them before every commit.
 - **Live** (TBC open, bridge green): `cad_edit_tests.py`, `survey_cogo_tests.py`, `linework_tests.py`,
   `drafting_tests.py`, `home_tests.py`, `selection_tests.py`, plus `test_mcp_stdio.py` and `test_v2_e2e.py`. They
   work on throwaway objects and clean up. `tab_survey.py` opens every tool on a ribbon tab without applying

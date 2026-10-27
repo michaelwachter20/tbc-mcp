@@ -39,16 +39,18 @@ their panels the way you would, and keeps getting smarter with every session.
   and take a screenshot of TBC (and only TBC).
 - **Remembers how you like to work.** Your preferences (numeric point IDs, feature codes in the Feature code box,
   tidy up when finished) are handed to every AI that connects, in every new chat.
-- **Learns as it goes.** Verified recipes, gotchas and panel layouts are saved to a knowledge base, so the next
-  session starts where the last one finished.
-- **One project knowledge base for the whole suite.** What it learns about a job is kept in the same project notes
-  that [Civil 3D MCP](https://github.com/michaelwachter20/civil3d-mcp-unified) and Project Analyzer use, so facts
-  found in Civil 3D or in the job's documents come back in TBC, and the other way round.
+- **Learns as it goes.** Verified recipes, gotchas and panel layouts are saved on your PC, next to the built-in
+  ones it ships with, so the next session starts where the last one finished.
+- **One project database per job for the whole suite.** Project Analyzer reads every document of a job into one
+  database; TBC MCP and [Civil 3D MCP](https://github.com/michaelwachter20/civil3d-mcp-unified) search it, follow its
+  facts and add what they learn, so facts found in Civil 3D or in the job's documents come back in TBC, and the
+  other way round.
 - **Knows your license.** Every user's subscription is different. The server builds a license profile each time it
   starts and quietly skips commands you aren't licensed for, without a single license popup.
 - **Polite by design.** Paced command launches, waits for Compute Project, never cancels a progress bar, and backs out
   of popups instead of guessing.
-- **Zero install fuss.** Pure Python standard library on the outside, one macro file on the inside.
+- **Little install fuss.** Python's standard library plus one small package (`zstandard`) on the outside, one macro
+  file on the inside.
 - **A status light on the ribbon.** The MCP Bridge button glows green while the bridge is running and red when it's off.
 
 ---
@@ -61,11 +63,13 @@ Model Context Protocol to your AI client.
 
 ```mermaid
 flowchart LR
-    A["AI client<br/>Claude Code · Claude Desktop · any MCP client"] -- "MCP over stdio" --> B["tbc_mcp_server.py<br/>Python 3.12, standard library only"]
+    A["AI client<br/>Claude Code · Claude Desktop · any MCP client"] -- "MCP over stdio" --> B["tbc_mcp_server.py<br/>Python 3.12 + zstandard"]
     B -- "JSON + session token<br/>127.0.0.1:47821" --> C["TbcMcpBridge macro<br/>IronPython 3.4 inside TBC"]
     C -- "TBC SDK on the UI thread" --> D[("Open TBC project")]
-    B <--> K[("knowledge\<br/>preferences · skills · lessons<br/>panel layouts · scripts")]
-    B <--> S[("Documents\Civil3DMcp-KnowledgeBase\projects<br/>project notes shared with<br/>Civil 3D MCP · Project Analyzer")]
+    B --> K[("knowledge\ (built in, read only)<br/>preferences · skills · lessons<br/>panel layouts · scripts")]
+    B <--> T[("Documents\Civil3DMcp-KnowledgeBase\tbc<br/>what it learned on this PC")]
+    B <--> S[("Documents\Civil3DMcp-KnowledgeBase\projects\*.db<br/>one database per job, shared with<br/>Civil 3D MCP · Project Analyzer")]
+    B <--> G[("...\practices.json<br/>good practices of the suite")]
     B <--> L[("%LOCALAPPDATA%\TBC-MCP<br/>this user's license profile")]
     B <--> H[("Installed TBC help<br/>read offline")]
 ```
@@ -89,9 +93,8 @@ About 10 minutes, once per computer.
 | Windows | 10 or 11, with admin rights for one step |
 | Trimble Business Center | **2026.10** (v44); other releases may need new knowledge, see [TBC versions](#tbc-versions) |
 | Python | **3.12** ([python.org](https://www.python.org/downloads/), tick "Add python.exe to PATH" and keep the "py launcher") |
+| Python package | `zstandard` (reads the text stored in the project databases; installed in Step 2) |
 | An MCP client | [Claude Code](https://claude.com/claude-code), Claude Desktop, or any other MCP-capable AI app |
-
-No extra Python packages are needed.
 
 ### Step 1 - Download
 
@@ -110,7 +113,13 @@ py -3.12 --version
 ```
 
 It should print `Python 3.12.x`. If it doesn't, install Python 3.12 from python.org (newer versions such as 3.15
-had problems).
+had problems). Then install the one package it needs:
+
+```powershell
+py -3.12 -m pip install zstandard
+```
+
+Without it everything works except showing the text of a job's documents from the project database.
 
 ### Step 3 - Install the bridge macro into TBC
 
@@ -156,8 +165,14 @@ TBC restarts.
 
 ### Updating
 
-Download the new release and unzip it over the old folder (your `knowledge\` additions are in that folder, so copy
-it aside first if you changed it). Re-run `install_macro.ps1` only when the release notes say the macro changed.
+Download the new release and unzip it over the old folder. What the AI learned on your PC isn't in that folder (it
+is in `Documents\Civil3DMcp-KnowledgeBase\tbc`), so nothing is lost. Re-run `install_macro.ps1` only when the
+release notes say the macro changed.
+
+Coming from 0.3: lessons, skills, scripts, panel notes and preferences the AI saved into the old folder's
+`knowledge\` are not moved automatically. To keep them, copy what you added (for example new skill files, or your
+own lines of `memory\lessons.jsonl`) into `Documents\Civil3DMcp-KnowledgeBase\tbc\` with the same layout. A job's
+old notes file (`projects\<job>.json`) is moved into the job's database the first time any tool of the suite opens it.
 
 ---
 
@@ -213,15 +228,16 @@ it knows what it may do and which commands your license includes.
 ### When it learns something
 
 After a task the AI offers to record what it learned, and saves it once you agree. Panel layouts are recorded
-automatically. It keeps two kinds of knowledge apart:
+automatically. It keeps three kinds of knowledge apart, the same way as the rest of the suite:
 
-- **How TBC works** (recipes, gotchas, the layout of panels it opened) goes in `knowledge\`. It's general, so it
-  never names a job, point IDs, coordinates or layers. The next chat, or a colleague's AI using the same folder,
-  starts from there. Share the `knowledge\` folder (or this repository) to share it; your license profile stays on
-  your own PC.
-- **Facts about one job** (what its layers and point ranges are for, the control, the client's standards, your
-  decisions) go in the job's [shared project notes](#shared-project-knowledge), which Civil 3D MCP and Project
-  Analyzer read too.
+- **How to drive TBC** (recipes, gotchas, the layout of panels it opened, your way of working) is TBC's own
+  know-how. It's general, so it never names a job, point IDs, coordinates or layers. What ships with TBC MCP is in
+  its `knowledge\` folder; what it learns on your PC is saved in `Documents\Civil3DMcp-KnowledgeBase\tbc`, never in
+  this repository. The next chat starts from both.
+- **Facts about one job** (what its layers and point ranges are for, the control, your decisions) go in the job's
+  [project database](#shared-project-knowledge), which Civil 3D MCP and Project Analyzer read too.
+- **Good practices** that hold on every job, whatever the program (*storm pipe minimum slope is 0.5%*, *label
+  structures MH-n*) go in the suite's `practices.json`, which all three tools read.
 
 ---
 
@@ -289,13 +305,14 @@ identified by their integer `serial`.
 </details>
 
 <details>
-<summary><b>Knowledge and help</b> (8 tools)</summary>
+<summary><b>Knowledge and help</b> (9 tools)</summary>
 
 | Tool | What it does |
 |---|---|
 | `tbc_license` | license profile: features, expiry, which commands you can run |
 | `tbc_preferences` | your standing rules; add, update or remove them |
-| `tbc_project_notes` | the job's notes, shared with Civil 3D MCP and Project Analyzer; link folders, add notes, read the job's files and analysis reports, find a file's place in a copied job folder |
+| `tbc_project_notes` | the job's project database, shared with Civil 3D MCP and Project Analyzer: overview, search every document, a file, a person or structure (entity), timeline; link folders, add facts, find a file's place in a copied job folder |
+| `tbc_practices` | the suite's good practices (`practices.json`): list, search, add, update, remove |
 | `tbc_skills` | search and read verified how-tos (skills, lessons, scripts, panel layouts) |
 | `tbc_memory` | record and read lessons |
 | `tbc_script` | save and run parameterised IronPython scripts |
@@ -348,8 +365,15 @@ TBC is a big, busy application. These guardrails are built into the tools, so ev
 
 ## A knowledge base that grows
 
-Everything the AI learns is written down in `knowledge\`, so the next session (or a different AI) starts out
-experienced.
+Everything the AI learns about driving TBC is written down, so the next session (or a different AI) starts out
+experienced. It lives in two layers with the same layout:
+
+- **Built in**: `knowledge\` in this repository, shipped with every release. Read only while TBC MCP runs.
+- **Learned on this PC**: `Documents\Civil3DMcp-KnowledgeBase\tbc\` (or `TBC_MCP_KNOWLEDGE_DIR`). Everything the AI
+  saves goes here, never into the repository, so nothing you or the AI learn reaches GitHub. Reads merge both, and
+  the learned version wins: a skill or script of the same name, a command's panel record, or a lesson or preference
+  you changed or removed. Saving over a built-in skill or script writes your own version here; the built-in file
+  never changes.
 
 | Where | What lives there | Tool |
 |---|---|---|
@@ -357,11 +381,11 @@ experienced.
 | `skills\**\*.skill.md` | step-by-step recipes verified against real projects; start with `basics\working_safely_in_tbc` | `tbc_skills` |
 | `memory\lessons.jsonl` | gotchas and facts; the ones for a command pop up when it opens or when code uses it | `tbc_memory` |
 | `commands\*.json` | the layout of every command panel opened so far | automatic |
-| `scripts\*.py` | reusable, parameterised scripts | `tbc_script` |
-| `memory\crash_log.md` | crash investigations on this machine (kept out of git) | - |
-| `memory\tbc_errors.log` | TBC error popups the tools caught (kept out of git) | - |
+| `scripts\*.py` | reusable, parameterised scripts; old versions in `scripts\_archive\` | `tbc_script` |
+| `memory\crash_log.md` | crash investigations on this machine (learned folder only) | - |
+| `memory\tbc_errors.log` | TBC error popups the tools caught (learned folder only) | - |
 
-**Today it holds** 7 preferences, 19 skills, 81 lessons, 109 recorded panel layouts and 2 scripts, all verified on TBC 2026.10.
+**Built in today:** 7 preferences, 19 skills, 81 lessons, 109 recorded panel layouts and 2 scripts, all verified on TBC 2026.10.
 
 The skills cover TBC basics and safe working, the CAD, Survey, Linework and Drafting tabs, Home's Import/Export and
 Selection tools, command panel automation, Layer Manager, creating points, surfaces and reusable scripts.
@@ -373,23 +397,24 @@ leaves half a file; and the AI asks you before it saves anything.
 ### No job data in the repository
 
 `knowledge\` is part of this repository and is shared with everyone who uses it, so it holds **general** TBC
-know-how only. Facts about a job go in the [shared project notes](#shared-project-knowledge), which live outside
-every repository. This is checked, not just asked for:
+know-how only, and so does the learned folder (it may be shared or built in later). Facts about a job go in the
+[project database](#shared-project-knowledge), which lives outside every repository. This is checked, not just
+asked for:
 
 - **Before anything is saved** as a lesson, skill, skill section, script, command note or preference, the text is
   checked. It's refused, and the AI is told to use `tbc_project_notes action=add` instead, if it contains:
   - an absolute path outside the program and system folders (`C:\Program Files`, `C:\Program Files (x86)`,
     `C:\ProgramData` such as Trimble's GeoData folder, `C:\Windows`), or a network path;
   - a path in your user profile, the bridge's session token or a license detail;
-  - the name of a job in the shared projects folder: its name, its slug, or the last folder name of a linked
-    folder. Matching is whole words, any case, and ignores names under 4 characters and generic folder names
+  - the name of a job in the shared projects folder (its database or old notes file): its name, its slug, or the
+    last folder name of its analysed folder or a linked folder. Matching is whole words, any case, and ignores names under 4 characters and generic folder names
     like Survey or Drawings;
   - a TBC project or job file name (`Elm.vce`, `CP.job`, `field.jxl`). An extension on its own (`.job`) and the
     SDK namespace `Trimble.Vce` are fine.
 - **An audit test**, `tests\test_knowledge_audit.py`, scans every tracked file under `knowledge\` with the same
   rules, against the jobs this computer knows, and lists file and line for any hit.
-- **`.gitignore` blocks job file types**: TBC and survey data, drawings, PDFs, Office files, email, archives, images
-  and video. A job file dropped into the repo by mistake is never committed. A file that really belongs can still
+- **`.gitignore` blocks job file types**: TBC and survey data, drawings, PDFs, Office files, email, archives, images,
+  video and project databases (`*.db`, except the made-up test job in `tests\fixtures\`). A job file dropped into the repo by mistake is never committed. A file that really belongs can still
   be added with `git add -f`.
 
 Panel layouts were already recorded without the entries of project-data dropdowns (layers, surfaces, styles ...).
@@ -397,78 +422,64 @@ Panel layouts were already recorded without the entries of project-data dropdown
 ### Shared project knowledge
 
 TBC MCP, [Civil 3D MCP](https://github.com/michaelwachter20/civil3d-mcp-unified) and Project Analyzer work like a
-suite: they share **one knowledge base per job**. All three follow one contract, `docs\shared-project-knowledge.md`
-in the Project Analyzer repository; TBC's side is `mcp_server\projects.py`. It's plain files, in the folder Civil
-3D MCP already uses:
+suite, with one contract: `docs\suite-knowledge.md` in the Project Analyzer repository (the exact table layout is its
+`schema\project-db.sql`, shipped here as `mcp_server\project-db.sql`). TBC's side is `mcp_server\projects.py` and
+`mcp_server\practices.py`. Project Analyzer is the project manager: it only reads a job folder and learns everything
+in it. Civil 3D MCP and TBC MCP are the workers: they do the work using what it learned, and add what they find.
 
 ```
-Documents\Civil3DMcp-KnowledgeBase\     (or CIVIL3D_KNOWLEDGE_DIR)
-  projects\<project>.json               the job: its name, linked folders and notes
-  projects\<project>\                   the job's files: anything you drop in, and Project Analyzer's reports
-    analysis\                           OVERVIEW, TIMELINE, PEOPLE, ISSUES, INDEX
-      intel\                            CHECKS, STORIES, ENTITIES, TIMELINE, THREADS, VERSIONS, AMOUNTS, REFERENCES
-                                        (automatic findings), relink_map.csv, graph.html and timeline.html
-                                        (interactive pages)
+Documents\Civil3DMcp-KnowledgeBase\     (or CIVIL3D_KNOWLEDGE_DIR; set it the same for all three)
+  practices.json                        good practices, shared by all three tools
+  projects\<job>.db                     one SQLite database per job
+  projects\<job>\                       files you put there for the job (standards, specs); no tool copies job files
+  tbc\                                  what TBC MCP learned on this PC (see above)
 ```
 
-Only facts about a job are shared. TBC's preferences, lessons, skills, scripts and panel layouts stay in its own
-`knowledge\` folder.
-
-- **Matched by folder.** A job is linked to one or more folders. When the open `.vce` is inside one, its notes come
-  back with `project_info` and the first command or code result of a chat. If the job already exists from Civil
-  3D or the analyzer, link the TBC folder to that name and everything it knows is there.
-- **Everyone reads everything.** Notes the Civil 3D assistant wrote, facts Project Analyzer found in the job's
-  documents (each citing its source file), and notes TBC wrote all sit side by side. Each note's `source` says which
-  tool wrote it: `tbc`, `project-analyzer`, or none for Civil 3D MCP.
-- **Each tool changes only its own.** TBC updates or removes only notes marked `"source": "tbc"`, and unlinks only
-  folders it linked (it lists them in its own field, `tbc_linked_folders`). Another tool's note is corrected by
-  adding a new note, never by rewriting it.
-- **Nothing else is touched.** The job file is read again right before every change, so TBC merges into whatever
-  another tool just wrote. Fields TBC doesn't know about are kept exactly as they are. A file that doesn't parse is
-  left alone.
-- **Same reference formats everywhere**, so Project Analyzer can connect a TBC note to every document and drawing
+- **One database per job.** It holds every file of the job folder (details, references, and its text, compressed
+  with zstd and indexed for search), what Project Analyzer worked out (people, places, structures, sheets, RFIs,
+  events, stories, problems to check) and the **facts** every tool learned. No tool keeps copies of the job's files.
+- **Matched by folder.** The open `.vce` belongs to the job whose folder contains it: the folder Project Analyzer
+  read, or a folder a tool linked; the deepest one wins. A short overview (key facts, problems marked high, how many
+  referenced files are missing) comes back with `project_info` and the first command or code result of a chat. If
+  the job isn't known yet, the AI asks you which it is and links the TBC folder (`action=link`), creating the job's
+  database when it's new.
+- **What the AI can ask** (`tbc_project_notes`): `overview` (key and newest facts, open questions, rules, problems
+  marked high, the people in most files, the practices), `search` (every word or code such as MH-3, 12+50, C-104 or
+  RFI 12 in every document, plus the facts), `file` (one document: details, summary, references, facts citing it,
+  its text), `entity` (a person, structure, sheet or RFI: its files, events and story), `timeline`, `list`, and
+  `files` / `read` for the files you put in the job's folder. *"What happened with RFI 12?"* and *"What do the
+  documents say about MH-3?"* work from TBC.
+- **Each tool changes only its own.** TBC adds facts marked `tbc` (ids `fact-N`, taken inside the write
+  transaction), updates them, and removes them by marking them retired (they stay, hidden; ids are never reused).
+  Another tool's fact is corrected by adding one that supersedes it. TBC unlinks only folders it linked.
+- **Safe together.** The database is shared with a long Project Analyzer run: WAL journal, a 30-second busy
+  timeout and short write transactions. A database written by a newer version of a tool is only read.
+- **Same reference formats everywhere**, so Project Analyzer can connect a TBC fact to every document and drawing
   that mentions the same thing: `2026-10-03`, `12+50`, `MH-3`, `C-104`, `RFI 12`, `CO 4`, `$12,500.00`,
-  `John Smith (J. Smith)`. Notes end with `[source: <TBC project or command>]` when there is one. A note written
-  another way is still saved, with a reminder.
-- **Analysis reports.** After Project Analyzer has read a job's documents, `analysis\` holds its overview, timeline,
-  people and issues. Its automatic findings are in `analysis\intel\`, and `tbc_project_notes action=read` reads them:
-  - `CHECKS.md`: problems to follow up, sorted into *Needs attention*, *Worth checking* and *For information*.
-    Examples are conflicting amounts for one change order, an RFI nobody answered, a document mentioned but never
-    found, date conflicts, and a version dated after the FINAL one. When a chat starts on the job, the AI is told
-    the *Needs attention* items (up to five) and how many are worth checking. It checks this file before relying on
-    an amount, revision or sheet that might be in dispute.
-  - `STORIES.md`: each RFI, change order and submittal, followed from first mention to last, with the people and
-    amounts. *"What happened with RFI 12?"* gets its story.
-  - `ENTITIES.md`: every person, organization, place, document number, structure, station and sheet, with the
-    files each appears in. *"What do the documents say about MH-3?"* works from TBC.
-  - `TIMELINE.md`, `THREADS.md`, `VERSIONS.md` and `AMOUNTS.md`: the automatic timeline, email conversations,
-    document versions and amounts.
-  - `graph.html` and `timeline.html` are interactive pages for you to open in a browser. The AI lists them with
-    their full paths but doesn't read them as text.
+  `John Smith (J. Smith)`. A fact's source (the open TBC project, or you) is recorded with it. A fact written another
+  way is still saved, with a reminder.
 - **Copied project folders.** A job folder is usually a copy of a project from another drive or a server. Files in
   it still point at the original location, and that includes a TBC project's imported files and linked images and
-  data. So a missing path isn't necessarily gone, and an existing one isn't necessarily the right file. Project
-  Analyzer works out the mapping for the whole job: the copy's top folder and where its files originally lived
-  (`project-analyzer_root`, `project-analyzer_original_locations` in the job file), `relink_map.csv` (every path
-  written in the files and its place in the copy) and `REFERENCES.md` (what's missing, where it belongs, and which
-  files need it). TBC reads these and never changes them:
-  - `tbc_project_notes action=locate path=<path as TBC shows it>` says where a file is in the copy. It looks the
-    path up in `relink_map.csv`, then applies the original locations, then checks the disk. It returns the status
-    (found, found by name, ambiguous, missing, translated, not known), the full path, the path relative to the
-    copy's top folder, and for a missing file where it should be. When neither source covers the path, it says so,
-    and the AI asks you where the original folder was instead of guessing.
-  - When TBC reports a missing or unresolved file, the AI runs `locate` before telling you it's missing.
-  - When a chat starts on the job, the AI is told how many referenced files are missing from the copy.
-  - When you relink a file in TBC, or the AI finds where one went, it offers to save that as a project note, for
-    example *Imported file P:\Jobs\1234\Survey\CP.job is Project\Survey\CP.job in the copy [source: TBC project
-    Elm.vce]*.
+  data. So a missing path isn't necessarily gone, and an existing one isn't necessarily the right file.
+  `tbc_project_notes action=locate path=<path as TBC shows it>` says where a file is in the copy: from the
+  references Project Analyzer found in the job's files, then from where the job's files originally lived. It
+  returns the status (found, found by name, ambiguous, missing, translated, not known), the full path, the path
+  relative to the job folder, and for a missing file where it should be. When neither covers the path it says so,
+  and the AI asks you where the original folder was instead of guessing. When TBC reports a missing file the AI runs
+  `locate` first; when you relink a file in TBC, it offers to save that as a fact.
+- **Old notes files.** Before the database, a job's notes were in `projects\<job>.json`. The first tool to open the
+  job moves them into its database once (each note keeps its author and times) and renames the file
+  `<job>.json.imported`.
+- **Good practices** (`tbc_practices`): engineering and company practice for every job, in `practices.json`. All
+  three tools read them, and the AI sees them at the start of every chat next to your preferences. TBC changes only
+  the entries it added (`"source": "tbc"`), and asks you before adding one.
 - **Private stays private.** License details, the bridge's session token and paths inside your user profile are
-  refused in notes, and per-user folders (AppData, temp) can't be linked.
-- **Stays on this computer**, like your license profile. Point `CIVIL3D_KNOWLEDGE_DIR` at a shared drive to share
-  jobs with a team. Set it the same for all three tools.
+  refused in facts and practices, and per-user folders (AppData, temp) can't be linked.
+- **Stays on this computer**, like your license profile. The databases must be on a local disk (SQLite can't be
+  shared safely over a network folder); share a job with Project Analyzer's export and merge.
 
-Ask *"what do we know about this job?"* to see a job's notes, or *"link this project to Elm Street Drainage"* to
-join one Civil 3D or the analyzer already set up.
+Ask *"what do we know about this job?"* for its overview, or *"link this project to Elm Street Drainage"* to join a
+job Civil 3D or the analyzer already know.
 
 ### Every user, every license
 
@@ -495,7 +506,7 @@ releases, so the knowledge base is versioned, and the rule is simple: **add, nev
 | Skills | `tbc_versions` in the frontmatter + a banner under it | `tbc_skills action=append_version_section` adds a `## TBC <release>` section; overwriting a skill from another release is refused |
 | Lessons | each lesson has `tbc_version` | add a new lesson; a lesson from another release cannot be deleted |
 | Panel layouts | `tbc_version` per file | the new release's layout is stored under `versions` next to the original |
-| Scripts | `script_version` (1, 2, 3 ...) + `tbc_versions` in the header | saving again bumps the version and archives the old file in `knowledge/scripts/_archive/`; retiring a script archives it too |
+| Scripts | `script_version` (1, 2, 3 ...) + `tbc_versions` in the header | saving again bumps the version and archives the old file in `scripts\_archive\` of the learned folder; retiring a script archives it too |
 | Code and tests | a header comment naming the release | add handling for the new release; keep the 2026.10 path |
 
 Search results and skill reads carry a `version_note` whenever the running TBC isn't a release the item was verified on.
@@ -534,8 +545,8 @@ All settings are optional environment variables.
 | `TBC_MCP_TIMEOUT` | `120` | seconds to wait for a bridge reply |
 | `TBC_MCP_IDLE_TIMEOUT` | `900` | longest wait for Compute Project, in seconds |
 | `TBC_MCP_COMMAND_GAP` | `2.5` | minimum seconds between command launches |
-| `TBC_MCP_KNOWLEDGE_DIR` | `knowledge\` | use a different (e.g. shared) knowledge base |
-| `CIVIL3D_KNOWLEDGE_DIR` | `Documents\Civil3DMcp-KnowledgeBase` | the project knowledge base shared with Civil 3D MCP and Project Analyzer (set it the same for all three) |
+| `TBC_MCP_KNOWLEDGE_DIR` | `<shared folder>\tbc` | where what the AI learns about driving TBC is saved (the built-ins in `knowledge\` are always read too) |
+| `CIVIL3D_KNOWLEDGE_DIR` | `Documents\Civil3DMcp-KnowledgeBase` | the suite's shared folder: project databases, `practices.json` and (by default) TBC's learned know-how; set it the same for all three tools, on a local disk |
 | `TBC_MCP_USER_DIR` | `%LOCALAPPDATA%\TBC-MCP` | private per-user folder for license profiles |
 | `TBC_MCP_INFO` | `%TEMP%\tbc_mcp_bridge.json` | where the server looks for the bridge's port and token; for tests with a stand-in bridge only (the macro in TBC always writes to `%TEMP%`) |
 | `TBC_MCP_PORT` / `TBC_MCP_TOKEN` | from the info file | connect to a bridge manually |
@@ -561,9 +572,12 @@ All settings are optional environment variables.
 **Python errors right at startup**
 - Use Python 3.12 (`py -3.12`). Python 3.15 failed inside its own HTML parser.
 
+**"The zstandard package isn't installed"**
+- Run `py -3.12 -m pip install zstandard` and restart your AI app. It's needed to show the text of a job's documents.
+
 **TBC crashed mid-task**
 - TBC can be temperamental. Restart it, switch the bridge back on and carry on; the server reconnects. Crashes are
-  noted in `knowledge\memory\crash_log.md` and investigated, so anything the MCP is doing wrong gets fixed.
+  noted in `memory\crash_log.md` of the learned folder and investigated, so anything the MCP is doing wrong gets fixed.
 
 **A tool says it needs a pick in the Plan View**
 - A few commands (Capture Outline, Fillet/Chamfer, Angular Dimension, Insert Image, Legal Description) only accept
@@ -579,10 +593,11 @@ All settings are optional environment variables.
 | `tbc_macro\TbcMcpBridge.py` | the bridge macro that runs inside TBC |
 | [`docs\ARCHITECTURE.md`](docs/ARCHITECTURE.md) | how it all works inside: the pieces, the life of a tool call, the bridge, the safety layer, both knowledge bases, tests, release and known issues |
 | [`CLAUDE.md`](CLAUDE.md) | the guide for whoever changes the code (AI or person): layout, checks, rules, adding a tool |
-| `mcp_server\tbc_mcp_server.py` | the MCP server (38 tools) |
+| `mcp_server\tbc_mcp_server.py` | the MCP server (39 tools) |
 | `mcp_server\ipy\` | code sent into TBC on each call: panel engine, view, license, import/export |
-| `mcp_server\knowledge.py`, `projects.py`, `tbc_help.py` | knowledge base, shared project knowledge and offline help reader |
-| `tests\` | live usage suites on throwaway objects (`cad_edit_tests.py`, `survey_cogo_tests.py`, `linework_tests.py`, `drafting_tests.py`, `home_tests.py`, `selection_tests.py`), the ribbon-tab surveyor (`tab_survey.py` + `write_tab_skill.py`), smoke tests (`test_watchdog.py`, `test_project_knowledge.py`, `test_knowledge_audit.py` and `test_server_fixes.py` offline, `test_mcp_stdio.py`, `test_v2_e2e.py`) and shared helpers in `tbc_testkit.py` |
+| `mcp_server\knowledge.py`, `projects.py`, `practices.py`, `tbc_help.py` | TBC know-how (built-in + learned), the suite's project database, its good practices, and the offline help reader |
+| `mcp_server\project-db.sql` | the project database's table layout, a copy of Project Analyzer's `schema\project-db.sql` |
+| `tests\` | live usage suites on throwaway objects (`cad_edit_tests.py`, `survey_cogo_tests.py`, `linework_tests.py`, `drafting_tests.py`, `home_tests.py`, `selection_tests.py`), the ribbon-tab surveyor (`tab_survey.py` + `write_tab_skill.py`), smoke tests (`test_watchdog.py`, `test_project_knowledge.py`, `test_knowledge_split.py`, `test_knowledge_audit.py` and `test_server_fixes.py` offline, on the made-up job in `tests\fixtures\`, `test_mcp_stdio.py`, `test_v2_e2e.py`) and shared helpers in `tbc_testkit.py` |
 | `tests\tab_data\` | survey results per ribbon tab (every button, its panel and help), used to write the tab overview skills |
 | `tests\dev\` | one-off development probes (`ui_dev.py`, `explore_command_ui.py`, IronPython checks, `run_ipy.ps1` to run TBC's IronPython outside TBC) |
 | `tools\` | `reflect.ps1` (type signatures from TBC's DLLs) and `sdkdoc.py` (search the SDK docs) |

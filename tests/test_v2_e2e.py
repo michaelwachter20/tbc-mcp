@@ -21,8 +21,9 @@ What it exercises
 
 What it creates, changes and cleans up
     Point MCPE2E1 (deleted at the end) and a lesson "E2E TEST LESSON - delete me" (deleted at the end).
-    The server runs on a temporary COPY of knowledge\\ (TBC_MCP_KNOWLEDGE_DIR), removed at the end, so saving
-    points_in_box and relayer_points_by_code with overwrite=True never rewrites the knowledge base's real scripts.
+    The server's learned know-how goes to a temporary folder (TBC_MCP_KNOWLEDGE_DIR), removed at the end; the
+    repository's knowledge\\ is only read (built-ins), so saving points_in_box and relayer_points_by_code with
+    overwrite=True writes new versions there and never touches the built-in scripts or the user's own folder.
     The test point goes 2000 display units east of the Plan View centre (tbc_view info), away from the user's
     work, and the points_in_box box is drawn around it. relayer_points_by_code runs in its default dry_run mode,
     so no points are moved.
@@ -38,9 +39,9 @@ import json, os, shutil, subprocess, sys, tempfile
 
 here = os.path.dirname(os.path.abspath(__file__))
 server = os.path.join(here, "..", "mcp_server", "tbc_mcp_server.py")
-# a throwaway copy of the knowledge base, so the scripts and the lesson saved below never touch the real one
-kb_copy = os.path.join(tempfile.mkdtemp(prefix="tbc_mcp_e2e_"), "knowledge")
-shutil.copytree(os.path.join(here, "..", "knowledge"), kb_copy)
+# a throwaway learned-know-how folder, so the scripts and the lesson saved below never reach the user's own one (the
+# built-ins in the repository are only read)
+kb_copy = os.path.join(tempfile.mkdtemp(prefix="tbc_mcp_e2e_"), "learned")
 p = subprocess.Popen([sys.executable, server], stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True, encoding="utf-8",
                      env=dict(os.environ, TBC_MCP_KNOWLEDGE_DIR=kb_copy))
 # request id counter (a list so the function can change it without `global`); names of failed checks

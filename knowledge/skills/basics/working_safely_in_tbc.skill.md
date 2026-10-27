@@ -28,9 +28,12 @@ verified: "2026-10-13, compiled from live sessions with the user on TBC 2026.10"
 ## Before doing something
 
 - Search the knowledge base: `tbc_skills action=search` (skills, scripts, lessons, remembered command panels).
-- Check what is known about **this job**: `project_info` returns its shared project notes the first time
-  (or `tbc_project_notes action=list`). Follow them. If Project Analyzer has read the job's documents, its
-  reports are in the job's files folder under `analysis\` (`tbc_project_notes action=read file=analysis\OVERVIEW.md`).
+- Check what is known about **this job**: `project_info` returns a short overview of its project database the first
+  time (key facts, high checks, missing files); `tbc_project_notes action=overview` gives all of it. Follow its
+  facts. Project Analyzer has usually read every document of the job into the database: `action=search` finds
+  words and codes (MH-3, 12+50, C-104, RFI 12) in all of them, `action=entity` gives a person, structure, sheet or
+  RFI with its files, events and story, `action=file` opens one document, `action=timeline` lists events by date.
+- Follow the suite's **good practices** (listed in the server instructions; `tbc_practices action=search`).
 - Job folders are usually **copies** of a project from another drive or server, so imported files and linked data
   still point at the original location. When TBC reports a missing or unresolved file, or a path doesn't exist,
   run `tbc_project_notes action=locate path=<path as TBC shows it>` before telling the user it's missing. If it
@@ -50,7 +53,7 @@ verified: "2026-10-13, compiled from live sessions with the user on TBC 2026.10"
 | Wait until TBC is idle (no Compute Project window, not recalculating) before every command action and after every button press | all command_ui_* tools, tbc_wait_idle |
 | Popups: only Cancel/Close/No are pressed, otherwise closed with X; license popups always X; progress windows never touched; one pass only | tbc_dialogs action=dismiss, safe_dismiss |
 | WPF popups (e.g. "Feature Library Missing") are detected like normal dialogs | command_ui_*, tbc_dialogs |
-| TBC error-report popups (buttons << / OK) are logged to `knowledge/memory/tbc_errors.log` and work stops | after every button press |
+| TBC error-report popups (buttons << / OK) are logged to `memory\tbc_errors.log` in the learned know-how folder and work stops | after every button press |
 | Grid checkboxes / radio buttons are clicked like a user (setting them in code leaves TBC out of sync) | command_ui_fill, ui_grid |
 | Deletion goes through TBC's own Delete command (also for layers) | delete_entities |
 
@@ -85,7 +88,7 @@ verified: "2026-10-13, compiled from live sessions with the user on TBC 2026.10"
   - Lessons: add a new lesson (it is stamped with the running release); lessons from other releases cannot be deleted.
   - Command layouts: recorded automatically per release next to the 2026.10 layout.
   - Scripts: `tbc_script save overwrite=true` bumps `script_version`, adds the release to `tbc_versions` and keeps
-    the previous version in `knowledge/scripts/_archive/`. Running a script made on another release returns a
+    the previous version in `scripts\_archive\` of the learned know-how folder. Running a script made on another release returns a
     `version_note`.
 
 ## Licenses differ between users
@@ -98,21 +101,33 @@ verified: "2026-10-13, compiled from live sessions with the user on TBC 2026.10"
 - Skills and lessons may have been written on a machine with another license: `tbc_skills` search/read flags
   commands the current license lacks. Offer an alternative or name the missing feature instead.
 
-## Where things are written down
+## Where things are written down: three kinds of knowledge
 
-- `knowledge/preferences.json`: the user's rules (sent to every AI in the server instructions).
-- `knowledge/memory/lessons.jsonl`: facts and gotchas (`tbc_memory`); lessons with a command key appear when that command opens.
-- `knowledge/skills/**`: verified procedures (this file, cad_*, survey_*, linework_*, layer_manager, points, surfaces).
-- `knowledge/commands/*.json`: recorded panel layouts of every command opened so far.
-- `knowledge/scripts/*.py`: saved reusable scripts (`tbc_script`).
-- `knowledge/memory/tbc_errors.log`: TBC error popups captured by the tools.
-- License profiles are NOT in the knowledge base: they stay in `%LOCALAPPDATA%\TBC-MCP\license` on each machine.
-- Keep project-specific details (client/project names, file names, real site coordinates) out of skills and
-  lessons: write "the test project" and use made-up example coordinates.
-- **Facts about one job** go in `tbc_project_notes` instead: the project knowledge base shared with Civil 3D MCP
-  and Project Analyzer (`Documents\Civil3DMcp-KnowledgeBase\projects\`, matched to the job by the .vce's folder).
-  Link the TBC folder to the job's existing name when the other tools already know it. Only TBC's own notes may
-  be updated or removed; correct another tool's note by adding a new one. Ask the user before saving.
-  Write references the suite's way (2026-10-03, 12+50, MH-3, C-104, RFI 12, CO 4, $12,500.00,
-  John Smith (J. Smith)) and end with `[source: <TBC project or command>]`. Never put license details, licensee or
-  company names, user-profile paths or tokens in a shared note.
+Decide by what it is about, and ask the user before saving any of them:
+
+1. **How to drive TBC** (a field quirk, which command does X, a verified procedure, a reusable script, the user's
+   way of working) -> `tbc_memory`, `tbc_skills`, `tbc_script`, `tbc_preferences`. General: useful on any job.
+   - Built-ins ship with TBC MCP in its `knowledge\` folder and are only read.
+   - Everything learned on this PC is saved in the learned know-how folder (`TBC_MCP_KNOWLEDGE_DIR`, else the
+     `tbc\` folder inside the suite's shared folder, `Documents\Civil3DMcp-KnowledgeBase`), never in the
+     repository. A learned skill, script, command record, lesson or preference wins over the built-in one of the
+     same name.
+   - In both: `preferences.json` (the user's rules, sent to every AI in the server instructions),
+     `memory\lessons.jsonl` (lessons with a command key appear when that command opens), `skills\**` (verified
+     procedures: this file, cad_*, survey_*, linework_*, layer_manager, points, surfaces), `commands\*.json`
+     (recorded panel layouts), `scripts\*.py` (saved scripts). TBC error popups go to `memory\tbc_errors.log` in
+     the learned folder.
+   - Keep project-specific details (client/project names, file names, real site coordinates) out of them: write
+     "the test project" and use made-up example coordinates. The tools refuse text that names a job.
+2. **Facts about this job** -> `tbc_project_notes`: the job's project database shared with Civil 3D MCP and
+   Project Analyzer (`projects\<job>.db` in the shared folder, matched to the job by the .vce's folder). Link the
+   TBC folder to the job's existing name when the other tools already know it. One fact per line, in the suite's
+   reference formats (2026-10-03, 12+50, MH-3, C-104, RFI 12, CO 4, $12,500.00, John Smith (J. Smith)); the source
+   (the open TBC project, or the user) is recorded for you. Only TBC's own facts may be updated or removed (remove
+   retires them); correct another tool's fact by adding one with `supersedes`.
+3. **Engineering or company practice true on every job** (design and survey standards, naming conventions) ->
+   `tbc_practices`: `practices.json` in the shared folder, used by all three tools. Only TBC's own entries may be
+   changed.
+
+- License profiles are NOT knowledge: they stay in `%LOCALAPPDATA%\TBC-MCP\license` on each machine. Never put
+  license details, licensee or company names, user-profile paths or tokens in a fact, practice or lesson.

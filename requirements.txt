@@ -1,0 +1,4 @@
+# Python packages the MCP server needs besides the standard library (Python 3.12):
+#   py -3.12 -m pip install -r requirements.txt
+# zstandard reads the text Project Analyzer stores zstd-compressed in the suite's project databases.
+zstandard>=0.22

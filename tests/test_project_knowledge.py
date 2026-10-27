@@ -1,15 +1,41 @@
 # Written for and verified on Trimble Business Center 2026.10 (build 44.0.9666.28609). For a newer release, ADD handling for it and keep the 2026.10 behaviour (see README > TBC versions).
 """
-Tests the knowledge base without TBC: the project knowledge shared with Civil 3D MCP and Project Analyzer
-(mcp_server/projects.py) and the general-knowledge rules (duplicate checks, lessons surfacing by command).
-Everything runs in a temporary folder; the real knowledge bases are never touched.
-Usage: python test_project_knowledge.py
+Tests the project knowledge without TBC: the suite's project database (mcp_server/projects.py) and the shared good
+practices (mcp_server/practices.py), following project-analyzer's docs/suite-knowledge.md.
+
+Needs TBC
+    No. Everything runs in a temporary folder (CIVIL3D_KNOWLEDGE_DIR and TBC_MCP_KNOWLEDGE_DIR point into it) on a
+    copy of tests/fixtures/fixture.db, the suite's made-up test job; the real knowledge bases are never touched.
+
+What it checks
+    - the shipped schema (mcp_server/project-db.sql) and fixtures are the same as project-analyzer's, when that
+      repository is next to this one (skipped otherwise)
+    - finding the job of the open .vce: source_root and folders rows, deepest folder wins, across databases
+    - every action of tbc_project_notes: list, overview, search, file, entity, timeline, locate, link, unlink, add,
+      update, remove, files, read; ownership (TBC changes only its own facts and folders), fact-N ids, supersedes,
+      retired facts, privacy, reference-format hints, a database written by a newer tool (read only)
+    - creating a database for a new job, and importing an old <slug>.json notes file once
+    - the once-per-job overview attached to the first result of a session
+    - tbc_practices on practices.json: list, search, add, update, remove, ownership, unknown fields, file format
+    - the server over stdio: instructions, tool list and descriptions, calls without TBC
+
+How to run
+    py -3.12 tests\\test_project_knowledge.py
+PASS/FAIL per check; exit code 0 when all pass, else 1.
 """
-import json, os, shutil, subprocess, sys, tempfile, textwrap
+import hashlib, json, os, shutil, site, sqlite3, subprocess, sys, tempfile
 
 here = os.path.dirname(os.path.abspath(__file__))
-server = os.path.join(here, "..", "mcp_server", "tbc_mcp_server.py")
+repo = os.path.normpath(os.path.join(here, ".."))
+server = os.path.join(repo, "mcp_server", "tbc_mcp_server.py")
+fixtures = os.path.join(here, "fixtures")
+analyzer = os.path.normpath(os.path.join(repo, "..", "project-analyzer"))
+if not os.path.isdir(analyzer):  # this repository may be a worktree: look next to the main checkout too
+    analyzer = os.path.join(os.path.expanduser("~"), "Documents", "GitHub", "project-analyzer")
 work = tempfile.mkdtemp(prefix="tbc_mcp_kb_test_")
+# Keep this Python's user site-packages (where pip --user puts zstandard) for the server started below: on Windows
+# it is found through APPDATA, which is redirected next
+os.environ.setdefault("PYTHONUSERBASE", site.getuserbase())
 # The test folder lives in %TEMP%, which the privacy check refuses to link: point the per-user folders elsewhere
 for var in ("LOCALAPPDATA", "APPDATA", "TEMP", "TMP"):
     os.environ[var] = os.path.join(work, "private", var)
@@ -17,14 +43,12 @@ for var in ("LOCALAPPDATA", "APPDATA", "TEMP", "TMP"):
 os.environ.pop("TBC_MCP_USER_DIR", None)
 shared = os.path.join(work, "shared")
 general = os.path.join(work, "general")
-os.makedirs(os.path.join(general, "commands"))
-with open(os.path.join(general, "commands", "createlinestring.json"), "w") as f:
-    json.dump({"key": "createlinestring", "fields": [], "buttons": [], "notes": []}, f)
 os.environ["CIVIL3D_KNOWLEDGE_DIR"] = shared
 os.environ["TBC_MCP_KNOWLEDGE_DIR"] = general
-sys.path.insert(0, os.path.join(here, "..", "mcp_server"))
+sys.path.insert(0, os.path.join(repo, "mcp_server"))
 import knowledge as K  # noqa: E402
 import projects as P  # noqa: E402
+import practices as PR  # noqa: E402
 
 ok = True
 
@@ -43,352 +67,330 @@ def raises(fn, text):
     return False
 
 
+def sha(path):
+    with open(path, "rb") as f:
+        return hashlib.sha256(f.read()).hexdigest()
+
+
+def sql(path, query, args=()):
+    db = sqlite3.connect(path)
+    try:
+        rows = db.execute(query, args).fetchall()
+        db.commit()
+        return rows
+    finally:
+        db.close()
+
+
+# --- 0. the shipped schema and fixtures are project-analyzer's -------------------------------------------------
+for ours, theirs in (("mcp_server/project-db.sql", "schema/project-db.sql"), ("tests/fixtures/fixture.db", "schema/fixture.db"),
+                     ("tests/fixtures/fixture-practices.json", "schema/fixture-practices.json")):
+    src = os.path.join(analyzer, *theirs.split("/"))
+    if os.path.isfile(src):
+        check(sha(os.path.join(repo, *ours.split("/"))) == sha(src), "%s is the same as project-analyzer's %s" % (ours, theirs))
+    else:
+        print("SKIP %s: project-analyzer's %s isn't on this computer" % (ours, theirs))
+
+# --- the made-up job: a copy of the fixture, its folders moved into the temp folder ----------------------------
 job = os.path.join(work, "jobs", "Elm Street")
-os.makedirs(os.path.join(job, "TBC", "Phase 2"))
-vce = os.path.join(job, "TBC", "Elm Street.vce")
+for sub in ("TBC", os.path.join("TBC", "Phase 2"), "Drawings", "Survey"):
+    os.makedirs(os.path.join(job, sub))
+for rel in (("Drawings", "Topo.dwg"), ("Survey", "CP.job")):
+    with open(os.path.join(job, *rel), "w") as f:
+        f.write("x")
+projects_dir = os.path.join(shared, "projects")
+os.makedirs(projects_dir)
+elm = os.path.join(projects_dir, "elm-street-drainage.db")
+shutil.copy(os.path.join(fixtures, "fixture.db"), elm)
+sql(elm, "UPDATE meta SET value = ? WHERE key = 'source_root'", (job,))
+sql(elm, "UPDATE folders SET path = replace(path, 'C:\\Jobs\\Elm Street', ?)", (job,))
+shutil.copy(os.path.join(fixtures, "fixture-practices.json"), os.path.join(shared, "practices.json"))
+vce = os.path.join(job, "TBC", "Elm.vce")
 deep_vce = os.path.join(job, "TBC", "Phase 2", "Phase 2.vce")
+survey_vce = os.path.join(job, "Survey", "Field.vce")
 
-# --- 1. a job set up by Civil 3D MCP (written the way projectNotes.ts writes it, with a BOM) ------------------
-check(P.slug("Elm Street Drainage") == "elm-street-drainage" and P.slug("  --A/B 1--  ") == "a-b-1", "slug matches projectNotes.ts")
-os.makedirs(os.path.join(shared, "projects"))
-c3d = {"name": "Elm Street Drainage", "folders": [job],
-       "notes": [{"id": "note-1", "note": "Point group CTRL holds the control points", "added": "2026-10-01T12:00:00.000Z"}]}
-with open(os.path.join(shared, "projects", "elm-street-drainage.json"), "w", encoding="utf-8-sig") as f:
-    f.write(json.dumps(c3d, indent=2) + "\n")
-check((P.project_for_path(vce) or {}).get("name") == "Elm Street Drainage", "open .vce in a subfolder matches the job's folder")
-check(P.project_for_path(os.path.join(work, "elsewhere", "x.vce")) is None, "a .vce outside every linked folder matches nothing")
+# --- 1. which job ------------------------------------------------------------------------------------------------
+check(P.slug("Elm Street Drainage") == "elm-street-drainage" and P.slug("  --A/B 1--  ") == "a-b-1", "slug matches the contract")
+check((P.project_for_path(vce) or {}).get("name") == "Elm Street Drainage", "the open .vce in a linked folder matches the job")
+check((P.project_for_path(survey_vce.upper()) or {}).get("name") == "Elm Street Drainage",
+      "a .vce under source_root matches too (any case)")
+check(P.project_for_path(os.path.join(work, "elsewhere", "x.vce")) is None, "a .vce outside every job folder matches nothing")
 check(P.project_for_path("Untitled") is None, "an unsaved project matches nothing")
+stamp = P._index[elm][0]
+P.project_for_path(vce)
+check(P._index[elm][0] == stamp, "the job index is cached by the database's file stamp")
 
-# --- 2. TBC adds notes in the same format -------------------------------------------------------------------
-r = P.add_note("Surface FG is the design\nfinish grade", None, vce)
-check(r["action"] == "added" and r["note"]["id"] == "note-2" and r["note"]["source"] == "tbc", "add -> note-2, marked source=tbc")
-check(r["note"]["note"] == "Surface FG is the design finish grade", "notes are one line")
-check(r["note"]["added"].endswith("Z") and len(r["note"]["added"]) == 24, "timestamps in toISOString form")
-check(P.add_note("surface fg is the design finish grade", None, vce)["action"] == "unchanged", "duplicate (any case) not stored twice")
-with open(os.path.join(shared, "projects", "elm-street-drainage.json"), encoding="utf-8") as f:
-    raw = f.read()
-data = json.loads(raw)
-check(list(data) == ["name", "folders", "notes"] and len(data["notes"]) == 2, "file keeps Civil 3D MCP's shape: name, folders, notes")
-check(not raw.startswith("﻿") and raw.endswith("}\n"), "written as UTF-8 JSON with a final newline")
-check(not [n for n in os.listdir(os.path.join(shared, "projects")) if n.endswith(".tmp")], "no temp files left behind")
-
-# --- 3. ownership: TBC changes only its own notes ------------------------------------------------------------
-check(raises(lambda: P.update_note("note-1", "changed", None, vce), "civil 3d mcp"), "a Civil 3D note can't be updated")
-check(raises(lambda: P.remove_note("note-1", None, vce), "civil 3d mcp"), "a Civil 3D note can't be removed")
-check(P.update_note("note-2", "Surface FG is finish grade", None, vce)["note"].get("updated"), "own note updated, with 'updated'")
-data["notes"].append({"id": "note-3", "note": "Owner is the City (2026-03-04) [source: contract.pdf; fact-12]", "added": "2026-10-02T00:00:00.000Z"})
-with open(os.path.join(shared, "projects", "elm-street-drainage.json"), "w", encoding="utf-8") as f:
-    json.dump(data, f, indent=2)
+# --- 2. read actions on the fixture ----------------------------------------------------------------------------
+P.list_notes(None, vce)  # the first open switches the copy to WAL; reads from here on must not change it
+before = sha(elm)
 listed = P.list_notes(None, vce)
-by = {n["id"]: n["by"] for n in listed["notes"]}
-check(by == {"note-1": "civil3d", "note-2": "tbc", "note-3": "project-analyzer"}, "each note says which tool wrote it: %s" % by)
-check(raises(lambda: P.remove_note("note-3", None, vce), "project analyzer"), "a Project Analyzer note can't be removed")
-check(P.add_note("Phase 2 uses the same control", None, vce)["note"]["id"] == "note-4", "ids continue after other tools' notes")
-check(P.remove_note("note-4", None, vce)["action"] == "removed", "own note removed")
+ids = {f["id"]: f["by"] for f in listed["facts"]}
+check(ids == {"fact-1": "project-analyzer", "fact-3": "project-analyzer", "fact-4": "civil3d", "fact-5": "tbc"},
+      "list: current facts with their tool; superseded fact-2 and retired fact-6 hidden: %s" % ids)
+check([f["by"] for f in listed["folders"]] == ["project-analyzer", "civil3d", "tbc"], "list: source_root and folders, with their tool")
 
-# --- 4. link / unlink, deepest folder wins --------------------------------------------------------------------
-check(raises(lambda: P.add_note("x", None, os.path.join(work, "nowhere", "a.vce")), "action=link"), "unknown folder -> asks to link")
+o = P.overview(None, vce)
+check(o["project"] == "Elm Street Drainage" and o["source_root"] == job and o["copy_status"].startswith("copy of"), "overview: meta")
+check(o["files_by_status"] == {"done": 8, "duplicate": 1, "failed": 1}, "overview: files by status %s" % o["files_by_status"])
+check(sorted(f["id"] for f in o["key_facts"]) == ["fact-1", "fact-3", "fact-5"], "overview: key facts (not superseded or retired)")
+check(len(o["newest_facts"]) == 4 and [q["id"] for q in o["open_questions"]] == ["q-1"] and [r["id"] for r in o["rules"]] == ["rule-1"],
+      "overview: newest facts, open questions only, rules")
+check([c["id"] for c in o["checks_high"]] == ["check-1"] and o["missing_files"] == 1, "overview: high checks only, missing files")
+check([p["name"] for p in o["people"]][:2] == ["John Smith", "Robin Lee"] and o["people"][0]["aliases"] == ["J. Smith"], "overview: people")
+check([p["id"] for p in o["practices"]] == ["practice-1", "practice-2"] and "COPIED FOLDER" in o.get("copied_folder", ""),
+      "overview: practices and the copied-folder hint")
+
+s = P.search("MH-3", None, vce)
+paths = [h["path"] for h in s["documents"]]
+check({"Documents\\specs.pdf", "Drawings\\C-104.dwg", "Documents\\minutes.docx"} <= set(paths), "search: MH-3 in documents %s" % paths)
+spec = next(h for h in s["documents"] if h["path"] == "Documents\\specs.pdf")
+check(spec["part"] == "p.2" and "MH-3" in spec["snippet"], "search: hit names the page and shows a snippet")
+check([f["id"] for f in s["facts"]] == ["fact-1"], "search: facts LIKE every word")
+check([h["path"] for h in P.search("12+50", None, vce)["documents"]] == ["Drawings\\C-104.dwg"], "search: a station is a phrase")
+check(P.search("contractor acme", None, vce)["facts"][0]["id"] == "fact-3", "search: every word must be in a fact")
+check(raises(lambda: P.search("  ", None, vce), "query is required"), "search: needs words")
+
+f = P.file_info("documents/SPECS.PDF", None, vce)
+check(f["file"]["id"] == "0000000000000002" and f["text"].startswith("## p.1") and "## p.3" in f["text"], "file: by path (any case), text with its pages")
+check([x["id"] for x in f["facts"]] == ["fact-3"] and f["absolute"] == os.path.join(job, "Documents", "specs.pdf"), "file: facts citing it, absolute path")
+f = P.file_info("0000000000000003", None, vce)
+check(len(f["refs_from"]) == 2 and f["props"].get("title_block.sheet") == "C-104", "file: by id, references from it and its details")
+check(P.file_info("minutes.docx", None, vce)["summary"]["summary"], "file: by name, with its summary")
+f = P.file_info("Documents\\minutes copy.docx", None, vce)
+check(f["file"]["status"] == "duplicate" and "MH-3" in f.get("text", "") and "text_from" in f, "file: a duplicate shows the text of its original")
+check(P.file_info("0000000000000003", None, vce, max_chars=20).get("truncated"), "file: text cut at max_chars")
+check(raises(lambda: P.file_info("specs", None, vce), "did you mean"), "file: an unknown name suggests matches")
+
+e = P.entity("j. smith", None, vce)
+check(e["found"] and e["entity"]["name"] == "John Smith", "entity: found by alias, any case")
+check([x["path"] for x in e["files"]] == ["Documents\\minutes.docx", "Email\\RFI 12.msg"] and len(e["events"]) == 2,
+      "entity: its files and events")
+check([x["id"] for x in e["stories"]] == ["story-1"] and len(e["stories"][0]["steps"]) == 2, "entity: stories naming it, with steps")
+e = P.entity("MH-3", None, vce)
+check(e["found"] and [x["id"] for x in e["facts"]] == ["fact-1"], "entity: facts whose topics name it")
+e = P.entity("Nobody Here", None, vce)
+check(e["found"] is False and "similar" in e, "entity: unknown name says so")
+
+t = P.timeline(None, vce)
+dates = [x["date"] for x in t["events"]]
+check(dates == sorted(dates) and len(dates) == 5 and any(x.get("fact") == "fact-1" for x in t["events"]), "timeline: events and dated facts in order")
+check([x["date"] for x in P.timeline(None, vce, "2026-10", "2026-10-05")["events"]] == ["2026-10-03", "2026-10-03", "2026-10-05"],
+      "timeline: between two dates, both included")
+check(raises(lambda: P.timeline(None, vce, "10/3/26"), "yyyy"), "timeline: dates in ISO form only")
+
+r = P.locate("p:/jobs/1234 elm st/cad/TOPO.DWG", None, vce)
+check(r["status"] == "found" and r["source"] == "refs" and r["absolute"] == os.path.join(job, "Drawings", "Topo.dwg") and r["exists"]
+      and r["referenced_by"] == ["Drawings\\C-104.dwg"], "locate: a found reference, with absolute path (case and slashes don't matter)")
+r = P.locate("file:///P:/Jobs/1234%20Elm%20St/Images/aerial.jpg", None, vce)
+check(r["status"] == "missing" and r["expected_at"]["absolute"] == os.path.join(job, "Images", "aerial.jpg") and "ask the user" in r["hint"].lower(),
+      "locate: a missing reference says where it belongs (file: URLs work)")
+r = P.locate("\"P:\\JOBS\\1234 Elm St\\Survey\\CP.job\"", None, vce)
+check(r["status"] == "translated" and r["source"] == "reference_roots" and r["exists"] and r["relative"] == "Survey\\CP.job",
+      "locate: a path not in refs is translated through reference_roots")
+r = P.locate("P:\\Jobs\\1234 Elm St\\Survey\\Gone.job", None, vce)
+check(r["status"] == "translated, not found" and not r["exists"], "locate: a translated path with no file says so")
+r = P.locate("Q:\\Other Job\\x.job", None, vce)
+check(r["status"] == "not known" and r["source"] is None and "ask the user where the original" in r["hint"], "locate: never guesses")
+check(raises(lambda: P.locate("", None, vce), "path is required"), "locate: needs a path")
+check(sha(elm) == before and not os.path.exists(elm + "-journal"), "read actions never write the database")
+
+# --- 3. facts: TBC writes only its own --------------------------------------------------------------------------
+r = P.add_note("Survey control is on layer CTRL\nat 12+50", None, vce, topics=["control"], date="2026-10-12")
+fact = r["fact"]
+check(r["action"] == "added" and fact["id"] == "fact-7" and fact["by"] == "tbc", "add: fact-7 (after the retired fact-6), tool tbc")
+check(fact["fact"] == "Survey control is on layer CTRL at 12+50" and fact["topics"] == ["control"] and fact["date"] == "2026-10-12",
+      "add: one line, with topics and date")
+check(fact["sources"] == [{"file": "tbc:Elm.vce", "path": "Elm.vce"}] and fact["added"].endswith("Z") and len(fact["added"]) == 24,
+      "add: source is the open TBC project (file name only inside the user profile), toISOString time")
+r = P.add_note("the tbc project uses the nad83 illinois east zone.", None, vce, source="user")
+check(r["action"] == "source added" and r["fact"]["id"] == "fact-5" and len(r["fact"]["sources"]) == 2,
+      "add: the same text as TBC's own fact adds the source instead of a duplicate")
+check(P.add_note("The TBC project uses the NAD83 Illinois East zone.", None, vce, source="user")["action"] == "unchanged",
+      "add: ...and a source it already has changes nothing")
+r = P.add_note("STORM PIPES IN THIS DRAWING ARE ON LAYER C-STRM.", None, vce)
+check(r["action"] == "unchanged" and r["fact"]["id"] == "fact-4" and r["fact"]["by"] == "civil3d", "add: another tool's fact is left as it is")
+check(raises(lambda: P.update_note("fact-4", "x", None, vce), "civil 3d mcp") and raises(lambda: P.remove_note("fact-1", None, vce), "project analyzer"),
+      "update / remove refuse other tools' facts")
+check(raises(lambda: P.update_note("fact-6", "x", None, vce), "removed") and raises(lambda: P.update_note("fact-99", "x", None, vce), "no fact"),
+      "update refuses retired and unknown facts")
+r = P.update_note("fact-7", "Survey control is on layer CTRL at 12+50.25", None, vce, key=True)
+check(r["fact"]["fact"].endswith("12+50.25") and r["fact"].get("key") and r["fact"].get("updated"), "update: own fact, with 'updated'")
+r = P.remove_note("fact-7", None, vce)
+check(r["fact"].get("retired") and "fact-7" not in [x["id"] for x in P.list_notes(None, vce)["facts"]], "remove: sets retired, hidden from list")
+check(sql(elm, "SELECT COUNT(*) FROM facts WHERE id = 'fact-7'")[0][0] == 1, "remove: the row is kept")
+r = P.add_note("Storm pipes are on layer C-STRM-NEW in the TBC export", None, vce, supersedes="fact-4")
+check(r["fact"]["id"] == "fact-8" and r["fact"]["supersedes"] == "fact-4", "add: ids are never reused; supersedes corrects another tool's fact")
+check("fact-4" not in [x["id"] for x in P.list_notes(None, vce)["facts"]], "...and the corrected fact is no longer current")
+check(raises(lambda: P.add_note("x", None, vce, supersedes="fact-99"), "no fact"), "supersedes must name a fact")
+sql(elm, "INSERT INTO facts(id, fact, tool, added) VALUES ('fact-9', 'Civil 3D wrote this meanwhile', 'civil3d', '2026-10-26T00:00:00.000Z')")
+check(P.add_note("Another TBC fact", None, vce)["fact"]["id"] == "fact-10", "fact-N is read in the write transaction (another tool wrote fact-9)")
+check(raises(lambda: P.add_note("x", None, vce, date="10/3/26"), "yyyy") and raises(lambda: P.add_note("x", None, vce, topics=[1]), "topics")
+      and raises(lambda: P.add_note("x", None, vce, confidence="sure"), "confidence") and raises(lambda: P.add_note("  ", None, vce), "empty"),
+      "add checks date, topics, confidence and empty text")
+P.add_private("tok3n-abcdef", "the bridge's session token")
+check(raises(lambda: P.add_note("token is tok3n-ABCDEF", None, vce), "session token"), "a session token is refused")
+check(raises(lambda: P.add_note("see %s\\Documents\\x.vce" % os.path.expanduser("~"), None, vce), "user profile"), "a user-profile path is refused")
+loose = "Manhole 3 rim checked on 10/3/26 at Sta. 1250 (sheet C104), CO #4 was 12.5k"
+hints = P.format_hints(loose)
+check(P.add_note(loose, None, vce).get("format_hints") and len(hints) == 6, "facts in other formats are saved, with hints: %s" % hints)
+check("format_hints" not in P.add_note("MH-3 rim checked 2026-10-03 at 12+50 (C-104), RFI 12, $12,500.00", None, vce),
+      "facts in the suite's formats get no hints")
+other = P.add_note("Fact for a named job", "Elm Street Drainage", deep_vce.replace("Elm Street", "Other"))
+check(other["fact"]["sources"] == [{"file": "user", "path": "said by the user"}], "a named job not open in TBC records the user as source")
+newer = os.path.join(projects_dir, "newer-job.db")
+shutil.copy(os.path.join(fixtures, "fixture.db"), newer)
+sql(newer, "UPDATE meta SET value = '2' WHERE key = 'schema_version'")
+sql(newer, "UPDATE meta SET value = 'Newer Job' WHERE key = 'project_name'")
+check(P.overview("Newer Job", None).get("read_only") and raises(lambda: P.add_note("x", "Newer Job", None), "newer version"),
+      "a database of a newer schema is read, never written")
+
+# --- 4. link / unlink, a new job's database ---------------------------------------------------------------------
 r = P.link("Phase Two", None, deep_vce)
-check(r["action"] == "created" and r["folders"] == [os.path.dirname(deep_vce)], "link defaults to the open .vce's folder")
-check(P.project_for_path(deep_vce)["name"] == "Phase Two", "deepest linked folder wins")
-check(P.link("Phase Two", os.path.dirname(deep_vce) + "\\", deep_vce)["folders"] == [os.path.dirname(deep_vce)], "same folder isn't linked twice")
-check(P.unlink("Phase Two", os.path.dirname(deep_vce))["folders"] == [], "unlink keeps the project, drops the folder")
+phase = os.path.join(projects_dir, "phase-two.db")
+meta = dict(sql(phase, "SELECT key, value FROM meta"))
+check(r["action"] == "created" and os.path.isfile(phase) and r["folders"] == [{"path": os.path.dirname(deep_vce), "by": "tbc"}],
+      "link creates the job's database with the open .vce's folder (tool tbc)")
+check(meta.get("schema_version") == "1" and len(meta.get("project_id", "")) == 12 and meta.get("project_name") == "Phase Two"
+      and meta.get("created", "").endswith("Z"), "a new database has schema_version, project_id, project_name and created")
+check(sql(phase, "PRAGMA journal_mode")[0][0] == "wal" and os.path.isdir(os.path.join(projects_dir, "phase-two")),
+      "...in WAL mode, with its files folder")
+check(P.project_for_path(deep_vce)["name"] == "Phase Two", "deepest folder wins across databases")
+check(P.link("Phase Two", os.path.dirname(deep_vce).upper() + "\\", deep_vce)["action"] == "unchanged", "the same folder isn't linked twice")
+check(P.link("Elm Street Drainage", os.path.join(job, "drawings"), None)["action"] == "unchanged", "a folder another tool linked changes nothing")
+check(P.link("Elm Street Drainage", job, None)["action"] == "unchanged", "the analysed folder (source_root) counts as linked")
+check(raises(lambda: P.unlink("Elm Street Drainage", os.path.join(job, "Drawings")), "civil 3d mcp"), "a folder Civil 3D linked can't be unlinked")
+check(P.unlink("Phase Two", os.path.dirname(deep_vce))["folders"] == [], "unlink drops TBC's own folder, the job stays")
 check(P.project_for_path(deep_vce)["name"] == "Elm Street Drainage", "after unlink the outer job matches again")
+check(raises(lambda: P.link("Phase Two", os.path.join(os.environ["LOCALAPPDATA"], "TBC-MCP"), None), "private"), "a per-user folder can't be linked")
+check(raises(lambda: P.add_note("x", None, os.path.join(work, "nowhere", "a.vce")), "action=link"), "an unknown folder asks to link")
+nomatch = P.list_notes(None, os.path.join(work, "nowhere", "a.vce"))
+check(nomatch["project"] is None and "Elm Street Drainage" in [j["name"] for j in nomatch["known_projects"]], "list without a match lists the known jobs")
 
-# --- 5. files folder and Project Analyzer's reports -----------------------------------------------------------
-files = P.files_dir("Elm Street Drainage")
-os.makedirs(os.path.join(files, "analysis"))
-with open(os.path.join(files, "analysis", "OVERVIEW.md"), "w", encoding="utf-8") as f:
-    f.write("# Elm Street Drainage\n\nOverview text.\n")
+# --- 5. an old <slug>.json notes file is imported once ----------------------------------------------------------
+legacy_dir = os.path.join(work, "jobs", "Three Tools")
+os.makedirs(os.path.join(legacy_dir, "TBC"))
+legacy = {"name": "Three Tools", "folders": [legacy_dir], "civil3d_view": {"zoom": 1.5},
+          "notes": [{"id": "note-1", "note": "Point group Hide holds the shots\nbeyond the right-of-way.", "added": "2026-10-20T10:00:00.000Z"},
+                    {"id": "note-2", "note": "Müller Surveying set the control", "added": "2026-10-25T21:42:47.123Z", "source": "project-analyzer"},
+                    {"id": "note-3", "note": "The TBC project uses US feet.", "added": "2026-10-21T08:00:00.000Z",
+                     "updated": "2026-10-22T08:00:00.000Z", "source": "tbc"},
+                    {"id": "note-4", "note": "  "}, "not a note"]}
+legacy_path = os.path.join(projects_dir, "three-tools.json")
+with open(legacy_path, "w", encoding="utf-8-sig") as f:  # as Civil 3D MCP wrote it, with a BOM
+    f.write(json.dumps(legacy, indent=2, ensure_ascii=False) + "\n")
+three_vce = os.path.join(legacy_dir, "TBC", "Three.vce")
+check((P.project_for_path(three_vce) or {}).get("name") == "Three Tools" and not os.path.exists(legacy_path[:-5] + ".db"),
+      "a job known only from its JSON file is found (without creating anything)")
+listed = P.list_notes(None, three_vce)
+three_db = legacy_path[:-5] + ".db"
+facts = {r[0]: r[1:] for r in sql(three_db, "SELECT fact, tool, sources, origin, added, updated FROM facts")}
+check(os.path.isfile(three_db) and not os.path.exists(legacy_path) and os.path.isfile(legacy_path + ".imported"),
+      "first open creates <slug>.db and renames the JSON file to .json.imported")
+check(facts.get("Point group Hide holds the shots beyond the right-of-way.", [None])[0] == "civil3d"
+      and facts.get("Müller Surveying set the control", [None])[0] == "project-analyzer"
+      and facts.get("The TBC project uses US feet.", [None])[0] == "tbc" and len(facts) == 3,
+      "each note is a fact owned by its source (none = civil3d); empty notes skipped")
+tbc_note = facts["The TBC project uses US feet."]
+check(json.loads(tbc_note[1]) == [{"file": "user", "path": "project note"}] and json.loads(tbc_note[2]) == {"note_id": "note-3"}
+      and tbc_note[3] == "2026-10-21T08:00:00.000Z" and tbc_note[4] == "2026-10-22T08:00:00.000Z",
+      "sources, origin note_id and the times are kept")
+check(sql(three_db, "SELECT path, tool FROM folders") == [(legacy_dir, "civil3d")] and
+      dict(sql(three_db, "SELECT key, value FROM meta")).get("project_name") == "Three Tools", "folders (civil3d) and the name are imported")
+check(sorted(f["id"] for f in listed["facts"]) == ["fact-1", "fact-2", "fact-3"], "the imported facts are listed")
+os.rename(legacy_path + ".imported", legacy_path)  # as if the rename had failed (file in use): no second import
+P.list_notes("Three Tools", None)
+check(sql(three_db, "SELECT COUNT(*) FROM facts")[0][0] == 3 and not os.path.exists(legacy_path)
+      and os.path.isfile(legacy_path + ".imported"), "a second open never imports again, only renames")
+check(P.update_note("fact-3", "The TBC project uses US survey feet.", "Three Tools", None)["action"] == "updated"
+      and raises(lambda: P.remove_note("fact-1", "Three Tools", None), "civil 3d mcp"), "imported TBC notes are TBC's own, others' are not")
+with open(os.path.join(projects_dir, "broken-job.json"), "w", encoding="utf-8") as f:
+    f.write('{"name": "Broken Job", "notes": [')
+P.link("Broken Job", os.path.join(work, "jobs", "Broken"), None)
+check(open(os.path.join(projects_dir, "broken-job.json"), encoding="utf-8").read() == '{"name": "Broken Job", "notes": ['
+      and os.path.isfile(os.path.join(projects_dir, "broken-job.db")), "a JSON file that doesn't parse is left alone")
+link_legacy = {"name": "Linked Later", "folders": [os.path.join(work, "jobs", "Later", "CAD")],
+               "notes": [{"id": "note-1", "note": "Imported when TBC links the job", "added": "2026-10-20T10:00:00.000Z"}]}
+with open(os.path.join(projects_dir, "linked-later.json"), "w", encoding="utf-8") as f:
+    json.dump(link_legacy, f)
+r = P.link("linked later", os.path.join(work, "jobs", "Later", "TBC"), None)
+check(r["action"] == "linked" and len(r["folders"]) == 2 and
+      sql(os.path.join(projects_dir, "linked-later.db"), "SELECT COUNT(*) FROM facts")[0][0] == 1, "linking a JSON-only job imports it first")
+
+# --- 6. the job's files folder ------------------------------------------------------------------------------------
+files = os.path.join(projects_dir, "elm-street-drainage")
+os.makedirs(os.path.join(files, "Standards"), exist_ok=True)
+with open(os.path.join(files, "Standards", "layers.md"), "w", encoding="utf-8") as f:
+    f.write("# Layer standard\n\nC-STRM for storm pipes.\n")
 with open(os.path.join(files, "photo.jpg"), "wb") as f:
     f.write(b"\xff\xd8\x00\x00binary")
 r = P.project_files(None, vce)
-check([x["path"] for x in r["files"]] == [os.path.join("analysis", "OVERVIEW.md"), "photo.jpg"] and "analysis" in r, "files lists the folder and points to the analysis")
-check(P.read_file("analysis\\OVERVIEW.md", None, vce)["text"].startswith("# Elm Street"), "read returns a report's text")
-check(P.read_file("analysis/OVERVIEW.md", None, vce, max_chars=5).get("truncated"), "long files are cut at max_chars")
-check(raises(lambda: P.read_file("..\\..\\elm-street-drainage.json", None, vce), "inside"), "paths outside the files folder are refused")
+check([x["path"] for x in r["files"]] == ["photo.jpg", os.path.join("Standards", "layers.md")], "files lists the user's files for the job")
+check(P.read_file("Standards/layers.md", None, vce)["text"].startswith("# Layer standard"), "read returns a text file")
+check(P.read_file("Standards\\layers.md", None, vce, max_chars=5).get("truncated"), "long files are cut at max_chars")
+check(raises(lambda: P.read_file("..\\elm-street-drainage.db", None, vce), "inside"), "paths outside the files folder are refused")
 check(raises(lambda: P.read_file("photo.jpg", None, vce), "isn't a text file"), "binary files are refused")
 
-# --- 6. notes reach the AI once per project ------------------------------------------------------------------
+# --- 7. the overview reaches the AI once per job -----------------------------------------------------------------
 P.reset_announcements()
-first = P.notes_once(vce)
-check(first and first["project"] == "Elm Street Drainage" and len(first["notes"]) == 3 and "analysis" in first, "first result carries the job's notes")
+first = P.notes_once(vce) or {}
+check(first.get("project") == "Elm Street Drainage" and [c["id"] for c in first.get("checks_high", [])] == ["check-1"]
+      and first.get("missing_files") == 1, "the first result carries the job's high checks and missing-file count")
+check(sorted(f["id"] for f in first.get("key_facts", [])) == ["fact-1", "fact-3", "fact-5"] and "fact-5" in [f["id"] for f in first.get("tbc_facts", [])],
+      "...its key facts and TBC's own facts")
+check("12+50" in first.get("hint", "") and "COPIED FOLDER" in first.get("copied_folder", ""), "...with the reference formats and the copy hint")
 check(P.notes_once(vce) is None, "...and only once per server run")
+check(P.notes_once(os.path.join(work, "nowhere", "a.vce")) is None, "no job, no overview")
 
-# --- 7. legacy Civil 3D MCP folder is moved, as Civil 3D MCP itself does -------------------------------------
+# --- 8. legacy Civil 3D MCP folder is moved, as Civil 3D MCP itself does -------------------------------------
 docs = os.path.join(work, "Documents")
 os.makedirs(os.path.join(docs, "Civil3DMcp", "projects"))
 check(P.migrate_legacy_folder(docs) and os.path.isdir(os.path.join(docs, "Civil3DMcp-KnowledgeBase", "projects")), "Documents\\Civil3DMcp moved to Civil3DMcp-KnowledgeBase")
 check(P.migrate_legacy_folder(docs) is None, "migration runs only once")
 
-# --- 8. general knowledge: duplicates, lessons surfacing by command ------------------------------------------
-l1 = K.add_lesson("Vertices need at least two points", "createlinestring")
-check(K.add_lesson("vertices need at least two points ", "other")["action"] == "unchanged", "duplicate lesson not stored twice")
-K.add_lesson("Use clr imports first", "import")
-rel = K.lessons_relevant_to("r = run('createlinestring')\nimport clr")
-check([x["id"] for x in rel] == [l1["id"]], "lessons surface for a command named in code, not for broad topics like 'import'")
-p1 = K.add_pref("Use numeric point IDs")
-check(K.add_pref("use numeric point ids")["action"] == "unchanged" and len(K.list_prefs()) == 1, "duplicate preference not stored twice")
+# --- 9. good practices (practices.json) ---------------------------------------------------------------------------
+practices_path = os.path.join(shared, "practices.json")
+with open(practices_path, encoding="utf-8") as f:
+    data = json.load(f)
+data["practices"][0]["civil3d_extra"] = {"keep": [1, 2.5, None]}
+data["note_for_people"] = "kept"
+with open(practices_path, "w", encoding="utf-8", newline="\n") as f:
+    f.write(json.dumps(data, indent=2, ensure_ascii=False) + "\n")
+check([p["id"] for p in PR.list_practices()["practices"]] == ["practice-1", "practice-2"], "list: the practices")
+check([p["id"] for p in PR.search("slope")["practices"]] == ["practice-1"], "search: by words")
+r = PR.add("Survey control points are set\nevery 500 ft.", ["survey", "Control"])
+check(r["action"] == "added" and r["practice"]["id"] == "practice-3" and r["practice"]["source"] == "tbc"
+      and r["practice"]["practice"] == "Survey control points are set every 500 ft." and r["practice"]["topics"] == ["survey", "control"],
+      "add: practice-3, source tbc, one line, topics")
+check(PR.add("storm pipe minimum slope is 0.5%.")["action"] == "unchanged", "add: no duplicate (any case)")
+check(raises(lambda: PR.update("practice-1", "x"), "civil 3d mcp") and raises(lambda: PR.remove("practice-1"), "civil 3d mcp"),
+      "update / remove refuse another tool's practice")
+check(PR.update("practice-2", topics=["labels", "structures"])["practice"]["topics"] == ["labels", "structures"], "update: own practice's topics")
+r = PR.remove("practice-2")
+check(r["practice"].get("retired") and [p["id"] for p in PR.list_practices()["practices"]] == ["practice-1", "practice-3"],
+      "remove: retired and hidden")
+check(len(PR.list_practices(True)["practices"]) == 3 and PR.add("Name surfaces EG and FG.")["practice"]["id"] == "practice-4",
+      "retired practices are kept and their ids never reused")
+with open(practices_path, "rb") as f:
+    raw = f.read()
+data = json.loads(raw.decode("utf-8"))
+check(data["practices"][0]["civil3d_extra"] == {"keep": [1, 2.5, None]} and data["note_for_people"] == "kept", "unknown fields are kept")
+check(not raw.startswith(b"\xef\xbb\xbf") and b"\r\n" not in raw and raw.endswith(b"}\n") and b'\n  "practices": [' in raw,
+      "written as UTF-8 without BOM, LF, 2-space indent")
+check(not [n for n in os.listdir(shared) if n.endswith(".tmp")], "no temp files left behind")
+check(raises(lambda: PR.add("On Elm Street Drainage use 1% slopes"), "tbc_project_notes"), "a practice naming a job is refused")
+check(raises(lambda: PR.add("token tok3n-abcdef"), "private"), "a practice with private data is refused")
+text = PR.practices_text()
+check("[practice-1] Storm pipe minimum slope is 0.5%." in text and "practice-2" not in text, "practices_text lists the current practices")
+with open(practices_path, "w", encoding="utf-8") as f:
+    f.write('{"practices": [')
+check(raises(lambda: PR.add("x y z"), "can't be read") and open(practices_path, encoding="utf-8").read() == '{"practices": ['
+      and PR.current() == [] and PR.practices_text() == "", "a file that doesn't parse is never rewritten (and shows nothing)")
+with open(practices_path, "w", encoding="utf-8", newline="\n") as f:
+    f.write(json.dumps(data, indent=2, ensure_ascii=False) + "\n")
 
-# --- 8b. no job data in general knowledge (contract rule 8): the knowledge folder is committed with the repo ---
-lessons_before = len(K.list_lessons())
-refused = lambda fn: raises(fn, "tbc_project_notes action=add")
-check(refused(lambda: K.add_lesson("Imported the points from P:\\Jobs\\1234 Elm St\\Survey", "import")), "a lesson with a project-drive path is refused")
-check(refused(lambda: K.add_lesson("Points went in from \\\\fileserver\\jobs\\x", "import")), "a lesson with a network path is refused")
-check(K.add_lesson("Geoid files are read from C:\\ProgramData\\Trimble\\GeoData", "geoidsubgrid").get("id"), "C:\\ProgramData\\Trimble\\GeoData is allowed")
-check(K.add_lesson("Macros are installed under C:/Program Files/Trimble/Trimble Business Center", "install").get("id"), "C:\\Program Files paths are allowed")
-check(refused(lambda: K.add_lesson("On ELM STREET DRAINAGE the codes are separated by commas", "codes")), "a lesson naming a linked job is refused (any case)")
-check(refused(lambda: K.add_lesson("elm-street-drainage uses US feet", "units")), "a job's slug is refused")
-check(refused(lambda: K.add_lesson("The Elm Street folder has two surfaces", "surfaces")), "the name of a job's linked folder is refused")
-check(refused(lambda: K.add_lesson("Open Elm.vce before importing", "import")), "a TBC project file name is refused")
-check(refused(lambda: K.add_lesson("CP.job holds the control", "import")) and refused(lambda: K.add_lesson("Use field-1.JXL", "import")),
-      "job file names (.job, .jxl) are refused")
-check(K.add_lesson("Import .job and *.jxl files with Home > Import; Trimble.Vce.Core holds Project", "import").get("id"),
-      "a file extension alone, or the SDK namespace Trimble.Vce, is fine")
-P.add_private("s3cr3t-token-9f", "the bridge's session token")
-check(refused(lambda: K.add_lesson("The bridge answered with s3cr3t-token-9F", "bridge")), "a registered private value is refused")
-check(refused(lambda: K.add_lesson("Logs are in %s\\TBC-MCP" % os.path.expanduser("~"), "logs")), "a user-profile path is refused")
-check(refused(lambda: K.add_pref("For Elm Street Drainage always use the CTRL layer")), "a preference naming the job is refused")
-check(refused(lambda: K.update_pref(p1["id"], "Use numeric point IDs on Elm Street Drainage")) and K.list_prefs()[0]["text"] == "Use numeric point IDs",
-      "updating a preference to name the job is refused, the old text stays")
-check(refused(lambda: K.save_skill("elm_points", "points", "Points for Elm Street Drainage", "steps")), "a skill naming the job is refused")
-K.save_skill("general_skill", "general", "A general how-to", "Open the panel, fill it, press Apply.")
-check(refused(lambda: K.append_version_section("general_skill", "On TBC 2027 see P:\\Jobs\\x first")), "append_version_section is guarded")
-check(refused(lambda: K.add_command_note("createpoint", "Elm.vce needs the Feature code box")), "a command note with a project file is refused")
-check(refused(lambda: K.save_script("s1", K.build_script("s1", "", "read", [], "path = r'P:\\Jobs\\1234\\a.csv'"))), "a script with a project path is refused")
-check(len(K.list_lessons()) == lessons_before + 3 and not os.path.exists(os.path.join(general, "skills", "points")),
-      "refused entries were not written")
-generic = {"name": "Generic Folders", "folders": [os.path.join(work, "jobs", "Generic", "Survey")], "notes": []}
-with open(os.path.join(shared, "projects", "generic-folders.json"), "w", encoding="utf-8") as f:
-    json.dump(generic, f)
-check(K.add_lesson("The Feature code box accepts codes separated by spaces", "createpoint").get("id"), "a general lesson is saved")
-check(K.add_lesson("Survey tab tools need a licensed Survey module", "survey").get("id"), "generic folder names (Survey) don't block lessons")
-saved_shared = os.environ["CIVIL3D_KNOWLEDGE_DIR"]
-os.environ["CIVIL3D_KNOWLEDGE_DIR"] = os.path.join(work, "no such folder", "shared")
-try:
-    check(K.add_lesson("Compute Project must finish before reading results", "compute").get("id"), "a missing shared folder doesn't break saving")
-finally:
-    os.environ["CIVIL3D_KNOWLEDGE_DIR"] = saved_shared
-check(not os.path.exists(os.path.join(work, "no such folder")), "...and isn't created by the check")
-
-# --- 9. a job all three tools have written to (contract: project-analyzer docs/shared-project-knowledge.md) ----
-three_dir = os.path.join(work, "jobs", "Three Tools")
-os.makedirs(os.path.join(three_dir, "CAD"))
-three = {"name": "Three Tools", "civil3d_view": {"zoom": 1.5, "layers": ["C-ROAD"]},
-         "folders": [os.path.join(three_dir, "CAD")],
-         "notes": [
-             {"id": "note-1", "note": "Point group Hide holds the shots beyond the right-of-way.", "added": "2026-10-20T10:00:00.000Z", "pinned": True},
-             {"id": "note-2", "note": "Müller Surveying set the control (2026-10-03) [source: Documents/minutes.docx; fact-1]",
-              "added": "2026-10-25T21:42:47.123Z", "source": "project-analyzer", "confidence": "high"},
-             {"id": "note-3", "note": "The TBC project uses the NAD83 Illinois East zone.", "added": "2026-10-21T08:00:00.000Z", "source": "tbc", "tbc_extra": [1, 2.5, None]}],
-         "project-analyzer_last_sync": "2026-10-25T21:42:47.123Z"}
-three_path = os.path.join(shared, "projects", "three-tools.json")
-three_text = json.dumps(three, indent=2, ensure_ascii=False) + "\n"  # the layout JSON.stringify(x, null, 2) writes
-with open(three_path, "w", encoding="utf-8", newline="\n") as f:
-    f.write(three_text)
-
-
-def three_now():
-    with open(three_path, encoding="utf-8", newline="") as f:
-        return f.read()
-
-
-by = {n["id"]: n["by"] for n in P.list_notes("Three Tools", None)["notes"]}
-check(by == {"note-1": "civil3d", "note-2": "project-analyzer", "note-3": "tbc"}, "origin(): no source = civil3d, source fields trusted: %s" % by)
-check(P.origin({"note": "Old analyzer note [source: a.pdf; fact-9]"}) == "project-analyzer"
-      and P.origin({"note": "x [source: a.pdf; fact-9]", "source": "tbc"}) == "tbc", "text check is only a fallback for notes without a source")
-check(raises(lambda: P.update_note("note-1", "x", "Three Tools", None), "civil 3d mcp")
-      and raises(lambda: P.remove_note("note-1", "Three Tools", None), "civil 3d mcp"), "update/remove refuse the Civil 3D note")
-check(raises(lambda: P.update_note("note-2", "x", "Three Tools", None), "project analyzer")
-      and raises(lambda: P.remove_note("note-2", "Three Tools", None), "project analyzer"), "update/remove refuse the Project Analyzer note")
-check(three_now() == three_text, "refused changes leave the file untouched")
-
-r = P.add_note("Surface EG comes from the 2026-10-03 survey [source: Three Tools.vce]", "Three Tools", None)
-added = textwrap.indent(json.dumps(r["note"], indent=2, ensure_ascii=False), "    ")
-after = three_now()
-check(r["note"]["id"] == "note-4" and after.replace(",\n" + added, "", 1) == three_text,
-      "adding a note keeps every other note and unknown field byte-for-byte")
-check(P.update_note("note-3", "The TBC project uses the NAD83 Illinois East (US ft) zone.", "Three Tools", None)["note"]["tbc_extra"] == [1, 2.5, None],
-      "updating TBC's own note keeps its unknown fields")
-
-# re-read before writing: a stale copy in memory must not overwrite what another tool wrote since
-stale = P.find_project("Three Tools")
-disk = json.loads(three_now())
-disk["notes"].append({"id": "note-5", "note": "Civil 3D wrote this meanwhile", "added": "2026-10-26T00:00:00.000Z"})
-with open(three_path, "w", encoding="utf-8", newline="\n") as f:
-    f.write(json.dumps(disk, indent=2, ensure_ascii=False) + "\n")
-real_resolve, P.resolve = P.resolve, lambda name, active: stale
-try:
-    r = P.add_note("Another TBC fact", "Three Tools", None)
-finally:
-    P.resolve = real_resolve
-ids = [n["id"] for n in json.loads(three_now())["notes"]]
-check(r["note"]["id"] == "note-6" and ids == ["note-1", "note-2", "note-3", "note-4", "note-5", "note-6"], "re-reads the file right before writing: %s" % ids)
-
-with open(three_path, "w", encoding="utf-8") as f:
-    f.write('{"name": "Three Tools", "notes": [')
-check(raises(lambda: P.add_note("x", "Three Tools", None), "can't be read") and three_now() == '{"name": "Three Tools", "notes": [',
-      "a file that doesn't parse is never rewritten")
-with open(three_path, "w", encoding="utf-8", newline="\n") as f:
-    f.write(json.dumps(disk, indent=2, ensure_ascii=False) + "\n")
-
-# links: a second link of the same folder changes nothing; other tools' folders are never unlinked
-tbc_dir = os.path.join(three_dir, "TBC")
-os.makedirs(tbc_dir)
-check(P.link("Three Tools", tbc_dir, None)["action"] == "linked", "link adds the TBC folder")
-before = three_now()
-check(P.link("Three Tools", tbc_dir + "\\", None)["action"] == "unchanged" and three_now() == before, "a second link of the same folder changes nothing")
-check(P.link("Three Tools", os.path.join(three_dir, "cad"), None)["action"] == "unchanged" and three_now() == before,
-      "linking a folder another tool linked changes nothing")
-check(raises(lambda: P.unlink("Three Tools", os.path.join(three_dir, "CAD")), "another tool"), "a folder Civil 3D linked can't be unlinked")
-check(json.loads(three_now())[P.OWN_FOLDERS] == [tbc_dir], "TBC's own folders are kept in tbc_linked_folders")
-
-# Project Analyzer's reports, including analysis\intel\
-intel = os.path.join(P.files_dir("Three Tools"), "analysis", "intel")
-os.makedirs(intel)
-with open(os.path.join(intel, "ENTITIES.md"), "w", encoding="utf-8") as f:
-    f.write("# Entities\n\n## MH-3 (structure)\nAliases: manhole 3. Files: minutes.docx, C-104.pdf\n")
-hint = P.project_files("Three Tools", None).get("analysis", "")
-check("ENTITIES.md" in hint and "MH-3" in hint, "files points to analysis\\intel\\ENTITIES.md for structures, stations and sheets")
-
-checks_md = ("# Checks\n\n## Needs attention (1)\n\n### CO 4: two amounts\n*conflicting amounts* — $12,500.00 in "
-             "minutes.docx, $14,200.00 in CO 4.pdf\n\n## Worth checking (2)\n\n### RFI 12 has no reply\n*no reply* — "
-             "asked 2026-10-03\n\n### Submittal 3 is missing\n*missing document* — mentioned in 2 files\n\n"
-             "## For information (0)\n")
-stories_md = "# Stories\n\n## CO 4 → RFI 12: RFI 12 - pipe class\n2026-10-03 John Smith (J. Smith) asks; CO 4 $12,500.00.\n"
-graph_html = "<!doctype html><html><body><script>const DATA = {\"nodes\": [1, 2, 3]};</script></body></html>\n"
-for fn, text in (("CHECKS.md", checks_md), ("STORIES.md", stories_md), ("graph.html", graph_html)):
-    with open(os.path.join(intel, fn), "w", encoding="utf-8", newline="\n") as f:
-        f.write(text)
-files = P.project_files("Three Tools", None)
-hint = files.get("analysis", "")
-check("CHECKS.md" in hint and "STORIES.md" in hint and "in dispute" in hint and "RFI, change order or submittal" in hint,
-      "the hint says when to use CHECKS.md and STORIES.md")
-graph_path = os.path.join(os.path.realpath(intel), "graph.html")
-check([p["path"] for p in files.get("pages_to_open", [])] == [os.path.join(intel, "graph.html")] and "graph.html" in hint
-      and os.path.join(intel, "graph.html") in hint, "files and the hint list graph.html as a page to open, with its full path")
-r = P.read_file("analysis\\intel\\STORIES.md", "Three Tools", None)
-check(r.get("text") == stories_md, "action=read returns STORIES.md's text")
-r = P.read_file("analysis\\intel\\graph.html", "Three Tools", None)
-check("text" not in r and "browser" in r.get("message", "") and r.get("page") == graph_path and graph_path in r["message"],
-      "action=read on graph.html says to open it in a browser, with its path, instead of the HTML")
-
-three_vce = os.path.join(tbc_dir, "Three Tools.vce")
-P.reset_announcements()
-first = P.notes_once(three_vce) or {}
-c = first.get("checks") or {}
-check(c.get("needs_attention_titles") == ["CO 4: two amounts"] and c.get("needs_attention") == 1 and c.get("worth_checking") == 2,
-      "notes_once lists the Needs attention title and the Worth checking count: %s" % {k: c.get(k) for k in ("needs_attention", "needs_attention_titles", "worth_checking")})
-many = "# Checks\n\n## Needs attention\n\n" + "".join("### Problem %d\n*date conflict* — x\n\n" % i for i in range(1, 9))
-for label, content in (("missing", None), ("malformed", b"\xff\xfe\x00garbage ## Needs attention (\n### \x00"),
-                       ("without counts", many)):
-    path = os.path.join(intel, "CHECKS.md")
-    if content is None:
-        os.remove(path)
-    else:
-        with open(path, "wb") as f:
-            f.write(content if isinstance(content, bytes) else content.encode("utf-8"))
-    P.reset_announcements()
-    r = P.notes_once(three_vce)
-    ok_notes = bool(r) and len(r["notes"]) == len(P.find_project("Three Tools")["notes"])
-    if label == "without counts":
-        check(ok_notes and r["checks"]["needs_attention"] == 8 and len(r["checks"]["needs_attention_titles"]) == 5,
-              "a heading without a count is counted from its items, at most 5 titles shown")
-    else:
-        check(ok_notes and "checks" not in r, "notes_once still returns the notes when CHECKS.md is %s" % label)
-
-# privacy and reference formats
-P.add_private("tok3n-abcdef", "the bridge's session token")
-check(raises(lambda: P.add_note("token is tok3n-ABCDEF", "Three Tools", None), "session token"), "a session token is refused")
-check(raises(lambda: P.add_note("see %s\\Documents\\x.vce" % os.path.expanduser("~"), "Three Tools", None), "user profile"), "a user-profile path is refused")
-check(raises(lambda: P.link("Three Tools", os.path.join(os.environ["LOCALAPPDATA"], "TBC-MCP"), None), "private"), "a per-user folder can't be linked")
-loose = "Manhole 3 rim checked on 10/3/26 at Sta. 1250 (sheet C104), CO #4 was 12.5k"
-hints = P.format_hints(loose)
-check(P.add_note(loose, "Three Tools", None).get("format_hints") and len(hints) == 6,
-      "notes in other formats are saved, with reference-format hints: %s" % hints)
-check("format_hints" not in P.add_note("MH-3 rim checked 2026-10-03 at 12+50 (C-104), RFI 12, $12,500.00", "Three Tools", None),
-      "notes in the suite's formats get no hints")
-
-# --- 10. a copied job folder: paths in the files point at the original location ---------------------------------
-copy_root = os.path.join(work, "copies", "1234 Elm St")
-for sub in ("Survey", "CAD", "TBC"):
-    os.makedirs(os.path.join(copy_root, "Project", sub))
-for fn in (("Survey", "CP.job"), ("CAD", "Base.dwg")):
-    with open(os.path.join(copy_root, "Project", *fn), "w") as f:
-        f.write("x")
-copied = {"name": "Copied Job", "folders": [os.path.join(copy_root, "Project", "TBC")], "notes": [],
-          "project-analyzer_root": copy_root,
-          "project-analyzer_copy": {"is_copy": True, "of": "P:\\Jobs\\1234 Elm St", "answered": "assumed"},
-          "project-analyzer_original_locations": [{"original": "p:\\jobs\\1234 elm st", "in_copy": "Project"}]}
-with open(os.path.join(shared, "projects", "copied-job.json"), "w", encoding="utf-8", newline="\n") as f:
-    f.write(json.dumps(copied, indent=2, ensure_ascii=False) + "\n")
-copied_intel = os.path.join(P.files_dir("Copied Job"), "analysis", "intel")
-os.makedirs(copied_intel)
-relink_csv = os.path.join(copied_intel, "relink_map.csv")
-
-
-def write_relink():
-    import csv
-    with open(relink_csv, "w", encoding="utf-8-sig", newline="") as f:  # as Project Analyzer writes it
-        w = csv.writer(f)
-        w.writerow(["path as written in the files", "relative path in this folder", "status", "expected at", "times referenced"])
-        w.writerow(["P:\\Jobs\\1234 Elm St\\Survey\\CP.job", "Project\\Survey\\CP.job", "found", "", 3])
-        w.writerow(["P:\\Jobs\\1234 Elm St\\Images\\Aerial.tif", "", "missing", "Project\\Images\\Aerial.tif", 2])
-        w.writerow(["P:\\Jobs\\1234 Elm St\\Images\\Aerial.tif", "", "missing", "Project\\Images\\Aerial.tif", 1])
-        w.writerow(["P:\\Jobs\\1234 Elm St\\Data\\points.csv", "", "ambiguous", "", 1])
-
-
-write_relink()
-with open(os.path.join(copied_intel, "REFERENCES.md"), "w", encoding="utf-8") as f:
-    f.write("# References\n\n## Missing (1)\n\n- `P:\\Jobs\\1234 Elm St\\Images\\Aerial.tif`: expected at Project\\Images\\Aerial.tif\n")
-before_copy = open(os.path.join(shared, "projects", "copied-job.json"), encoding="utf-8").read()
-before_csv = open(relink_csv, "rb").read()
-
-r = P.locate("p:/jobs/1234 elm st/survey/CP.JOB", "Copied Job", None)
-cp = os.path.join(copy_root, "Project", "Survey", "CP.job")
-check(r["status"] == "found" and r["source"] == "relink_map.csv" and r["absolute"] == cp and r["exists"]
-      and r["relative"] == "Project\\Survey\\CP.job" and r["times_referenced"] == 3,
-      "locate finds a listed file: absolute and relative path (case and slashes don't matter)")
-r = P.locate("P:\\Jobs\\1234 Elm St\\Images\\Aerial.tif", "Copied Job", None)
-check(r["status"] == "missing" and r["expected_at"] == {"relative": "Project\\Images\\Aerial.tif",
-                                                       "absolute": os.path.join(copy_root, "Project", "Images", "Aerial.tif")}
-      and "ask the user" in r["hint"].lower(), "locate gives a missing file's expected place")
-r = P.locate("file:///P:/Jobs/1234%20Elm%20St/Data/points.csv", "Copied Job", None)
-check(r["status"] == "ambiguous" and "don't pick" in r["hint"], "an ambiguous match is reported, not guessed (file: URLs work too)")
-r = P.locate("\"P:\\JOBS\\1234 Elm St\\CAD\\Base.dwg\"", "Copied Job", None)
-check(r["status"] == "translated" and r["source"] == P.ANALYZER_ORIGINALS and r["exists"]
-      and r["absolute"] == os.path.join(copy_root, "Project", "CAD", "Base.dwg") and r["relative"] == "Project\\CAD\\Base.dwg",
-      "a path not in the CSV is translated through original_locations")
-r = P.locate("P:\\Jobs\\1234 Elm St\\CAD\\Gone.dwg", "Copied Job", None)
-check(r["status"] == "translated, not found" and not r["exists"], "a translated path with no file there says so")
-r = P.locate("Q:\\Other Job\\x.job", "Copied Job", None)
-check(r["status"] == "not known" and r["source"] is None and "ask the user where the original" in r["hint"],
-      "a path on an unrelated drive is 'not known', with a hint to ask the user")
-check(raises(lambda: P.locate("", "Copied Job", None), "path is required"), "locate needs a path")
-check(open(os.path.join(shared, "projects", "copied-job.json"), encoding="utf-8").read() == before_copy
-      and open(relink_csv, "rb").read() == before_csv, "locate never writes the job file or the CSV")
-
-hint = P.project_files("Copied Job", None).get("analysis", "")
-check("REFERENCES.md" in hint and "relink_map.csv" in hint and "action=locate" in hint and "COPIED FOLDER" in hint,
-      "the hint lists REFERENCES.md and relink_map.csv and says to locate before calling a file missing")
-copied_vce = os.path.join(copy_root, "Project", "TBC", "Elm.vce")
-P.reset_announcements()
-refs = (P.notes_once(copied_vce) or {}).get("references") or {}
-check(refs.get("missing") == 1 and refs.get("file", "").endswith("REFERENCES.md") and "1 referenced file" in refs.get("hint", ""),
-      "notes_once counts missing files (one per distinct path) and points to REFERENCES.md: %s" % {k: refs.get(k) for k in ("missing", "ambiguous", "found")})
-
-for label, content in (("garbage", b"\xff\xfe\x00\x01junk\n"), ("wrong header", b"a,b\n1,2\n")):
-    with open(relink_csv, "wb") as f:
-        f.write(content)
-    P.reset_announcements()
-    first = P.notes_once(copied_vce)
-    r = P.locate("P:\\Jobs\\1234 Elm St\\Survey\\CP.job", "Copied Job", None)
-    check(first is not None and "references" not in first and r["status"] == "translated" and r["exists"],
-          "a malformed relink_map.csv (%s) is skipped: notes_once works, locate falls back to original locations" % label)
-write_relink()
-
-# --- 11. the server, over stdio, without TBC ------------------------------------------------------------------
-env = dict(os.environ, TBC_MCP_INFO=os.path.join(work, "no_bridge.json"), TBC_MCP_EXIT_WITH_TBC="0")
+# --- 10. the server, over stdio, without TBC ------------------------------------------------------------------
+K.add_pref("Use numeric point IDs for new points")
+env = dict(os.environ, TBC_MCP_INFO=os.path.join(work, "no_bridge.json"), TBC_MCP_EXIT_WITH_TBC="0", PYTHONDONTWRITEBYTECODE="1")
 p = subprocess.Popen([sys.executable, server], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                      env=env, text=True, encoding="utf-8")
 
@@ -399,26 +401,46 @@ def rpc(i, method, params):
     return json.loads(p.stdout.readline())["result"]
 
 
+def call(i, name, args):
+    r = rpc(i, "tools/call", {"name": name, "arguments": args})
+    text = r["content"][0]["text"]
+    return r["isError"], (text if r["isError"] else json.loads(text))
+
+
 init = rpc(1, "initialize", {"protocolVersion": "2025-06-18", "capabilities": {}})
-check("tbc_project_notes" in init["instructions"] and "Use numeric point IDs" in init["instructions"], "instructions explain the two scopes and carry preferences")
-names = [t["name"] for t in rpc(2, "tools/list", {})["tools"]]
-check("tbc_project_notes" in names, "tbc_project_notes is listed (%d tools)" % len(names))
-r = rpc(3, "tools/call", {"name": "tbc_project_notes", "arguments": {"action": "list", "project": "Elm Street Drainage"}})
-check(not r["isError"] and json.loads(r["content"][0]["text"])["project"] == "Elm Street Drainage", "a named job is read without TBC")
-r = rpc(4, "tools/call", {"name": "tbc_project_notes", "arguments": {"action": "add", "note": "x"}})
-check(r["isError"] and "action=link" in r["content"][0]["text"], "no TBC and no project name -> asks for a name to link")
-r = rpc(5, "tools/call", {"name": "tbc_project_notes", "arguments": {"action": "read", "project": "Three Tools", "file": "analysis\\intel\\ENTITIES.md"}})
-check(not r["isError"] and "MH-3 (structure)" in json.loads(r["content"][0]["text"])["text"], "action=read opens analysis\\intel\\ENTITIES.md")
-r = rpc(8, "tools/call", {"name": "tbc_memory", "arguments": {"action": "add", "text": "Elm Street Drainage uses US feet", "topic": "units"}})
-check(r["isError"] and "tbc_project_notes action=add" in r["content"][0]["text"], "tbc_memory refuses job data over MCP and points to the project notes")
-desc = next(t["description"] for t in rpc(6, "tools/list", {})["tools"] if t["name"] == "tbc_project_notes")
-check(all(s in desc for s in ("12+50", "MH-3", "C-104", "RFI 12", "$12,500.00", "[source:", "ENTITIES.md", "license")),
-      "the tool tells the AI the reference formats, sources, intel reports and privacy rule")
-check(all(s in desc for s in ("locate", "REFERENCES.md", "relink_map.csv", "never guess", "in the copy [source: TBC project")),
-      "the tool says when to use locate and to offer recording a fixed reference")
-r = rpc(7, "tools/call", {"name": "tbc_project_notes", "arguments": {"action": "locate", "project": "Copied Job",
-                                                                     "path": "P:\\Jobs\\1234 Elm St\\Survey\\CP.job"}})
-check(not r["isError"] and json.loads(r["content"][0]["text"])["absolute"] == cp, "action=locate works over MCP")
+ins = init["instructions"]
+check(init["serverInfo"]["version"] == "0.4.0", "server version 0.4.0")
+check("THREE KINDS OF KNOWLEDGE" in ins and "tbc_practices" in ins and "tbc_project_notes" in ins, "instructions explain the three kinds of knowledge")
+check("Use numeric point IDs for new points" in ins and "GOOD PRACTICES" in ins and "[practice-1] Storm pipe minimum slope" in ins,
+      "instructions carry the user's preferences and the suite's practices")
+tools = {t["name"]: t for t in rpc(2, "tools/list", {})["tools"]}
+check("tbc_project_notes" in tools and "tbc_practices" in tools, "tbc_project_notes and tbc_practices are listed (%d tools)" % len(tools))
+check(set(tools["tbc_project_notes"]["inputSchema"]["properties"]["action"]["enum"]) ==
+      {"list", "overview", "search", "file", "entity", "timeline", "locate", "link", "unlink", "add", "update", "remove", "files", "read"},
+      "tbc_project_notes offers every action")
+desc = tools["tbc_project_notes"]["description"]
+check(all(s in desc for s in ("12+50", "MH-3", "C-104", "RFI 12", "$12,500.00", "license", "supersedes", "tbc_memory", "tbc_practices")),
+      "the tool tells the AI the reference formats, privacy, supersedes and where other knowledge goes")
+check(all(s in desc for s in ("locate", "never guess", "BEFORE telling the user", "overview", "search", "entity", "timeline")),
+      "the tool says when to use locate and the read actions")
+err, r = call(3, "tbc_project_notes", {"action": "overview", "project": "Elm Street Drainage"})
+check(not err and r["project"] == "Elm Street Drainage" and r["checks_high"], "overview of a named job works without TBC")
+err, r = call(4, "tbc_project_notes", {"action": "search", "project": "Elm Street Drainage", "query": "culvert 36"})
+check(not err and r["documents"], "search over MCP%s" % ("" if not err else ": " + r))
+err, r = call(5, "tbc_project_notes", {"action": "entity", "project": "Elm Street Drainage", "name": "RFI 12"})
+check(not err and r["found"], "entity over MCP")
+err, r = call(6, "tbc_project_notes", {"action": "add", "note": "x"})
+check(err and "action=link" in r, "no TBC and no project name -> asks for a name to link")
+err, r = call(7, "tbc_project_notes", {"action": "locate", "project": "Elm Street Drainage", "path": "P:\\Jobs\\1234 Elm St\\CAD\\Topo.dwg"})
+check(not err and r["absolute"] == os.path.join(job, "Drawings", "Topo.dwg"), "locate over MCP")
+err, r = call(8, "tbc_project_notes", {"action": "add", "project": "Elm Street Drainage", "note": "Added over MCP", "topics": ["mcp"]})
+check(not err and r["fact"]["by"] == "tbc" and r["fact"]["sources"][0]["file"] == "user", "add over MCP")
+err, r = call(9, "tbc_project_notes", {"action": "nonsense"})
+check(err and "overview" in r, "an unknown action lists the actions")
+err, r = call(10, "tbc_practices", {"action": "search", "query": "slope"})
+check(not err and r["practices"][0]["id"] == "practice-1", "tbc_practices over MCP")
+err, r = call(11, "tbc_memory", {"action": "add", "text": "Elm Street Drainage uses US feet", "topic": "units"})
+check(err and "tbc_project_notes action=add" in r, "tbc_memory refuses job data and points to the project notes")
 p.stdin.close()
 p.wait(timeout=10)
 

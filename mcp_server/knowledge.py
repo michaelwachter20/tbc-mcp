@@ -1,17 +1,30 @@
 ﻿# Written for and verified on Trimble Business Center 2026.10 (build 44.0.9666.28609). For a newer release, ADD handling for it and keep the 2026.10 behaviour (see README > TBC versions).
 """
-Knowledge store for the TBC MCP server (modelled on civil3d-mcp-unified's skills + saved scripts,
-plus a memory of lessons learned and auto-recorded command panel layouts).
+TBC MCP's software know-how: how to drive TBC (modelled on civil3d-mcp-unified's skills + saved scripts, plus a
+memory of lessons learned and auto-recorded command panel layouts).
 
-Layout (default: <repo>/knowledge, override with TBC_MCP_KNOWLEDGE_DIR):
+Two layers, with the same layout:
+  BUILT-IN  <repo>\\knowledge\\           shipped with TBC MCP (and its release zip); READ ONLY at runtime
+  LEARNED   TBC_MCP_KNOWLEDGE_DIR, else  everything written while working on this PC; never inside the repository
+            <shared>\\tbc\\              (it reaches GitHub), so what one user learns stays on their PC
   skills/<category>/<name>.skill.md   documented how-tos with frontmatter
-  scripts/<name>.py                   saved IronPython scripts with a JSON metadata header
+  scripts/<name>.py                   saved IronPython scripts with a JSON metadata header; old versions in _archive/
   memory/lessons.jsonl                one lesson per line: {id, ts, topic, tags, text, tbc_version}
   commands/<key>.json                 TBC command panel layouts seen by command_ui_*, plus notes
+  preferences.json                    the user's standing rules
+  memory/tbc_errors.log               TBC error popups (written by the server), crash notes
+Reads merge both layers and the learned version wins: a skill or script of the same name, a command record of the
+same key, a lesson or preference of the same id (a learned entry {"id": N, "retired": ...} hides built-in N). Learned
+lessons and preferences get ids from USER_ID_BASE + 1 up, so they never collide with built-in ones.
 
-Everything here is GENERAL TBC knowledge, useful on any job. Facts about one job live in the project knowledge base
-shared with Civil 3D MCP and Project Analyzer (projects.py), never here. Same rules as those tools: add, never
-delete; small one-line entries with ids; duplicate check on add; atomic writes; lessons surface by topic.
+<shared> is the suite's shared folder (shared_root: CIVIL3D_KNOWLEDGE_DIR, else Documents\\Civil3DMcp-KnowledgeBase,
+the same rule as Civil 3D MCP and Project Analyzer; the suite contract is project-analyzer's docs/suite-knowledge.md).
+Three kinds of knowledge, three places: how to drive TBC -> here; facts about one job -> the project database
+(projects.py); engineering practice true on every job -> <shared>\\practices.json (practices.py).
+
+Everything here is GENERAL TBC knowledge, useful on any job, so every writer runs check_general (the job-data guard).
+Same rules as the other tools: add, never delete; small one-line entries with ids; duplicate check on add; atomic
+writes; lessons surface by topic.
 
 TBC VERSIONS: everything here records the TBC release it was verified on (baseline: 2026.10, build 44.0.9666).
 When a newer TBC behaves differently, knowledge is ADDED for that release and never deleted:
@@ -26,16 +39,96 @@ import os
 import re
 import time
 
-ROOT = os.environ.get("TBC_MCP_KNOWLEDGE_DIR") or os.path.normpath(
-    os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "knowledge"))
-SKILLS = os.path.join(ROOT, "skills")
-SCRIPTS = os.path.join(ROOT, "scripts")
-MEMORY = os.path.join(ROOT, "memory", "lessons.jsonl")
-COMMANDS = os.path.join(ROOT, "commands")
+# ---------------------------------------------------------------------------
+# where: the suite's shared folder, the built-in layer (repo) and the learned layer (this PC)
+# ---------------------------------------------------------------------------
+FOLDER_NAME = "Civil3DMcp-KnowledgeBase"
+LEGACY_FOLDER_NAME = "Civil3DMcp"      # Civil 3D MCP's default before 2.2.0
+_migration_checked = [False]
+
+
+def _documents():
+    """The user's Documents folder the way Civil 3D MCP finds it (<home>\\Documents, not a redirected shell folder),
+    so every tool agrees on the default shared folder."""
+    return os.path.join(os.path.expanduser("~"), "Documents")
+
+
+def migrate_legacy_folder(documents=None):
+    """Same as Civil 3D MCP's migrateLegacyKnowledgeFolder: Documents\\Civil3DMcp -> Documents\\Civil3DMcp-KnowledgeBase,
+    once, when only the old one exists. Doing it here keeps TBC from creating an empty new folder that would stop
+    Civil 3D MCP from moving the user's existing knowledge."""
+    documents = documents or _documents()
+    legacy, current = os.path.join(documents, LEGACY_FOLDER_NAME), os.path.join(documents, FOLDER_NAME)
+    if not os.path.isdir(legacy) or os.path.exists(current):
+        return None
+    try:
+        os.rename(legacy, current)
+        return "Knowledge base moved from %s to %s." % (legacy, current)
+    except OSError:
+        return None  # in use or not allowed: the old folder stays intact
+
+
+def shared_dir():
+    """The suite's shared folder, without touching the disk: CIVIL3D_KNOWLEDGE_DIR, else
+    Documents\\Civil3DMcp-KnowledgeBase."""
+    configured = os.environ.get("CIVIL3D_KNOWLEDGE_DIR", "").strip()
+    return configured or os.path.join(_documents(), FOLDER_NAME)
+
+
+def shared_root():
+    """The suite's shared folder (shared_dir), first moving the pre-2.2.0 Documents\\Civil3DMcp there once per run,
+    as Civil 3D MCP does. Called before anything is written into it."""
+    if not os.environ.get("CIVIL3D_KNOWLEDGE_DIR", "").strip() and not _migration_checked[0]:
+        _migration_checked[0] = True
+        migrate_legacy_folder()
+    return shared_dir()
+
+
+# Built-in know-how, shipped in the repository: read only. A module variable, so tests can point it elsewhere.
+BUILTIN_ROOT = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "knowledge"))
+# Learned know-how: TBC_MCP_KNOWLEDGE_DIR, else <shared>\tbc. Everything written at runtime goes here.
+USER_ROOT = os.path.normpath(os.environ.get("TBC_MCP_KNOWLEDGE_DIR") or os.path.join(shared_dir(), "tbc"))
+ROOT = USER_ROOT                       # older name, kept for callers
+SKILLS = os.path.join(USER_ROOT, "skills")
+SCRIPTS = os.path.join(USER_ROOT, "scripts")
+MEMORY = os.path.join(USER_ROOT, "memory", "lessons.jsonl")
+COMMANDS = os.path.join(USER_ROOT, "commands")
+USER_ID_BASE = 100000                  # learned lessons and preferences are numbered from 100001
 
 NAME_RE = re.compile(r"^[A-Za-z0-9_\-]{1,80}$")
 SCRIPT_HEADER = "tbc-script"
 ARCHIVE = os.path.join(SCRIPTS, "_archive")
+
+
+def _same(a, b):
+    return os.path.normcase(os.path.abspath(a)) == os.path.normcase(os.path.abspath(b))
+
+
+def _layers(*parts):
+    """[learned path, built-in path] of a knowledge sub-path, the learned one first (just one when both layers are
+    the same folder, e.g. TBC_MCP_KNOWLEDGE_DIR pointed at the repository's knowledge folder)."""
+    out = [os.path.join(USER_ROOT, *parts)]
+    builtin = os.path.join(BUILTIN_ROOT, *parts)
+    if not _same(builtin, out[0]):
+        out.append(builtin)
+    return out
+
+
+def _builtin(*parts):
+    """A built-in path, or None when the learned layer is the same folder (then there is nothing separate)."""
+    p = os.path.join(BUILTIN_ROOT, *parts)
+    return None if _same(p, os.path.join(USER_ROOT, *parts)) else p
+
+
+def is_learned(path):
+    """True when a file is in the learned layer (this PC), False for a built-in one."""
+    root = os.path.normcase(os.path.abspath(USER_ROOT))
+    return os.path.normcase(os.path.abspath(path)).startswith(root + os.sep)
+
+
+def _layer_name(path):
+    return "learned" if is_learned(path) else "built-in"
+
 
 # ---------------------------------------------------------------------------
 # TBC version the knowledge applies to
@@ -94,6 +187,7 @@ def _write(path, text):
     """Write a knowledge file atomically: a uniquely named temp file in the same folder, then os.replace over the
     target, so a crash (or a second server writing at the same time) never leaves half a file. UTF-8, LF line
     endings."""
+    shared_root()  # the learned layer is usually inside the shared folder: move the pre-2.2.0 folder first
     os.makedirs(os.path.dirname(path), exist_ok=True)
     # unique temp name: two AI chats (two servers) can write the same knowledge folder at once
     tmp = os.path.join(os.path.dirname(path), ".%s.%d.%d.tmp" % (os.path.basename(path), os.getpid(), int(time.time() * 1000)))
@@ -129,8 +223,9 @@ def _score(query, *texts):
 # ---------------------------------------------------------------------------
 # no job data in general knowledge (suite contract, rule 8: no job data in any tool's repository)
 # ---------------------------------------------------------------------------
-# knowledge\ is committed with the repository, so nothing written here may name a job, its folders or files, a
-# project drive or the user's profile. Job facts belong in the shared project notes (projects.py, outside the repo).
+# Know-how is general: the built-in layer is committed with the repository, and learned know-how may be shared or
+# promoted into it, so nothing written here may name a job, its folders or files, a project drive or the user's
+# profile. Job facts belong in the project database (projects.py, outside the repo).
 ALLOWED_PATH_PREFIXES = ("c:\\program files", "c:\\program files (x86)", "c:\\programdata", "c:\\windows")
 # Folder names too generic to identify a job, even when a job's linked folder ends in one
 GENERIC_FOLDER_NAMES = {"survey", "surveys", "project", "projects", "jobs", "job", "drawings", "drawing", "documents",
@@ -144,27 +239,17 @@ _JOB_FILE = re.compile(r"[^\s\\/:*?\"'<>|`]*[A-Za-z0-9_\-)]\.(?:vce|job|jxl)\b",
 
 
 def _job_names(root=None):
-    """Names that identify a job in the shared projects folder: each job's name, its slug, and the last folder name
-    of each linked folder (4+ characters, generic folder names left out). Empty when the folder is missing or
-    unreadable - never raises. root: a shared folder to read instead of the configured one (for the repo audit)."""
+    """Names that identify a job in the shared projects folder (project databases and old JSON notes files): each
+    job's name, its slug, and the last folder name of its analysed folder and of each linked folder (4+ characters,
+    generic folder names left out). Empty when the folder is missing or unreadable - never raises, never writes.
+    root: a shared folder to read instead of the configured one (for the repo audit)."""
     try:
         import projects  # imported here: projects.py imports this module
         names = set()
-        if root:
-            d = os.path.join(root, "projects")
-            jobs = []
-            for fn in (os.listdir(d) if os.path.isdir(d) else []):
-                if fn.endswith(".json"):
-                    try:
-                        jobs.append(projects._load(os.path.join(d, fn)))
-                    except (OSError, ValueError):
-                        pass
-        else:
-            jobs = projects.list_projects()
-        for job in jobs:
+        for job in projects.job_index(root):
             name = str(job.get("name") or "").strip()
-            folders = [f for f in job.get("folders") or [] if isinstance(f, str)]
-            for n in [name, projects.slug(name)] + [os.path.basename(f.rstrip("\\/")) for f in folders]:
+            folders = [f for f in job.get("roots") or [] if isinstance(f, str)]
+            for n in [name, projects.slug(name), job.get("slug") or ""] + [os.path.basename(f.rstrip("\\/")) for f in folders]:
                 n = n.strip()
                 if len(n) >= 4 and n.lower() not in GENERIC_FOLDER_NAMES:
                     names.add(n)
@@ -215,8 +300,8 @@ def check_general(what, *texts):
                                            for t in texts if t))
     if problems:
         raise KnowledgeError(
-            "Not saved: this %s would put job data into TBC's general knowledge, which is kept in the repository and "
-            "shared with every user: %s. Lessons, skills, scripts, command notes and preferences must be GENERAL "
+            "Not saved: this %s would put job data into TBC's general know-how, which holds on every job and may be "
+            "shared with other users: %s. Lessons, skills, scripts, command notes and preferences must be GENERAL "
             "(useful on any job; write 'the project folder', '<project>.vce' or '<project folder>\\Survey' instead of "
             "real names and paths). Record facts about "
             "this job with tbc_project_notes action=add instead (ask the user first)." % (what, "; ".join(problems)))
@@ -249,35 +334,47 @@ def parse_frontmatter(text):
     return meta, "\n".join(lines[i + 1:]).lstrip("\n")
 
 
-def _skill_files():
-    """Yield the path of every *.skill.md under knowledge\\skills, in every category folder."""
-    for dp, _, fns in os.walk(SKILLS):
-        for fn in fns:
-            if fn.endswith(".skill.md"):
-                yield os.path.join(dp, fn)
-
-
 def _skill_info(path):
     """(info, body) for one skill file. info: name, category (frontmatter, else the folder name), description,
-    requires_write, verified, tbc_versions (default: the baseline release) and path, plus version_note when the
-    running TBC isn't a release the skill was verified on."""
+    requires_write, verified, tbc_versions (default: the baseline release), layer (built-in or learned) and path,
+    plus version_note when the running TBC isn't a release the skill was verified on."""
     meta, body = parse_frontmatter(_read(path))
     name = meta.get("name") or os.path.basename(path)[:-len(".skill.md")]
     versions = meta.get("tbc_versions") or [BASELINE_RELEASE]
     info = {"name": name, "category": meta.get("category") or os.path.basename(os.path.dirname(path)),
             "description": meta.get("description", ""), "requires_write": bool(meta.get("requires_write", False)),
-            "verified": meta.get("verified"), "tbc_versions": versions, "path": path}
+            "verified": meta.get("verified"), "tbc_versions": versions, "layer": _layer_name(path), "path": path}
     note = version_note(versions)
     if note:
         info["version_note"] = note
     return info, body
 
 
+def _skills():
+    """[(path, info, body)] of every skill: the learned ones, then the built-in ones whose name (or file name) no
+    learned skill has (the learned version wins)."""
+    out, names, files = [], set(), set()
+    for root in _layers("skills"):
+        found = []
+        for dp, _, fns in os.walk(root):
+            found.extend(os.path.join(dp, fn) for fn in fns if fn.endswith(".skill.md"))
+        layer = []
+        for p in sorted(found):
+            info, body = _skill_info(p)
+            if info["name"] in names or os.path.basename(p) in files:
+                continue
+            layer.append((p, info, body))
+        for p, info, _ in layer:
+            names.add(info["name"])
+            files.add(os.path.basename(p))
+        out.extend(layer)
+    return out
+
+
 def list_skills(category=None):
     """Summaries of every skill, or of one category, without file paths: what tbc_skills action=list returns."""
     out = []
-    for p in sorted(_skill_files()):
-        info, _ = _skill_info(p)
+    for _, info, _ in sorted(_skills(), key=lambda s: (s[1]["category"], s[1]["name"])):
         if category and info["category"] != category:
             continue
         info.pop("path")
@@ -286,9 +383,9 @@ def list_skills(category=None):
 
 
 def _skill_path(name):
-    """Path of the skill whose frontmatter name or file name is `name`, or None."""
-    for p in _skill_files():
-        info, body = _skill_info(p)
+    """Path of the skill whose frontmatter name or file name is `name` (the learned one when both layers have it),
+    or None."""
+    for p, info, _ in _skills():
         if info["name"] == name or os.path.basename(p) == name + ".skill.md":
             return p
     return None
@@ -308,21 +405,23 @@ def read_skill(name):
 
 
 def save_skill(name, category, description, body, requires_write=False, parameters=None, overwrite=False):
-    """Create or replace knowledge\\skills\\<category>\\<name>.skill.md, stamped with the running release
-    (frontmatter tbc_versions plus a banner stating the add-never-delete rule). Refused: an existing skill
-    without overwrite=True, a skill verified on another release (use append_version_section instead), and text
-    that names a job (check_general). Returns {saved, tbc_version}."""
+    """Create or replace <learned>\\skills\\<category>\\<name>.skill.md, stamped with the running release
+    (frontmatter tbc_versions plus a banner stating the add-never-delete rule). Replacing a built-in skill writes a
+    learned one of the same name, which wins from then on; the built-in file is never touched. Refused: an existing
+    skill (either layer) without overwrite=True, a skill verified on another release (use append_version_section
+    instead), and text that names a job (check_general). Returns {saved, tbc_version}."""
     _check_name(name)
     _check_name(category, "category")
     if not body or not body.strip():
         raise KnowledgeError("body is required (markdown: when to use, steps/code, gotchas)")
     check_general("skill", name, category, description, body, parameters)
-    path = os.path.join(SKILLS, category, name + ".skill.md")
+    existing = _skill_path(name)
+    path = existing if existing and is_learned(existing) else os.path.join(SKILLS, category, name + ".skill.md")
     rel = current_release()
-    if os.path.exists(path):
+    if existing:
         if not overwrite:
             raise KnowledgeError("Skill %r already exists; pass overwrite=true to replace it." % name)
-        old = parse_frontmatter(_read(path))[0].get("tbc_versions") or [BASELINE_RELEASE]
+        old = parse_frontmatter(_read(existing))[0].get("tbc_versions") or [BASELINE_RELEASE]
         if rel not in old:
             raise KnowledgeError("Skill %r holds knowledge for TBC %s; this is TBC %s. Do not overwrite it: use "
                                  "action=append_version_section to ADD what is different on %s." % (name, ", ".join(old), rel, rel))
@@ -336,10 +435,12 @@ def save_skill(name, category, description, body, requires_write=False, paramete
 
 def append_version_section(name, body, release=None):
     """ADD a '## TBC <release>' section to a skill (for a TBC release that behaves differently). Never removes the
-    existing sections; records the release in the frontmatter tbc_versions."""
+    existing sections; records the release in the frontmatter tbc_versions. A built-in skill is copied into the
+    learned layer (same category folder) with the section added; the built-in file stays as shipped."""
     p = _skill_path(name)
     if not p:
         raise KnowledgeError("No skill named %r" % name)
+    target = p if is_learned(p) else os.path.join(SKILLS, os.path.relpath(p, os.path.join(BUILTIN_ROOT, "skills")))
     if not body or not body.strip():
         raise KnowledgeError("body is required: what is different on this release")
     check_general("skill section", body)
@@ -354,8 +455,8 @@ def append_version_section(name, body, release=None):
         else:
             text = re.sub(r"^(name: .*)$", r"\1\ntbc_versions: " + json.dumps(versions).replace("\\", "\\\\"), text, count=1, flags=re.M)
     text = text.rstrip("\n") + "\n\n## TBC %s (added %s)\n\n%s\n" % (rel, _now()[:10], body.strip())
-    _write(p, text)
-    return {"appended": "TBC " + rel, "skill": name, "tbc_versions": versions}
+    _write(target, text)
+    return {"appended": "TBC " + rel, "skill": name, "tbc_versions": versions, "saved": target}
 
 
 # ---------------------------------------------------------------------------
@@ -375,38 +476,50 @@ def parse_script(text):
 
 
 def _script_path(name):
-    """knowledge\\scripts\\<name>.py, after checking the name is safe as a file name."""
+    """<learned>\\scripts\\<name>.py (where a script is saved), after checking the name is safe as a file name."""
     _check_name(name)
     return os.path.join(SCRIPTS, name + ".py")
 
 
+def _script_file(name):
+    """The file of a saved script: the learned one, else the built-in one, else None."""
+    _check_name(name)
+    return next((p for p in (os.path.join(d, name + ".py") for d in _layers("scripts")) if os.path.exists(p)), None)
+
+
 def list_scripts():
     """Summary of every saved script (name, description, mode, script_version, tbc_versions, parameter names,
-    version_note). A script whose header can't be read is listed with its error instead of being hidden."""
-    out = []
-    if not os.path.isdir(SCRIPTS):
-        return out
-    for fn in sorted(os.listdir(SCRIPTS)):
-        if fn.endswith(".py"):
+    layer, version_note); a learned script hides the built-in one of the same name. A script whose header can't be
+    read is listed with its error instead of being hidden."""
+    out, seen = [], set()
+    for d in _layers("scripts"):
+        if not os.path.isdir(d):
+            continue
+        for fn in sorted(os.listdir(d)):
+            if not fn.endswith(".py") or fn in seen:
+                continue
+            seen.add(fn)
+            path = os.path.join(d, fn)
             try:
-                meta, _ = parse_script(_read(os.path.join(SCRIPTS, fn)))
+                meta, _ = parse_script(_read(path))
                 rec = {"name": meta.get("name", fn[:-3]), "description": meta.get("description", ""),
                        "mode": meta.get("mode", "read"), "script_version": meta.get("script_version", 1),
                        "tbc_versions": meta.get("tbc_versions") or [BASELINE_RELEASE],
-                       "parameters": [p.get("name") for p in meta.get("parameters", [])]}
+                       "parameters": [p.get("name") for p in meta.get("parameters", [])], "layer": _layer_name(path)}
                 note = version_note(rec["tbc_versions"])
                 if note:
                     rec["version_note"] = note
                 out.append(rec)
             except KnowledgeError as ex:
-                out.append({"name": fn[:-3], "error": str(ex)})
-    return out
+                out.append({"name": fn[:-3], "error": str(ex), "layer": _layer_name(path)})
+    return sorted(out, key=lambda s: s["name"])
 
 
 def read_script(name):
-    """Full text (header and code) of a saved script; KnowledgeError when there's no such script."""
-    p = _script_path(name)
-    if not os.path.exists(p):
+    """Full text (header and code) of a saved script (the learned one when both layers have it); KnowledgeError
+    when there's no such script."""
+    p = _script_file(name)
+    if not p:
         raise KnowledgeError("No script named %r" % name)
     return _read(p)
 
@@ -438,14 +551,17 @@ def _with_meta(text, **changes):
 def save_script(name, text, overwrite=False):
     """Save a script. Versioning: script_version starts at 1 and goes up by one on every overwrite; the previous
     file is kept as scripts/_archive/<name>.v<N>.py (never deleted). tbc_versions lists the TBC releases the
-    script was saved/tested on: saving on a new release adds that release, the old ones stay listed."""
+    script was saved/tested on: saving on a new release adds that release, the old ones stay listed. Always saved
+    in the learned layer; a new version of a built-in script archives the built-in text there and wins from then
+    on (the built-in file is never touched)."""
     p = _script_path(name)
     meta, _ = parse_script(text)
     check_general("script", text)
-    if os.path.exists(p):
+    existing = _script_file(name)
+    if existing:
         if not overwrite:
             raise KnowledgeError("Script %r already exists; pass overwrite=true to save a new version of it." % name)
-        old_text = _read(p)
+        old_text = _read(existing)
         old = parse_script(old_text)[0]
         n = int(old.get("script_version", 1))
         _write(os.path.join(ARCHIVE, "%s.v%d.py" % (name, n)), old_text)
@@ -461,15 +577,23 @@ def save_script(name, text, overwrite=False):
 
 
 def delete_script(name):
-    """Retire a script: it is moved to scripts/_archive (kept for older TBC releases), not destroyed."""
+    """Retire a learned script: it is moved to scripts/_archive (kept for older TBC releases), not destroyed. A
+    built-in script ships with TBC MCP and is refused (save a new version instead); when a learned script hid a
+    built-in one, the built-in one is used again."""
     p = _script_path(name)
     if not os.path.exists(p):
+        if _script_file(name):
+            raise KnowledgeError("Script %r is built in (shipped with TBC MCP), so it can't be retired here. Save a new "
+                                 "version of it instead (tbc_script save overwrite=true)." % name)
         raise KnowledgeError("No script named %r" % name)
     text = _read(p)
     n = int(parse_script(text)[0].get("script_version", 1))
     _write(os.path.join(ARCHIVE, "%s.v%d.retired.py" % (name, n)), text)
     os.remove(p)
-    return {"retired": name, "archived_as": "_archive/%s.v%d.retired.py" % (name, n)}
+    r = {"retired": name, "archived_as": "_archive/%s.v%d.retired.py" % (name, n)}
+    if _script_file(name):
+        r["note"] = "The built-in script of the same name is used again."
+    return r
 
 
 def bind_args(meta, given):
@@ -502,20 +626,45 @@ def bind_args(meta, given):
 # ---------------------------------------------------------------------------
 # memory (lessons learned)
 # ---------------------------------------------------------------------------
-def _lessons():
-    """Every lesson in memory\\lessons.jsonl (one JSON object per line). Blank or unreadable lines are skipped."""
-    if not os.path.exists(MEMORY):
+def _read_jsonl(path):
+    """The JSON objects of a .jsonl file, one per line ([] when it is missing). Blank or unreadable lines are
+    skipped."""
+    if not path or not os.path.exists(path):
         return []
     out = []
-    with open(MEMORY, "r", encoding="utf-8") as f:
+    with open(path, "r", encoding="utf-8-sig") as f:
         for line in f:
             line = line.strip()
             if line:
                 try:
-                    out.append(json.loads(line))
+                    rec = json.loads(line)
                 except ValueError:
-                    pass
+                    continue
+                if isinstance(rec, dict):
+                    out.append(rec)
     return out
+
+
+def _merge_by_id(builtin, learned):
+    """Built-in entries, then learned ones: a learned entry with a built-in id replaces it (in place), and one with
+    'retired' set hides it. Retired entries are left out."""
+    merged, order = {}, []
+    for rec in list(builtin) + list(learned):
+        key = rec.get("id")
+        if key not in merged:
+            order.append(key)
+        merged[key] = rec
+    return [merged[k] for k in order if not merged[k].get("retired")]
+
+
+def _lessons():
+    """Every current lesson: the built-in memory\\lessons.jsonl merged with the learned one."""
+    return _merge_by_id(_read_jsonl(_builtin("memory", "lessons.jsonl")), _read_jsonl(MEMORY))
+
+
+def _next_user_id(entries):
+    """The next id for a learned lesson or preference: above USER_ID_BASE and above every learned id."""
+    return max([USER_ID_BASE] + [e.get("id") for e in entries if isinstance(e.get("id"), int)]) + 1
 
 
 def add_lesson(text, topic=None, tags=None):
@@ -531,9 +680,10 @@ def add_lesson(text, topic=None, tags=None):
     duplicate = next((l for l in ls if l.get("text", "").strip().lower() == text.strip().lower()), None)
     if duplicate:
         return dict(duplicate, action="unchanged", note="That lesson is already recorded.")
-    lid = max([l.get("id", 0) for l in ls] + [0]) + 1
+    lid = _next_user_id(_read_jsonl(MEMORY))
     rec = {"id": lid, "ts": _now(), "topic": (topic or "general").strip().lower(), "tags": tags or [], "text": text.strip(),
            "tbc_version": current_release()}
+    shared_root()  # the learned layer is usually inside the shared folder: move the pre-2.2.0 folder first
     os.makedirs(os.path.dirname(MEMORY), exist_ok=True)
     with open(MEMORY, "a", encoding="utf-8", newline="\n") as f:
         f.write(json.dumps(rec, ensure_ascii=False) + "\n")
@@ -556,7 +706,7 @@ def lessons_relevant_to(text, limit=6):
     out = []
     for l in _lessons():
         topic = (l.get("topic") or "").lower()
-        if topic in words and os.path.exists(_cmd_path(topic)):
+        if topic in words and _cmd_file(topic):
             rec = {"id": l["id"], "topic": l.get("topic"), "text": l["text"], "tbc_version": l.get("tbc_version", BASELINE_RELEASE)}
             if rec["tbc_version"] != current_release():
                 rec["version_note"] = "Learned on TBC %s; this TBC is %s. Check it still applies." % (rec["tbc_version"], current_release())
@@ -568,32 +718,46 @@ def lessons_relevant_to(text, limit=6):
 
 def delete_lesson(lid):
     """Delete a lesson that turned out to be WRONG on its own release. A lesson recorded on another TBC release is
-    never deleted (it is still true there): add a new lesson for the current release instead."""
-    ls = _lessons()
-    keep = [l for l in ls if l.get("id") != int(lid)]
-    if len(keep) == len(ls):
+    never deleted (it is still true there): add a new lesson for the current release instead. A learned lesson is
+    removed from the learned file; a built-in one is hidden by a learned {"id", "retired"} entry (the repository's
+    file is never changed)."""
+    lid = int(lid)
+    gone = next((l for l in _lessons() if l.get("id") == lid), None)
+    if not gone:
         raise KnowledgeError("No lesson with id %s" % lid)
-    gone = [l for l in ls if l.get("id") == int(lid)][0]
     if gone.get("tbc_version", BASELINE_RELEASE) != current_release():
         raise KnowledgeError("Lesson %s was recorded on TBC %s (this is %s). Keep it; add a lesson for %s with what "
                              "is different." % (lid, gone.get("tbc_version", BASELINE_RELEASE), current_release(), current_release()))
+    keep = [l for l in _read_jsonl(MEMORY) if l.get("id") != lid]
+    if any(l.get("id") == lid for l in _read_jsonl(_builtin("memory", "lessons.jsonl"))):
+        keep.append({"id": lid, "retired": _now()})
     _write(MEMORY, "".join(json.dumps(l, ensure_ascii=False) + "\n" for l in keep))
-    return {"deleted": int(lid)}
+    return {"deleted": lid}
 
 
 # ---------------------------------------------------------------------------
 # remembered command panels
 # ---------------------------------------------------------------------------
+def _cmd_name(key):
+    """<key>.json for a TBC command key (lowercased; characters unsafe in file names replaced by '_')."""
+    return re.sub(r"[^A-Za-z0-9_\-.]", "_", key.lower()) + ".json"
+
+
 def _cmd_path(key):
-    """knowledge\\commands\\<key>.json for a TBC command key (lowercased; characters unsafe in file names replaced
-    by '_')."""
-    return os.path.join(COMMANDS, re.sub(r"[^A-Za-z0-9_\-.]", "_", key.lower()) + ".json")
+    """<learned>\\commands\\<key>.json: where a command's record is written."""
+    return os.path.join(COMMANDS, _cmd_name(key))
+
+
+def _cmd_file(key):
+    """The file of a command's record: the learned one, else the built-in one, else None."""
+    return next((p for p in (os.path.join(d, _cmd_name(key)) for d in _layers("commands")) if os.path.exists(p)), None)
 
 
 def get_command(key):
-    """The remembered panel layout and notes of a command, or None when there are none or the file can't be read."""
-    p = _cmd_path(key)
-    if os.path.exists(p):
+    """The remembered panel layout and notes of a command (the learned record when both layers have one), or None
+    when there are none or the file can't be read."""
+    p = _cmd_file(key)
+    if p:
         try:
             return json.loads(_read(p))
         except ValueError:
@@ -671,59 +835,72 @@ def remembered_for_command(key):
 # ---------------------------------------------------------------------------
 # user preferences (standing rules; injected into the server instructions for every AI)
 # ---------------------------------------------------------------------------
-PREFS = os.path.join(ROOT, "preferences.json")
+PREFS = os.path.join(USER_ROOT, "preferences.json")  # the learned preferences (written here)
+
+
+def _read_prefs(path):
+    """A preferences.json (a JSON list of {id, topic, text, added, updated?}); [] when it is missing or unreadable."""
+    if not path or not os.path.exists(path):
+        return []
+    try:
+        data = json.loads(_read(path))
+    except ValueError:
+        return []
+    return [p for p in data if isinstance(p, dict)] if isinstance(data, list) else []
 
 
 def list_prefs():
-    """The user's preferences from preferences.json (a JSON list of {id, topic, text, added, updated?}); [] when the
-    file is missing or unreadable."""
-    if not os.path.exists(PREFS):
-        return []
-    try:
-        return json.loads(_read(PREFS))
-    except ValueError:
-        return []
+    """The user's preferences: the built-in preferences.json merged with the learned one (a learned entry with a
+    built-in id replaces it; one with 'retired' hides it)."""
+    return _merge_by_id(_read_prefs(_builtin("preferences.json")), _read_prefs(PREFS))
 
 
 def add_pref(text, topic=None):
-    """Add a standing rule from the user. The same text, in any case, returns the existing preference
-    (action='unchanged'); text that names a job is refused (check_general)."""
+    """Add a standing rule from the user (to the learned preferences). The same text, in any case, returns the
+    existing preference (action='unchanged'); text that names a job is refused (check_general)."""
     if not text or not text.strip():
         raise KnowledgeError("text is required")
     check_general("preference", text, topic)
-    ps = list_prefs()
-    duplicate = next((p for p in ps if p.get("text", "").strip().lower() == text.strip().lower()), None)
+    duplicate = next((p for p in list_prefs() if p.get("text", "").strip().lower() == text.strip().lower()), None)
     if duplicate:
         return dict(duplicate, action="unchanged", note="That preference already exists.")
-    pid = max([p.get("id", 0) for p in ps] + [0]) + 1
-    rec = {"id": pid, "topic": (topic or "general").strip().lower(), "text": text.strip(), "added": _now()}
-    ps.append(rec)
-    _write(PREFS, json.dumps(ps, indent=1, ensure_ascii=False))
+    learned = _read_prefs(PREFS)
+    rec = {"id": _next_user_id(learned), "topic": (topic or "general").strip().lower(), "text": text.strip(), "added": _now()}
+    learned.append(rec)
+    _write(PREFS, json.dumps(learned, indent=1, ensure_ascii=False))
     return rec
 
 
 def update_pref(pid, text):
-    """Replace a preference's text and stamp 'updated'. Text that names a job is refused; KnowledgeError for an
-    unknown id."""
+    """Replace a preference's text and stamp 'updated'. A built-in preference gets a learned copy with the new text
+    (same id), which wins. Text that names a job is refused; KnowledgeError for an unknown id."""
     check_general("preference", text)
-    ps = list_prefs()
-    for p in ps:
-        if p.get("id") == int(pid):
-            p["text"] = text.strip()
-            p["updated"] = _now()
-            _write(PREFS, json.dumps(ps, indent=1, ensure_ascii=False))
-            return p
-    raise KnowledgeError("No preference with id %s" % pid)
+    pid = int(pid)
+    current = next((p for p in list_prefs() if p.get("id") == pid), None)
+    if not current:
+        raise KnowledgeError("No preference with id %s" % pid)
+    learned = _read_prefs(PREFS)
+    entry = next((p for p in learned if p.get("id") == pid), None)
+    if entry is None:
+        entry = dict(current)
+        learned.append(entry)
+    entry["text"] = text.strip()
+    entry["updated"] = _now()
+    _write(PREFS, json.dumps(learned, indent=1, ensure_ascii=False))
+    return entry
 
 
 def remove_pref(pid):
-    """Delete a preference the user has retracted; KnowledgeError for an unknown id."""
-    ps = list_prefs()
-    keep = [p for p in ps if p.get("id") != int(pid)]
-    if len(keep) == len(ps):
+    """Remove a preference the user has retracted: a learned one is deleted, a built-in one is hidden by a learned
+    {"id", "retired"} entry. KnowledgeError for an unknown id."""
+    pid = int(pid)
+    if not any(p.get("id") == pid for p in list_prefs()):
         raise KnowledgeError("No preference with id %s" % pid)
+    keep = [p for p in _read_prefs(PREFS) if p.get("id") != pid]
+    if any(p.get("id") == pid for p in _read_prefs(_builtin("preferences.json"))):
+        keep.append({"id": pid, "retired": _now()})
     _write(PREFS, json.dumps(keep, indent=1, ensure_ascii=False))
-    return {"removed": int(pid)}
+    return {"removed": pid}
 
 
 def prefs_text():
@@ -733,7 +910,7 @@ def prefs_text():
     if not ps:
         return ""
     return "USER PREFERENCES (standing rules from the user - always follow them):\n" + "\n".join(
-        "- [%s] %s" % (p["topic"], p["text"]) for p in ps)
+        "- [%s] %s" % (p.get("topic", "general"), p.get("text", "")) for p in ps)
 
 
 # ---------------------------------------------------------------------------
@@ -746,8 +923,7 @@ def search(query, kinds=None, limit=15):
     kinds = kinds or ["skill", "script", "lesson", "command"]
     hits = []
     if "skill" in kinds:
-        for p in _skill_files():
-            info, body = _skill_info(p)
+        for p, info, body in _skills():
             s = _score(query, info["name"], info["name"], info["description"], info["category"], body)
             if s:
                 h = {"type": "skill", "name": info["name"], "category": info["category"],
@@ -766,11 +942,20 @@ def search(query, kinds=None, limit=15):
             if s:
                 hits.append((s, {"type": "lesson", "id": l["id"], "topic": l["topic"], "text": l["text"],
                                  "tbc_version": l.get("tbc_version", BASELINE_RELEASE)}))
-    if "command" in kinds and os.path.isdir(COMMANDS):
-        for fn in os.listdir(COMMANDS):
+    if "command" in kinds:
+        seen = set()
+        records = []
+        for d in _layers("commands"):
+            for fn in (sorted(os.listdir(d)) if os.path.isdir(d) else []):
+                if fn.endswith(".json") and fn not in seen:  # the learned record of a command wins
+                    seen.add(fn)
+                    records.append(os.path.join(d, fn))
+        for path in records:
             try:
-                rec = json.loads(_read(os.path.join(COMMANDS, fn)))
+                rec = json.loads(_read(path))
             except Exception:
+                continue
+            if not isinstance(rec, dict) or not rec.get("key"):
                 continue
             labels = " ".join((f.get("label") or "") for f in rec.get("fields", []))
             notes = " ".join(n["text"] for n in rec.get("notes", []))

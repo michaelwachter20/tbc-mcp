@@ -1,6 +1,6 @@
 # Written for and verified on Trimble Business Center 2026.10 (build 44.0.9666.28609). For a newer release, ADD handling for it and keep the 2026.10 behaviour (see README > TBC versions).
 """
-Trimble Business Center MCP server (stdio, no third-party dependencies).
+Trimble Business Center MCP server (stdio; standard library plus zstandard, which reads the project database's text).
 
 Forwards MCP tool calls to the TbcMcpBridge macro running inside TBC and
 offers an offline search over the TBC SDK XML documentation.
@@ -8,7 +8,8 @@ offers an offline search over the TBC SDK XML documentation.
 WHAT THIS FILE IS
   The process an AI client (Claude Code, Claude Desktop, any MCP client) starts and talks to. It is the only part
   of TBC MCP the AI sees: it publishes the tool list (TOOLS), the server instructions (INSTRUCTIONS) and runs every
-  tool call. Python 3.12, standard library only (README: Python 3.15 failed inside its own html.parser).
+  tool call. Python 3.12, standard library plus the zstandard package (README: Python 3.15 failed inside its own
+  html.parser). Without zstandard everything works except showing text stored in a project database.
 
 ARCHITECTURE
   AI client
@@ -27,9 +28,13 @@ ARCHITECTURE
       license.py, import_export.py). They are read from disk on every call, so editing them needs no macro
       reinstall.
     - small inline snippets (the *_CODE constants in this file) for one-off lookups.
-  Local knowledge lives in sibling modules: knowledge.py (K: skills, lessons, scripts, recorded panel layouts and
-  preferences under knowledge/), projects.py (P: per-job notes shared with Civil 3D MCP and Project Analyzer),
-  tbc_help.py (HELP: TBC's installed HTML help, read offline).
+  Local knowledge lives in sibling modules, one per kind of knowledge (project-analyzer's docs/suite-knowledge.md):
+    knowledge.py (K)   how to drive TBC: skills, lessons, scripts, recorded panel layouts and preferences; built-ins
+                       in the repo's knowledge/ (read only), everything learned in TBC_MCP_KNOWLEDGE_DIR or <shared>/tbc
+    projects.py (P)    one job: the suite's project database <shared>/projects/<slug>.db (SQLite), shared with
+                       Civil 3D MCP and Project Analyzer
+    practices.py (PR)  engineering practice true on every job: <shared>/practices.json, shared by the suite
+    tbc_help.py (HELP) TBC's installed HTML help, read offline
 
 HOW THE BRIDGE IS FOUND
   When the user clicks Macros > MCP > 'MCP Bridge' in TBC, the macro binds a loopback port (47821, or one of the
@@ -52,7 +57,7 @@ SECTIONS (in file order)
   6. License profile (tbc_license, license flags on knowledge), then running TBC release (tbc_version),
      bridge_status and tbc_preferences
   7. Project knowledge shared with Civil 3D MCP and Project Analyzer: active project path, project notes,
-     project_info, execute_python, tbc_project_notes, tbc_memory
+     project_info, execute_python, tbc_project_notes, tbc_practices, tbc_memory
   8. SDK documentation search (offline, Macros SDK XML files)
   9. Tool definitions: TOOLS, TOOL_MAP, INSTRUCTIONS
  10. MCP JSON-RPC over stdio: send, handle, RpcError, watch_tbc (the watchdog), respond, _work, main
@@ -61,6 +66,7 @@ LIFE CYCLE
   main() starts the watchdog thread (unless TBC_MCP_EXIT_WITH_TBC=0 or TBC_MCP_PORT is set), then reads stdin
   line by line until the client closes it:
     initialize -> protocol version, capabilities, INSTRUCTIONS plus the user's standing preferences (K.prefs_text())
+                  and the suite's good practices (PR.practices_text())
     tools/list -> TOOLS as MCP tool objects (name, description, inputSchema, annotations)
     tools/call -> TOOL_MAP[name][3](arguments). BridgeError / K.KnowledgeError become isError results carrying the
                   message text (written for the AI to read); any other exception also becomes an isError result
@@ -93,12 +99,14 @@ Environment variables (all optional):
   TBC_SDK_DOCS      folder with the SDK *.xml docs (default C:\\Program Files (x86)\\Trimble\\Macros SDK)
   TBC_MCP_ALLOW_PYTHON  set to 0 to hide the execute_python tool
   TBC_MCP_EXIT_WITH_TBC set to 0 to keep running after TBC closes (default: exit when TBC exits/crashes)
-  CIVIL3D_KNOWLEDGE_DIR shared project knowledge base (default Documents\\Civil3DMcp-KnowledgeBase, as Civil 3D MCP)
+  CIVIL3D_KNOWLEDGE_DIR the suite's shared folder: project databases, practices.json and (by default) TBC's learned
+                    know-how in its tbc\\ folder (default Documents\\Civil3DMcp-KnowledgeBase, as Civil 3D MCP)
 Also read further down in this file:
   TBC_MCP_IDLE_TIMEOUT  longest wait for Compute Project in wait_idle, seconds (default 900)
   TBC_MCP_COMMAND_GAP   minimum seconds between command launches in pace_command (default 2.5)
   TBC_MCP_USER_DIR      private per-user folder for license profiles (default %LOCALAPPDATA%\\TBC-MCP)
-Read by the sibling modules: TBC_MCP_KNOWLEDGE_DIR (knowledge.py), TBC_HELP_DIR (tbc_help.py).
+Read by the sibling modules: TBC_MCP_KNOWLEDGE_DIR (knowledge.py: the folder for learned know-how, default
+<shared>\\tbc), TBC_HELP_DIR (tbc_help.py).
 """
 import glob
 import itertools
@@ -114,10 +122,11 @@ import time
 import xml.etree.ElementTree as ET
 
 # The MCP client starts this file as a script (mcp_config_example.json: py -3.12 ...\tbc_mcp_server.py), not as a package, so
-# put its own folder on sys.path to import the sibling modules knowledge.py, projects.py and tbc_help.py.
+# put its own folder on sys.path to import the sibling modules knowledge.py, projects.py, practices.py, tbc_help.py.
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import knowledge as K  # noqa: E402
 import projects as P  # noqa: E402
+import practices as PR  # noqa: E402
 import tbc_help as HELP  # noqa: E402
 
 # ---------------------------------------------------------------------------
@@ -128,7 +137,7 @@ IPY_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ipy")
 
 # Reported to the client in the initialize answer (serverInfo)
 SERVER_NAME = "tbc-mcp"
-SERVER_VERSION = "0.3.0"
+SERVER_VERSION = "0.4.0"
 # MCP protocol revisions this server answers with; the first is used when the client asks for one not listed
 SUPPORTED_PROTOCOLS = ["2025-06-18", "2025-03-26", "2024-11-05"]
 
@@ -238,7 +247,7 @@ def bridge_endpoint():
                 pass
             raise BridgeError("TBC is not running (it closed or crashed). Start TBC, open a project and click "
                               "Macros > MCP > 'MCP Bridge'.")
-        P.add_private(info["token"], "the bridge's session token")  # never into shared project notes
+        P.add_private(info["token"], "the bridge's session token")  # never into shared facts or practices
         return int(info["port"]), info["token"]
     except BridgeError:
         raise
@@ -378,9 +387,9 @@ def check_license(key):
 # Substrings of a popup's title + message that mark a TBC progress window ("comput" matches Compute Project /
 # Computing the project, "recalculat" matches recalculate / recalculating)
 BUSY_WORDS = ("comput", "processing", "progress", "please wait", "loading", "calculating", "recalculat")
-# TBC error popups are appended here (knowledge/memory/tbc_errors.log; git-ignored, see .gitignore) so they can be
-# investigated later. K.ROOT follows TBC_MCP_KNOWLEDGE_DIR.
-ERROR_LOG = os.path.join(K.ROOT, "memory", "tbc_errors.log")
+# TBC error popups are appended here (memory/tbc_errors.log in the learned know-how folder K.USER_ROOT, never in the
+# repository) so they can be investigated later.
+ERROR_LOG = os.path.join(K.USER_ROOT, "memory", "tbc_errors.log")
 
 
 def is_busy_dialog(d):
@@ -417,6 +426,7 @@ def log_tbc_error(d, context=""):
     "tbc_import"). Side effect: creates the memory folder if needed and writes to the local log file. TBC is not
     touched.
     """
+    K.shared_root()  # the learned folder is usually inside the shared folder: move the pre-2.2.0 folder first
     os.makedirs(os.path.dirname(ERROR_LOG), exist_ok=True)
     with open(ERROR_LOG, "a", encoding="utf-8") as f:
         f.write("%s  [%s] %s\n%s\n\n" % (time.strftime("%Y-%m-%d %H:%M:%S"), context, d.get("title"), d.get("message")))
@@ -821,7 +831,8 @@ def t_command_ui_open(a):
     recorded for this command), "project_notes" (first time per project), "note" when nothing appeared, or
     {"not_licensed": True, "license_problem", "auto_dismissed"} if TBC still showed a license popup.
     Side effects: opens a command in TBC (left open for command_ui_fill / _close); records the panel layout to
-    knowledge/commands/<key>.json (K.record_command); on a license popup closes it and every open command.
+    commands/<key>.json of the learned know-how folder (K.record_command); on a license popup closes it and every
+    open command.
     Also used internally by t_create_points, t_export and t_import.
     """
     key = a["key"]
@@ -876,7 +887,7 @@ def t_command_ui_open(a):
     if ds:
         st["dialogs"] = ds
     if st.get("command"):
-        # Learn the panel layout (knowledge/commands/<key>.json) and hand back what earlier sessions noted
+        # Learn the panel layout (commands/<key>.json, learned folder) and hand back what earlier sessions noted
         K.record_command(st)
         mem = K.remembered_for_command(st["command"]["key"])
         if mem:
@@ -1168,23 +1179,25 @@ def t_tbc_dialogs(a):
 # saved scripts inside TBC. The object handlers (delete_entities, get_entity, create_points) and the offline
 # help tool (tbc_help) follow in their own sub-sections. (tbc_memory and tbc_preferences are further down.)
 def t_skills(a):
-    """Tool tbc_skills: the knowledge base of documented how-tos (knowledge/skills/**/*.skill.md).
+    """Tool tbc_skills: documented how-tos (skills/**/*.skill.md: built-ins in knowledge/, learned ones in K.USER_ROOT).
 
     a: {"action": "list" (default) | "search" | "read" | "save" | "append_version_section", plus per action:
         category (list/save), query + kinds + limit (search), name (read/save/append), description, body,
         requires_write, parameters, overwrite (save), release (append_version_section)}.
-    list:   {"knowledge_dir", "skills"} (local only).
+    list:   {"knowledge_dirs", "skills"} (local only; each skill says its layer: built-in or learned).
     search: K.search across skills, scripts, lessons and recorded panels, annotated with license flags.
     read:   the skill's markdown text; prefixed with a NOTE when it mentions commands (in `backticks`) that this
             user's license lacks.
     save / append_version_section: written by knowledge.py (a skill from another TBC release cannot be
             overwritten; append adds a '## TBC <release>' section). The running TBC release is looked up first
             (tbc_version) so the new text is stamped with it; without TBC, K.current_release() decides.
-    Raises K.KnowledgeError for bad names / actions. Writes files under knowledge/ for save and append.
+    Raises K.KnowledgeError for bad names / actions. Writes files in the learned folder (K.USER_ROOT) for save and
+    append; the built-ins in knowledge/ are never written.
     """
     act = a.get("action", "list")
     if act == "list":
-        return {"knowledge_dir": K.ROOT, "skills": K.list_skills(a.get("category"))}
+        return {"knowledge_dirs": {"built-in": K.BUILTIN_ROOT, "learned": K.USER_ROOT},
+                "skills": K.list_skills(a.get("category"))}
     if act == "search":
         return {"results": annotate_license(K.search(a["query"], a.get("kinds"), int(a.get("limit", 15))))}
     if act == "read":
@@ -1231,7 +1244,7 @@ def _compile_check(code):
 
 
 def t_script(a):
-    """Tool tbc_script: saved, reusable IronPython scripts (knowledge/scripts/<name>.py) that run inside TBC.
+    """Tool tbc_script: saved, reusable IronPython scripts (scripts/<name>.py, built-in or learned) that run in TBC.
 
     a: {"action": "list" (default) | "read" | "save" | "run" | "delete", "name", "description",
         "mode": "read" | "write", "parameters": [{name, type, required, default, description}], "code",
@@ -1250,7 +1263,7 @@ def t_script(a):
     """
     act = a.get("action", "list")
     if act == "list":
-        return {"knowledge_dir": K.ROOT, "scripts": K.list_scripts()}
+        return {"knowledge_dirs": {"built-in": K.BUILTIN_ROOT, "learned": K.USER_ROOT}, "scripts": K.list_scripts()}
     if act == "read":
         return K.read_script(a["name"])
     if act == "delete":
@@ -1714,7 +1727,7 @@ def license_profile(refresh=False):
     if _lic["profile"] is not None and not refresh and now - _lic["checked"] < 600:
         return _lic["profile"]
     fp = run_ipy("license", "fingerprint", {})["fingerprint"]
-    P.add_private(fp, "a license detail")  # license data never goes into shared project notes
+    P.add_private(fp, "a license detail")  # license data never goes into shared facts or practices
     path = os.path.join(LICENSE_DIR, fp + ".json")
     prof = None
     if os.path.exists(path) and not refresh:
@@ -1912,7 +1925,8 @@ def t_bridge_status(a):
 
 
 def t_preferences(a):
-    """Tool tbc_preferences: the user's standing rules (knowledge/preferences.json, via knowledge.py).
+    """Tool tbc_preferences: the user's standing rules (built-in knowledge/preferences.json merged with the learned
+    preferences.json, via knowledge.py).
 
     a: {"action": "list" (default) | "add" | "update" | "remove", "text", "topic", "id"}.
     Local only, TBC is not touched. The preferences are appended to INSTRUCTIONS in every initialize answer
@@ -1920,7 +1934,8 @@ def t_preferences(a):
     """
     act = a.get("action", "list")
     if act == "list":
-        return {"preferences": K.list_prefs(), "file": K.PREFS}
+        return {"preferences": K.list_prefs(), "file": K.PREFS,
+                "note": "Built-in preferences ship with TBC MCP; the user's own are kept in 'file' and win over them."}
     if act == "add":
         return K.add_pref(a["text"], a.get("topic"))
     if act == "update":
@@ -1964,13 +1979,13 @@ def remember_active_path(path):
 
 
 def with_project_notes(result, path=None):
-    """Adds the open project's shared notes to a result, once per project per server run.
+    """Adds a short overview of the open project's job (project database) to a result, once per project per server run.
 
     result: a tool result; only dicts are touched (anything else is returned as is).
     path:   the .vce path if the caller already knows it, else active_project_path() is used.
-    Adds "project_notes" (from P.notes_once: the job's notes, files folder and files, with a hint) the first
+    Adds "project_notes" (from P.notes_once: a short overview of the job's project database) the first
     time a job is seen in this server run; later calls add nothing. Called from project_info, command_ui_open
-    and execute_python results, so the AI meets the job's notes early without asking.
+    and execute_python results, so the AI meets the job's facts early without asking.
     Never raises (notes are advice); may cost one bridge call (active_project_path).
     """
     if not isinstance(result, dict):
@@ -2015,48 +2030,86 @@ def t_execute_python(a):
     return r
 
 
-def t_project_notes(a):
-    """Tool tbc_project_notes: one job's notes and files in the project knowledge base shared with Civil 3D MCP
-    and Project Analyzer (projects.py; folder from CIVIL3D_KNOWLEDGE_DIR).
+PROJECT_ACTIONS = ("list", "overview", "search", "file", "entity", "timeline", "locate", "link", "unlink", "add",
+                   "update", "remove", "files", "read")
 
-    a: {"action": "list" (default) | "link" | "unlink" | "add" | "update" | "remove" | "files" | "read" |
-        "locate", "project": job name (omit = the job the open .vce belongs to), "folder", "note", "id",
-        "file", "path", "max_chars"}.
-    Which job: a named project is used as is (no TBC call), except for link, where the open .vce's folder is
-    the default folder; otherwise the open project's path is fetched fresh from TBC and matched by folder.
-    Each action is one projects.py call (see there for rules: only TBC's own notes may be updated/removed,
-    private values such as the bridge token and license fingerprint are refused, reference formats).
-    Writes local shared-knowledge files for link/unlink/add/update/remove. Raises K.KnowledgeError.
+
+def t_project_notes(a):
+    """Tool tbc_project_notes: one job in the suite's project database shared with Civil 3D MCP and Project
+    Analyzer (projects.py; <shared>\\projects\\<slug>.db, <shared> from CIVIL3D_KNOWLEDGE_DIR).
+
+    a: {"action": one of PROJECT_ACTIONS (default list), "project": job name (omit = the job the open .vce belongs
+        to), plus per action: query + limit (search), file + max_chars (file, read), name (entity), from / to
+        (timeline), path (locate), folder (link, unlink), note + topics + date + key + confidence + supersedes +
+        source (add; update takes note and the same optional fields), id (update, remove), limit (list)}.
+    Which job: a named project is used as is (no TBC call), except for link and add, where the open .vce gives the
+    default folder and the fact's source; otherwise the open project's path is fetched fresh from TBC and matched by
+    folder. Each action is one projects.py call (see there for the rules: TBC changes only its own facts and
+    folders, private values such as the bridge token and license fingerprint are refused, reference formats).
+    Writes the project database for link/unlink/add/update/remove. Raises K.KnowledgeError.
     """
     act = a.get("action", "list")
     name = a.get("project")
+    if act not in PROJECT_ACTIONS:
+        raise K.KnowledgeError("action must be one of: %s" % ", ".join(PROJECT_ACTIONS))
     if act == "unlink":
         return P.unlink(name, a.get("folder"))
-    # a named project needs no TBC; otherwise the project open in TBC picks it (link: its folder is the default)
-    path = None if name and act != "link" else active_project_path(refresh=True)
+    # a named project needs no TBC; otherwise the project open in TBC picks it (link: its folder is the default;
+    # add: the open project is the fact's source)
+    path = None if name and act not in ("link", "add") else active_project_path(refresh=True)
     if act == "list":
-        return P.list_notes(name, path)
+        return P.list_notes(name, path, int(a.get("limit", 100)))
+    if act == "overview":
+        return P.overview(name, path)
+    if act == "search":
+        return P.search(a.get("query"), name, path, int(a.get("limit", 20)))
+    if act == "file":
+        return P.file_info(a.get("file"), name, path, int(a.get("max_chars", P.FILE_TEXT_CHARS)))
+    if act == "entity":
+        return P.entity(a.get("name"), name, path, int(a.get("limit", 50)))
+    if act == "timeline":
+        return P.timeline(name, path, a.get("from"), a.get("to"), int(a.get("limit", 200)))
+    if act == "locate":
+        return P.locate(a.get("path"), name, path)
     if act == "link":
         if not name:
             raise K.KnowledgeError("project (a name) is required to link a folder")
         return P.link(name, a.get("folder"), path)
+    fields = {k: a.get(k) for k in ("topics", "date", "key", "confidence")}
     if act == "add":
-        return P.add_note(a.get("note"), name, path)
+        return P.add_note(a.get("note"), name, path, supersedes=a.get("supersedes"), source=a.get("source"), **fields)
     if act == "update":
-        return P.update_note(a.get("id"), a.get("note"), name, path)
+        return P.update_note(a.get("id"), a.get("note"), name, path, **fields)
     if act == "remove":
         return P.remove_note(a.get("id"), name, path)
     if act == "files":
         return P.project_files(name, path)
-    if act == "read":
-        return P.read_file(a.get("file"), name, path, int(a.get("max_chars", P.MAX_READ_CHARS)))
-    if act == "locate":
-        return P.locate(a.get("path"), name, path)
-    raise K.KnowledgeError("action must be list, link, unlink, add, update, remove, files, read or locate")
+    return P.read_file(a.get("file"), name, path, int(a.get("max_chars", P.MAX_READ_CHARS)))  # read
+
+
+def t_practices(a):
+    """Tool tbc_practices: good practices shared by the suite (<shared>\\practices.json, practices.py).
+
+    a: {"action": "list" (default) | "search" | "add" | "update" | "remove", "query", "text", "topics", "id",
+        "include_retired" (list), "limit" (search)}. Only practices with source "tbc" can be updated or removed
+    (remove sets "retired"). Local file only, TBC is not touched. Raises K.KnowledgeError.
+    """
+    act = a.get("action", "list")
+    if act == "list":
+        return PR.list_practices(bool(a.get("include_retired")))
+    if act == "search":
+        return PR.search(a.get("query"), int(a.get("limit", 20)))
+    if act == "add":
+        return PR.add(a.get("text"), a.get("topics"))
+    if act == "update":
+        return PR.update(a.get("id"), a.get("text"), a.get("topics"))
+    if act == "remove":
+        return PR.remove(a.get("id"))
+    raise K.KnowledgeError("action must be list, search, add, update or remove")
 
 
 def t_memory(a):
-    """Tool tbc_memory: general lessons learned about TBC (knowledge/memory/lessons.jsonl, via knowledge.py).
+    """Tool tbc_memory: general lessons learned about TBC (memory/lessons.jsonl, built-in and learned, via knowledge.py).
 
     a: {"action": "list" (default) | "add" | "search" | "delete", "text", "topic", "command", "tags",
         "query", "id", "limit" (search, 20)}.
@@ -2218,7 +2271,7 @@ TOOLS = [
      obj({}), t_bridge_status, {"readOnlyHint": True}),
     # project_info -> t_project_info: bridge h_project_info; also caches the .vce path and adds project_notes once
     ("project_info", "Summary of the project open in TBC: name, file, display units, point/layer counts, modified flag. "
-     "The first time per project it also returns the job's shared project notes (project_notes), if any.",
+     "The first time per project it also returns a short overview of the job's shared project database (project_notes), if any.",
      obj({}), t_project_info, {"readOnlyHint": True}),
     # list_entities -> bridge h_list_entities directly (walks the WorldView container tree; paging via limit/offset)
     ("list_entities", "List graphical objects in the project (recursively through containers) with serial, type, name and layer. "
@@ -2331,7 +2384,7 @@ FIELD_VALUES = {"description": "Fields to fill, IN ORDER. Either an object {labe
 TOOLS += [
     # --- TBC command panels (the panel engine mcp_server/ipy/command_ui.py, run inside TBC) ---
     # command_ui_open -> t_command_ui_open: license/danger checks, idle wait, pacing, waits for the panel to settle,
-    # records the layout to knowledge/commands/ (the only "write" is to the local knowledge base and opening a panel)
+    # records the layout to commands/ in the learned folder (the only "write" is to local know-how and opening a panel)
     ("command_ui_open", "Start a TBC command (key from list_commands) and return its panel: every field with its "
      "on-screen label, current value, dropdown options, and the buttons. Also returns what was remembered about this "
      "command from earlier sessions, and records the panel layout to the knowledge base.",
@@ -2490,77 +2543,107 @@ TOOLS += [
           "limit": {"type": "integer", "default": 15}, "max_chars": {"type": "integer", "default": 6000}}),
      t_help, {"readOnlyHint": True}),
     # --- The user's rules and memory (local files only) ---
-    # tbc_preferences -> t_preferences: knowledge/preferences.json, appended to INSTRUCTIONS at initialize
-    ("tbc_preferences", "The user's standing rules (how they want things done in TBC). They are sent to every AI "
-     "in this server's instructions, so they apply in every chat. action=add when the user states a lasting "
+    # tbc_preferences -> t_preferences: built-in knowledge/preferences.json + the learned one, appended to
+    # INSTRUCTIONS at initialize
+    ("tbc_preferences", "The user's standing rules for working in TBC (how they want things done). They are sent to "
+     "every AI in this server's instructions, so they apply in every chat. action=add when the user states a lasting "
      "preference ('always...', 'from now on...', 'I want...'); update/remove when they change their mind; list to "
-     "review. Use tbc_memory for facts about TBC, tbc_project_notes for one job's rules, this tool for the user's "
-     "general wishes. The same preference is never stored twice. Ask before adding or changing.",
+     "review. Three kinds of knowledge, three tools: how to drive TBC -> tbc_memory / tbc_skills / this tool; facts "
+     "about this job -> tbc_project_notes; engineering practice true on every job (design or survey standards, "
+     "naming) -> tbc_practices. The same preference is never stored twice. Ask before adding or changing.",
      obj({"action": {"type": "string", "enum": ["list", "add", "update", "remove"], "default": "list"},
           "text": {"type": "string"}, "topic": {"type": "string"}, "id": {"type": "integer"}}),
      t_preferences, {"readOnlyHint": False, "destructiveHint": False}),
-    # tbc_memory -> t_memory: knowledge/memory/lessons.jsonl; a lesson with DANGER_WORDS gates its command behind
-    # confirm=true (check_known_danger)
-    ("tbc_memory", "Lessons learned that persist across sessions. action=add after you discover something non-obvious "
-     "(a field quirk, which command does X, a unit gotcha); pass command=<key> to attach it to a TBC command so it is "
-     "shown next time that command is opened and when execute_python code names that command. action=search/list to "
-     "recall; delete to remove a wrong lesson from the running release. Lessons must be GENERAL (useful on any job): no "
-     "project names, point IDs, coordinates, dates, layer/surface names or site features - facts about the current job "
-     "go in tbc_project_notes. The same lesson is never stored twice. Ask the user before adding.",
+    # tbc_memory -> t_memory: built-in knowledge/memory/lessons.jsonl + the learned one; a lesson with DANGER_WORDS
+    # gates its command behind confirm=true (check_known_danger)
+    ("tbc_memory", "Lessons learned about driving TBC that persist across sessions. action=add after you discover "
+     "something non-obvious (a field quirk, which command does X, a unit gotcha); pass command=<key> to attach it to a "
+     "TBC command so it is shown next time that command is opened and when execute_python code names that command. "
+     "action=search/list to recall; delete to remove a wrong lesson from the running release. Lessons must be GENERAL "
+     "(useful on any job): no project names, point IDs, coordinates, dates, layer/surface names or site features - "
+     "facts about the current job go in tbc_project_notes, engineering practice in tbc_practices. Saved on this PC "
+     "(never in the repository); built-in lessons ship with TBC MCP. The same lesson is never stored twice. Ask the "
+     "user before adding.",
      obj({"action": {"type": "string", "enum": ["add", "search", "list", "delete"], "default": "list"},
           "text": {"type": "string"}, "topic": {"type": "string"}, "command": {"type": "string"},
           "tags": {"type": "array", "items": {"type": "string"}}, "query": {"type": "string"},
           "id": {"type": "integer"}, "limit": {"type": "integer", "default": 20}}),
      t_memory, {"readOnlyHint": False, "destructiveHint": False}),
-    # tbc_project_notes -> t_project_notes: projects.py, the job knowledge base shared with Civil 3D MCP and Project
-    # Analyzer (CIVIL3D_KNOWLEDGE_DIR). The description embeds P.REFERENCE_FORMATS; tests/test_project_knowledge.py
-    # checks its wording. TBC is only asked for the open project's path.
-    ("tbc_project_notes", "Notes about ONE job, in the project knowledge base SHARED with Civil 3D MCP and Project "
-     "Analyzer (same files: what one tool learns about a job, the others see). For facts that only matter on this job: "
-     "what its layers, point ranges, surfaces and codes are for, control and datum, which survey belongs to which "
-     "feature, the client's standards, decisions the user made. A job is matched by folder: the open .vce belongs to "
-     "the job whose linked folder contains it; its notes come back with project_info and the first code or panel "
-     "result of a session, each with 'by' (tbc, civil3d or project-analyzer). "
-     "action=list (the open project's job, or project); link (project, optional folder; default the open .vce's "
-     "folder) creates a job or adds a folder to one - link to the existing name when Civil 3D or the analyzer already "
-     "know the job; unlink (project, folder) drops a folder TBC linked; add (note) / update (id, note) / remove (id), "
-     "optional project - only notes TBC wrote can be updated or removed, correct another tool's note by adding one. "
-     "WRITING A NOTE: one fact, one line, in the suite's reference formats so Project Analyzer ties it to the same "
-     "items in documents and drawings: " + P.REFERENCE_FORMATS + ". End it with [source: <TBC project file name or "
-     "command>] when there is one, e.g. '[source: Elm Street.vce]'. Never put license details, licensee or company "
-     "names from the TBC license, user-profile paths or tokens in a note (they are refused). "
-     "files lists the job's files folder: reference files the user drops in, and Project Analyzer's reports - "
-     "analysis\\ (OVERVIEW.md, TIMELINE.md, PEOPLE.md, ISSUES.md, INDEX.md) and analysis\\intel\\ (CHECKS.md: "
-     "problems to follow up - conflicting amounts, unanswered RFIs, missing documents, date conflicts, versions after "
-     "FINAL - under Needs attention / Worth checking / For information; STORIES.md: each RFI, change order and "
-     "submittal from first mention to last, with people and amounts; ENTITIES.md: every person, organization, place, "
-     "document number, structure, station and sheet with its aliases and the files it appears in; TIMELINE.md "
-     "automatic timeline; THREADS.md email conversations; VERSIONS.md document versions and what changed; AMOUNTS.md), "
-     "plus graph.html / timeline.html, interactive pages for the user to open in a browser (read returns their path, "
-     "not their HTML). read (file) returns a text file from it. Use them: the user asks about an RFI, change order or "
-     "submittal -> read its story in STORIES.md; about a structure (MH-3), station (12+50) or sheet (C-104) -> look "
-     "it up in ENTITIES.md for the documents that mention it; before relying on an amount, revision or sheet that "
-     "might be in dispute -> check CHECKS.md. The first result of a session lists the job's 'Needs attention' items. "
-     "COPIED FOLDERS: a job folder is usually a copy of a project from another drive or server, so paths written in "
-     "its files - a TBC project's imported files, linked images and data sources - point at the original location. "
-     "locate (path, as TBC or a file shows it) says where that file is in the copy: Project Analyzer's relink_map.csv "
-     "first, then its list of original locations, then a check on disk; it returns the status (found, found by name, "
-     "ambiguous, missing, translated, not known), the absolute path and the path relative to the copy's top folder, "
-     "and for a missing file where it should be. When TBC reports a missing or unresolved file, or a path the user "
-     "mentions doesn't exist, use locate BEFORE telling the user it's missing (and an existing path isn't necessarily "
-     "the right file). 'not known' means ask the user where the original folder was - never guess. REFERENCES.md and "
-     "relink_map.csv in analysis\\intel\\ list the job's missing files. When you find or fix a reference (e.g. the "
-     "user relinks an imported file), offer to record it as a note, e.g. 'Imported file P:\\Jobs\\1234\\Survey\\CP.job "
-     "is Project\\Survey\\CP.job in the copy [source: TBC project Elm.vce]'. "
-     "Kept only on this computer. Ask the user before adding or changing.",
-     obj({"action": {"type": "string", "enum": ["list", "link", "unlink", "add", "update", "remove", "files", "read", "locate"], "default": "list"},
-          "path": {"type": "string", "description": "locate: a file path as TBC or a file shows it (the original location)."},
+    # tbc_project_notes -> t_project_notes: projects.py, the suite's project database <shared>\projects\<slug>.db
+    # shared with Civil 3D MCP and Project Analyzer (CIVIL3D_KNOWLEDGE_DIR). The description embeds
+    # P.REFERENCE_FORMATS; tests/test_project_knowledge.py checks its wording. TBC is only asked for the open
+    # project's path.
+    ("tbc_project_notes", "Everything about ONE job, from the project database SHARED with Civil 3D MCP and Project "
+     "Analyzer (one SQLite database per job: Project Analyzer reads every file of the job folder into it - text, "
+     "details, references, people, timeline, problems to check - and every tool adds the facts it learns). A job is "
+     "matched by folder: the open .vce belongs to the job whose folder contains it. A short overview comes back with "
+     "project_info and the first code or panel result of a session. "
+     "READ: overview (start here: key facts, newest facts, open questions, rules, high checks, people, practices); "
+     "search (query: words or codes such as MH-3, 12+50, C-104, RFI 12 - searches the text of every document and the "
+     "facts); file (file: id or path in the job folder - details, summary, references, facts citing it, its text); "
+     "entity (name: a person, structure, station, sheet or document number - its files, events, stories and facts); "
+     "timeline (optional from / to dates); list (folders and current facts, each with 'by': tbc, civil3d or "
+     "project-analyzer); files / read (the user's own reference files for the job in its files folder). "
+     "Use them: the user asks about an RFI, change order or submittal -> entity or search for it; about a structure, "
+     "station or sheet -> entity; before relying on an amount, revision or sheet that might be in dispute -> overview's "
+     "checks_high and search. "
+     "WRITE (ask the user first): link (project, optional folder; default the open .vce's folder) creates the job's "
+     "database or adds a folder to it - link to the existing name when Civil 3D or the analyzer already know the job; "
+     "unlink (project, folder) drops a folder TBC linked; add (note; optional topics, date, key, confidence, "
+     "supersedes, source) / update (id, note) / remove (id) - only facts TBC wrote can be updated or removed (remove "
+     "retires them); correct another tool's fact by adding one with supersedes=<its id>. "
+     "WRITING A FACT: one statement, one line, about THIS job only (how TBC works -> tbc_memory; practice true on every "
+     "job -> tbc_practices), in the suite's reference formats so Project Analyzer ties it to the same items in "
+     "documents and drawings: " + P.REFERENCE_FORMATS + ". Its source is recorded for you (the open TBC project, or "
+     "source='user' when the user said it); topics name what it is about, e.g. ['structure:MH-3', 'person:John "
+     "Smith']. Never put license details, licensee or company names from the TBC license, user-profile paths or tokens "
+     "in a fact (they are refused). "
+     "COPIED FOLDERS: a job folder is usually a copy of a project from another drive or server, so paths written in its "
+     "files - a TBC project's imported files, linked images and data sources - point at the original location. locate "
+     "(path, as TBC or a file shows it) says where that file is in the copy, from the references Project Analyzer "
+     "found, then the job's original locations; it returns the status (found, found by name, ambiguous, missing, "
+     "translated, not known), the absolute path and the path relative to the job folder, and for a missing file where "
+     "it should be. When TBC reports a missing or unresolved file, or a path the user mentions doesn't exist, use "
+     "locate BEFORE telling the user it's missing (and an existing path isn't necessarily the right file). 'not known' "
+     "means ask the user where the original folder was - never guess. When you find or fix a reference (e.g. the user "
+     "relinks an imported file), offer to record it as a fact, e.g. 'Imported file P:\\Jobs\\1234\\Survey\\CP.job is "
+     "Survey\\CP.job in the copy'. Kept only on this computer.",
+     obj({"action": {"type": "string", "enum": list(PROJECT_ACTIONS), "default": "list"},
           "project": {"type": "string", "description": "Job name; omit to use the job the open TBC project belongs to."},
-          "folder": {"type": "string"}, "note": {"type": "string"},
-          "id": {"type": "string", "description": "Note id, e.g. 'note-3'."},
-          "file": {"type": "string", "description": "read: path inside the files folder, as listed by action=files."},
-          "max_chars": {"type": "integer", "default": P.MAX_READ_CHARS}}),
+          "query": {"type": "string", "description": "search: words or codes (MH-3, 12+50, C-104, RFI 12)."},
+          "file": {"type": "string", "description": "file: a file id or its path in the job folder; read: a path "
+                                                    "inside the job's files folder, as listed by action=files."},
+          "name": {"type": "string", "description": "entity: a name or alias (John Smith, MH-3, C-104, RFI 12)."},
+          "from": {"type": "string", "description": "timeline: first date, YYYY, YYYY-MM or YYYY-MM-DD."},
+          "to": {"type": "string", "description": "timeline: last date (included)."},
+          "path": {"type": "string", "description": "locate: a file path as TBC or a file shows it (the original location)."},
+          "folder": {"type": "string"},
+          "note": {"type": "string", "description": "add / update: the fact, one line."},
+          "topics": {"type": "array", "items": {"type": "string"}},
+          "date": {"type": "string", "description": "add / update: the date the fact is about (YYYY-MM-DD)."},
+          "key": {"type": "boolean", "description": "add / update: one of the facts that matter most on this job."},
+          "confidence": {"type": "string", "enum": ["high", "medium", "low"]},
+          "supersedes": {"type": "string", "description": "add: id of the fact this one corrects (any tool's)."},
+          "source": {"type": "string", "enum": ["tbc", "user"], "description": "add: 'tbc' = seen in the open TBC "
+                     "project (default when one is open), 'user' = said by the user."},
+          "id": {"type": "string", "description": "Fact id, e.g. 'fact-3'."},
+          "limit": {"type": "integer"},
+          "max_chars": {"type": "integer", "description": "file: text shown (default %d); read: (default %d)."
+                        % (P.FILE_TEXT_CHARS, P.MAX_READ_CHARS)}}),
      t_project_notes, {"readOnlyHint": False, "destructiveHint": False}),
+    # tbc_practices -> t_practices: practices.py, <shared>\practices.json shared by the whole suite
+    ("tbc_practices", "Good practices shared by Project Analyzer, Civil 3D MCP and TBC MCP: engineering and company "
+     "practice that doesn't depend on a program and holds on every job ('storm pipe minimum slope 0.5%', 'label "
+     "structures MH-n', 'survey in NAD83 Illinois East'). They are listed in this server's instructions at the start "
+     "of every chat. action=list / search (query) to look them up; add (text, optional topics) when the user states "
+     "such a practice - ask the user first; update (id, text and/or topics) / remove (id) only practices TBC added "
+     "(source 'tbc'; remove retires it). Not for how to drive TBC (tbc_memory, tbc_preferences) and not for one job's "
+     "facts (tbc_project_notes): a practice naming a job, its folders or files is refused.",
+     obj({"action": {"type": "string", "enum": ["list", "search", "add", "update", "remove"], "default": "list"},
+          "text": {"type": "string"}, "topics": {"type": "array", "items": {"type": "string"}},
+          "query": {"type": "string"}, "id": {"type": "string", "description": "e.g. 'practice-3'."},
+          "include_retired": {"type": "boolean", "default": False}, "limit": {"type": "integer", "default": 20}}),
+     t_practices, {"readOnlyHint": False, "destructiveHint": False}),
 ]
 
 # --- Power tool ---
@@ -2585,9 +2668,10 @@ if ALLOW_PYTHON:
 TOOL_MAP = {t[0]: t for t in TOOLS}
 
 # Server instructions sent to the client in the initialize answer (handle() appends the user's preferences from
-# K.prefs_text()). This is the AI's first briefing: where to start (working_safely_in_tbc, tbc_license), the
-# workflow, the two knowledge scopes (general TBC knowledge vs. one job's shared notes), tidiness, license
-# popups and the add-never-delete rule for TBC versions. Keep it in step with README and working_safely_in_tbc.
+# K.prefs_text() and the suite's practices from PR.practices_text()). This is the AI's first briefing: where to start
+# (working_safely_in_tbc, tbc_license), the workflow, the three kinds of knowledge (how to drive TBC, this job's
+# project database, practices for every job), tidiness, license popups and the add-never-delete rule for TBC
+# versions. Keep it in step with README and working_safely_in_tbc.
 INSTRUCTIONS = (
     "Tools for Trimble Business Center (TBC) 2026. They talk to a bridge macro running inside TBC; if a call says the "
     "bridge is not running, ask the user to open TBC and click Macros > MCP Bridge. Coordinates default to the "
@@ -2604,22 +2688,24 @@ INSTRUCTIONS = (
     "search_sdk_docs + execute_python for API-level work. (5) Afterwards, keep a knowledge base that grows (add, never "
     "delete), asking the user first: a standing rule from the user -> tbc_preferences add; a non-obvious gotcha -> "
     "tbc_memory add (with command=<key> for panel quirks); repeatable code -> tbc_script save; a proven procedure -> "
-    "tbc_skills save. Ask the user before pressing buttons that commit large or irreversible changes.\n"
-    "TWO SCOPES. Lessons, skills, scripts and panel notes are GENERAL TBC knowledge: never put project names, point "
-    "IDs, coordinates, dates, layer/surface names or site features in them. Facts about the current job go in "
-    "tbc_project_notes: a project knowledge base SHARED with Civil 3D MCP and Project Analyzer, matched to the job by "
-    "the .vce's folder. When you start on a project, check its notes (project_info returns them; or tbc_project_notes "
-    "action=list) and follow them; if Project Analyzer has analysed the job's documents, its reports are in the job's "
-    "files folder under analysis\\ (tbc_project_notes action=files / read): in analysis\\intel\\, STORIES.md tells "
-    "the story of each RFI, change order and submittal, ENTITIES.md says which documents mention a structure, "
-    "station or sheet, and CHECKS.md lists open problems - check it before relying on an amount, revision or sheet "
-    "that might be in dispute, and mention its 'Needs attention' items when they bear on the task. Job folders are "
-    "usually COPIES of a project from elsewhere: when TBC reports a missing or unresolved file (imported file, linked "
-    "image or data source) or a path the user gives doesn't exist, run tbc_project_notes action=locate (path) before "
-    "saying it's missing, and never guess where a file went. Write project notes in the suite's reference formats "
-    "(2026-10-03, 12+50, MH-3, C-104, RFI 12, CO 4, $12,500.00, John Smith (J. Smith)), ending with [source: <TBC "
-    "project or command>] when there is one. Never put license details, licensee/company names, user-profile paths "
-    "or tokens in shared notes.\n"
+    "tbc_skills save; a fact about this job -> tbc_project_notes add; a practice for every job -> tbc_practices add. Ask the user before pressing buttons that commit large or irreversible changes.\n"
+    "THREE KINDS OF KNOWLEDGE, three places (ask the user before adding to any of them): (a) how to drive TBC - "
+    "lessons, skills, scripts, panel notes, preferences (tbc_memory, tbc_skills, tbc_script, tbc_preferences): GENERAL, "
+    "never project names, point IDs, coordinates, dates, layer/surface names or site features; saved on this PC, "
+    "built-ins ship with TBC MCP. (b) Facts about THIS job -> tbc_project_notes: the project database SHARED with Civil "
+    "3D MCP and Project Analyzer, matched to the job by the .vce's folder. (c) Engineering or company practice true on "
+    "every job (design and survey standards, naming) -> tbc_practices, shared by the suite and listed below. "
+    "When you start on a project, read its overview (project_info brings a short one; tbc_project_notes "
+    "action=overview for all of it) and follow its facts. Project Analyzer has usually read every document of the job "
+    "into the database: tbc_project_notes action=search finds words and codes (MH-3, 12+50, C-104, RFI 12) in all of "
+    "them, entity gives a person, structure, sheet or RFI with its files, events and story, file opens one document, "
+    "timeline lists events by date. Before relying on an amount, revision or sheet that might be in dispute, check the "
+    "overview's checks_high and mention those that bear on the task. Job folders are usually COPIES of a project from "
+    "elsewhere: when TBC reports a missing or unresolved file (imported file, linked image or data source) or a path "
+    "the user gives doesn't exist, run tbc_project_notes action=locate (path) before saying it's missing, and never "
+    "guess where a file went. Write facts one per line in the suite's reference formats (2026-10-03, 12+50, MH-3, "
+    "C-104, RFI 12, CO 4, $12,500.00, John Smith (J. Smith)). Never put license details, licensee/company names, "
+    "user-profile paths or tokens in shared facts or practices.\n"
     "'Here' / 'where I'm looking' = tbc_view action=info center. Leave TBC tidy: close every command panel and pane "
     "you opened (e.g. Layer Manager: run_command layermanager toggles it) and clear selections you made, unless the "
     "user wants to see them. Never press buttons on license popups except to back out (tbc_dialogs action=dismiss).\n"
@@ -2686,7 +2772,7 @@ def handle(msg):
     if method == "initialize":
         pv = params.get("protocolVersion")
         # Read the preferences on every initialize, so a rule added in one chat reaches the next chat's AI
-        prefs = K.prefs_text()
+        prefs = "\n\n".join(t for t in (K.prefs_text(), PR.practices_text()) if t)
         return {"protocolVersion": pv if pv in SUPPORTED_PROTOCOLS else SUPPORTED_PROTOCOLS[0],
                 "capabilities": {"tools": {"listChanged": False}},
                 "serverInfo": {"name": SERVER_NAME, "version": SERVER_VERSION},
