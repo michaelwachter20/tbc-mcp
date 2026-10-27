@@ -6,12 +6,6 @@
   "added": "2026-10-13T11:40:00"
  },
  {
-  "id": 2,
-  "topic": "points",
-  "text": "Point IDs are plain numbers (next free number after the highest numeric ID in the project unless the user says otherwise). Put the description in the Feature code box (e.g. EP, TOE, GRID), never in the point ID (no names like GRD001). create_points does this automatically: omit 'name' to get numeric IDs, pass 'feature_code' to set codes.",
-  "added": "2026-10-13T11:40:00"
- },
- {
   "id": 3,
   "topic": "pacing",
   "text": "TBC is slow to open commands but quick once a panel is open. Do not open commands back to back: let each panel finish loading before filling it (command_ui_open waits for this), keep a panel open while doing repeated work in it, and pause between opening different commands.",
@@ -22,12 +16,6 @@
   "topic": "pacing",
   "text": "TBC recomputes the project after many changes (Compute Project / Computing the project window) and that can take a while. Always wait until it has finished before doing anything else (the tools do this via wait_idle; use tbc_wait_idle after other changes). Never press Cancel on a progress window.",
   "added": "2026-10-13T12:11:59"
- },
- {
-  "id": 5,
-  "topic": "online",
-  "text": "The user does not use Send to RTX-PP, Processing Services (opens a web browser) or Internet Download (CORS/orbit data). Do not run them; document only.",
-  "added": "2026-10-13T12:12:28"
  },
  {
   "id": 6,

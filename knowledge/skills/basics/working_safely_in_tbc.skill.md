@@ -10,17 +10,18 @@ verified: "2026-10-13, compiled from live sessions with the user on TBC 2026.10"
 
 > Verified on TBC 2026.10. If something here does not work on a newer TBC release, ADD a section '## TBC <release>' (tbc_skills action=append_version_section) with what changed - never delete or rewrite the 2026.10 information.
 
-## The user's standing preferences (also in preferences.json / tbc_preferences)
+## Good habits (the built-in preferences; also see tbc_preferences and tbc_practices)
 
 1. **Leave TBC tidy.** Close Layer Manager and every command panel, pane and view window you opened when you
    are done (run_command layermanager toggles Layer Manager; command_ui_close for panels). Clear selections you made.
-2. **Point IDs are plain numbers** (next free number after the highest numeric ID). Descriptions go in the
-   **Feature code** box (EP, TOE, GRID), never in the ID. `create_points` does this when `name` is omitted.
+2. **Point numbering and codes follow the job's practices** (`tbc_practices`). `create_points` numbers points
+   without a `name` from the highest numeric ID + 1 and puts descriptions in the Feature code box.
 3. **Pace commands.** TBC is slow to open commands but quick once a panel is open. Keep a panel open for repeated
    work; don't open commands back to back.
 4. **Wait for TBC to finish computing** ("Compute Project / Computing the project"). Never act while it computes,
    and never press Cancel on a progress window.
-5. **Online tools are not used**: Send to RTX-PP, Processing Services, Internet Download (CORS/orbit data).
+5. **Online tools only when asked**: Send to RTX-PP, Processing Services and Internet Download (CORS/orbit data)
+   go online or open a browser; run them only when the user asks.
 6. **Don't record TBC crashes** as lessons or in skills. TBC sometimes crashes for no reason: tell the user, wait for
    them to restart it, and carry on.
 7. When the user states a new lasting preference, record it with `tbc_preferences action=add`.

@@ -1440,8 +1440,8 @@ def t_create_points(a):
     "layer"?}], "start_id"?: int, "allow_duplicates": bool, "units": "display" | "meters"}.
     IDs: names given by the caller are checked against the project (BridgeError if taken, unless
     allow_duplicates); points without a name get consecutive numbers from start_id (also checked: BridgeError if
-    any is taken), else from the highest numeric point ID + 1 (working_safely_in_tbc: point IDs are plain numbers,
-    descriptions go in Feature code).
+    any is taken), else from the highest numeric point ID + 1 (the usual convention: plain numbers, descriptions in
+    Feature code; the job's practices may say more).
     Two paths:
       no feature codes at all -> the bridge's create_points API call: fast, one undo step.
       any feature code        -> EVERY point is typed into TBC's Create Point panel ("addpoint") and Add is

@@ -42,7 +42,7 @@ verified: "2026-10-13 live on TBC 2026.10 a test copy of a production project (t
 | Process Feature Codes (`processfeaturecodes`) | **works** | tick a source in `PointSourceGrid` (Include); **Process Source(s)**; answer "view report?" No |
 | Feature / Occupation / Vector / Optical spreadsheets, Time-Based View | **works (read)** | open as windows; read the UltraGrid (Vector 6850 rows, Optical 225); close the window |
 | Merge Survey Projects (`mergesurveyprojects`) | not tested | needs a second .vce project to merge in |
-| Internet Download, Send to RTX-PP, Processing Services | not used | user does not use them (online) |
+| Internet Download, Send to RTX-PP, Processing Services | not run | online (open a browser or download); run only when the user asks |
 | Loop Closure (`loopclosure`) | not run | acts immediately and opens the report in the browser |
 | Process Baselines, Clear Processing, Session Editor, Mean Angle Residuals | n/a | greyed out (no GNSS baselines / MTA data in this project) |
 | Adjust Traverse (`adjusttraverse`) | **works** | `<Create New Traverse>` -> name -> Create; pick start station + `addButton`: TBC completes the traverse (201->205->201); Preview Results tab; Apply (67 s recompute). Delete the Traverse object to remove it |
