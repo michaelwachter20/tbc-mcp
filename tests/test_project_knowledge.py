@@ -255,8 +255,8 @@ check(r["action"] == "created" and os.path.isfile(phase) and r["folders"] == [{"
       "link creates the job's database with the open .vce's folder (tool tbc)")
 check(meta.get("schema_version") == "1" and len(meta.get("project_id", "")) == 12 and meta.get("project_name") == "Phase Two"
       and meta.get("created", "").endswith("Z"), "a new database has schema_version, project_id, project_name and created")
-check(sql(phase, "PRAGMA journal_mode")[0][0] == "wal" and os.path.isdir(os.path.join(projects_dir, "phase-two")),
-      "...in WAL mode, with its files folder")
+check(sql(phase, "PRAGMA journal_mode")[0][0] == "wal" and
+      os.path.isdir(os.path.join(projects_dir, "phase-two", "User Knowledge")), "...in WAL mode, with its User Knowledge folder")
 check(P.project_for_path(deep_vce)["name"] == "Phase Two", "deepest folder wins across databases")
 check(P.link("Phase Two", os.path.dirname(deep_vce).upper() + "\\", deep_vce)["action"] == "unchanged", "the same folder isn't linked twice")
 check(P.link("Elm Street Drainage", os.path.join(job, "drawings"), None)["action"] == "unchanged", "a folder another tool linked changes nothing")
@@ -319,19 +319,100 @@ r = P.link("linked later", os.path.join(work, "jobs", "Later", "TBC"), None)
 check(r["action"] == "linked" and len(r["folders"]) == 2 and
       sql(os.path.join(projects_dir, "linked-later.db"), "SELECT COUNT(*) FROM facts")[0][0] == 1, "linking a JSON-only job imports it first")
 
-# --- 6. the job's files folder ------------------------------------------------------------------------------------
-files = os.path.join(projects_dir, "elm-street-drainage")
-os.makedirs(os.path.join(files, "Standards"), exist_ok=True)
-with open(os.path.join(files, "Standards", "layers.md"), "w", encoding="utf-8") as f:
+# --- 6. the job's User Knowledge folder (the user's own documents for the job) --------------------------------
+import datetime, zipfile  # noqa: E401,E402
+
+
+def office(path, members):
+    with zipfile.ZipFile(path, "w") as z:
+        for name, xml in members.items():
+            z.writestr(name, '<?xml version="1.0" encoding="UTF-8"?>' + xml)
+
+
+W = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"'
+S = 'xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"'
+A = ('xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" '
+     'xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"')
+R = 'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"'
+elm_dir = os.path.join(projects_dir, "elm-street-drainage")
+uk = os.path.join(elm_dir, "User Knowledge")
+for sub in ("Standards", "Guidelines", "Building types"):
+    os.makedirs(os.path.join(uk, sub), exist_ok=True)
+with open(os.path.join(uk, "Standards", "layers.md"), "w", encoding="utf-8") as f:
     f.write("# Layer standard\n\nC-STRM for storm pipes.\n")
-with open(os.path.join(files, "photo.jpg"), "wb") as f:
+with open(os.path.join(uk, "photo.jpg"), "wb") as f:
     f.write(b"\xff\xd8\x00\x00binary")
+# The guide Project Analyzer read (the fixture's <user knowledge>\Guidelines\Proposal guide.pdf): same size and time
+guide = os.path.join(uk, "Guidelines", "Proposal guide.pdf")
+with open(guide, "wb") as f:
+    f.write(b"%PDF-1.4\n" + b"0" * (2048 - 9))
+guide_time = datetime.datetime(2026, 10, 20, 12, tzinfo=datetime.timezone.utc).timestamp()
+os.utime(guide, (guide_time, guide_time))
+office(os.path.join(uk, "Building types", "School requirements.docx"), {"word/document.xml":
+       '<w:document %s><w:body><w:p><w:r><w:t>Each classroom wing needs its own storm inlet.</w:t></w:r></w:p>'
+       '<w:tbl><w:tr><w:tc><w:p><w:r><w:t>Use</w:t></w:r></w:p></w:tc><w:tc><w:p><w:r><w:t>Layer</w:t></w:r></w:p></w:tc>'
+       '</w:tr></w:tbl></w:body></w:document>' % W})
+office(os.path.join(uk, "Standards", "codes.xlsx"), {
+    "xl/workbook.xml": '<workbook %s %s><sheets><sheet name="Codes" sheetId="1" r:id="rId1"/></sheets></workbook>' % (S, R),
+    "xl/_rels/workbook.xml.rels": '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+                                  '<Relationship Id="rId1" Target="worksheets/sheet1.xml" Type="x"/></Relationships>',
+    "xl/sharedStrings.xml": '<sst %s><si><t>MH</t></si><si><t>Manhole</t></si></sst>' % S,
+    "xl/worksheets/sheet1.xml": '<worksheet %s><sheetData><row r="1"><c r="A1" t="s"><v>0</v></c><c r="B1" t="s"><v>1</v>'
+                                '</c><c r="C1"><v>4</v></c></row></sheetData></worksheet>' % S})
+office(os.path.join(uk, "Standards", "kickoff.pptx"), {
+    "ppt/slides/slide1.xml": '<p:sld %s><a:p><a:r><a:t>Kickoff</a:t></a:r></a:p></p:sld>' % A,
+    "ppt/slides/slide2.xml": '<p:sld %s><a:p><a:r><a:t>Two alternatives in every proposal</a:t></a:r></a:p></p:sld>' % A})
+with open(os.path.join(elm_dir, "old standard.txt"), "w", encoding="utf-8") as f:
+    f.write("from before User Knowledge")
+before = sha(elm)
 r = P.project_files(None, vce)
-check([x["path"] for x in r["files"]] == ["photo.jpg", os.path.join("Standards", "layers.md")], "files lists the user's files for the job")
-check(P.read_file("Standards/layers.md", None, vce)["text"].startswith("# Layer standard"), "read returns a text file")
+by = {x["path"]: x for x in r["files"]}
+gpath = os.path.join("Guidelines", "Proposal guide.pdf")
+check(r["user_knowledge_folder"] == uk and sorted(by) == sorted([
+    "photo.jpg", gpath, os.path.join("Building types", "School requirements.docx"), os.path.join("Standards", "codes.xlsx"),
+    os.path.join("Standards", "kickoff.pptx"), os.path.join("Standards", "layers.md")]), "files lists the User Knowledge folder")
+check(by[gpath]["read_by_analyzer"] and not by[os.path.join("Standards", "layers.md")]["read_by_analyzer"],
+      "...marks the documents Project Analyzer read (same size and modified time)")
+check(by[os.path.join("Standards", "codes.xlsx")]["readable_here"] and not by["photo.jpg"]["readable_here"],
+      "...and the ones TBC can read itself")
+check(r.get("elsewhere") == ["old standard.txt"] and "move" in r.get("elsewhere_hint", ""),
+      "files left outside User Knowledge by older versions are listed, to be moved")
+g = P.read_file("Guidelines/Proposal guide.pdf", None, vce)
+check("two alternatives" in g["text"] and "setback" in g["text"] and "Project Analyzer" in g["read_from"],
+      "read: a PDF the analyzer read comes from the project database")
+part = P.read_file(gpath, None, vce, max_chars=40)
+rest = P.read_file(gpath, None, vce, max_chars=40, offset=part["next_offset"])
+check(part.get("truncated") and part["text"] + rest["text"] == g["text"][:80], "read: offset continues a long document")
+check(P.read_file("Standards\\layers.md", None, vce)["text"].startswith("# Layer standard"), "read returns a text file")
 check(P.read_file("Standards\\layers.md", None, vce, max_chars=5).get("truncated"), "long files are cut at max_chars")
-check(raises(lambda: P.read_file("..\\elm-street-drainage.db", None, vce), "inside"), "paths outside the files folder are refused")
-check(raises(lambda: P.read_file("photo.jpg", None, vce), "isn't a text file"), "binary files are refused")
+docx = P.read_file(os.path.join("Building types", "School requirements.docx"), None, vce)["text"]
+check("classroom wing" in docx and "| Use | Layer |" in docx, "read: a Word file without Project Analyzer (paragraphs, tables)")
+check("## Codes" in P.read_file("Standards/codes.xlsx", None, vce)["text"] and
+      "MH | Manhole | 4" in P.read_file("Standards/codes.xlsx", None, vce)["text"], "read: an Excel file (sheet names, rows)")
+check("## Slide 2\n\nTwo alternatives" in P.read_file("Standards/kickoff.pptx", None, vce)["text"], "read: a PowerPoint file")
+check(raises(lambda: P.read_file("..\\..\\elm-street-drainage.db", None, vce), "inside") and
+      raises(lambda: P.read_file("..\\old standard.txt", None, vce), "inside"), "paths outside User Knowledge are refused")
+check(raises(lambda: P.read_file("photo.jpg", None, vce), "analyze.py knowledge"),
+      "a file TBC can't read points to Project Analyzer")
+os.utime(guide, (guide_time + 60, guide_time + 60))
+check(raises(lambda: P.read_file(gpath, None, vce), "analyze.py knowledge"),
+      "a document changed since the analyzer read it isn't served from the database")
+os.utime(guide, (guide_time, guide_time))
+s = P.search("setback", None, vce)
+check([(h["path"], h.get("user_knowledge")) for h in s["documents"]] == [("<user knowledge>\\" + gpath, True)],
+      "search finds the analyzer's user-knowledge text, marked user_knowledge")
+s = P.search("classroom inlet", None, vce)
+check([h["path"] for h in s["documents"] if h.get("not_in_database")] == ["<user knowledge>\\" + os.path.join(
+      "Building types", "School requirements.docx")], "search also reads documents the database doesn't have yet")
+o = P.overview(None, vce)
+u = o["user_knowledge"]
+check(u["documents"] == 6 and u["read_by_analyzer"] == 1 and gpath in u["names"] and "name it" in u["hint"],
+      "overview lists the user knowledge")
+check(o["files_by_status"] == {"done": 8, "duplicate": 1, "failed": 1}, "overview: the job's file counts leave user knowledge out")
+check(sha(elm) == before, "reading user knowledge never writes the database")
+fresh = P.overview("Phase Two", None)["user_knowledge"]
+check(fresh["documents"] == 0 and "Empty" in fresh["hint"] and os.path.isdir(fresh["folder"]),
+      "a job only TBC knows (no Project Analyzer) has an empty User Knowledge folder ready")
 
 # --- 7. the overview reaches the AI once per job -----------------------------------------------------------------
 P.reset_announcements()
@@ -341,6 +422,8 @@ check(first.get("project") == "Elm Street Drainage" and [c["id"] for c in first.
 check(sorted(f["id"] for f in first.get("key_facts", [])) == ["fact-1", "fact-3", "fact-5"] and "fact-5" in [f["id"] for f in first.get("tbc_facts", [])],
       "...its key facts and TBC's own facts")
 check("12+50" in first.get("hint", "") and "COPIED FOLDER" in first.get("copied_folder", ""), "...with the reference formats and the copy hint")
+check(os.path.join("Guidelines", "Proposal guide.pdf") in first.get("user_knowledge", []) and
+      "user_knowledge" in first.get("hint", ""), "...and the names of the user's own documents for the job")
 check(P.notes_once(vce) is None, "...and only once per server run")
 check(P.notes_once(os.path.join(work, "nowhere", "a.vce")) is None, "no job, no overview")
 
@@ -412,7 +495,7 @@ def call(i, name, args):
 
 init = rpc(1, "initialize", {"protocolVersion": "2025-06-18", "capabilities": {}})
 ins = init["instructions"]
-check(init["serverInfo"]["version"] == "0.4.1", "server version 0.4.1")
+check(init["serverInfo"]["version"] == "0.5.0", "server version 0.5.0")
 check("THREE KINDS OF KNOWLEDGE" in ins and "tbc_practices" in ins and "tbc_project_notes" in ins, "instructions explain the three kinds of knowledge")
 check("Use numeric point IDs for new points" in ins and "GOOD PRACTICES" in ins and "[practice-1] Storm pipe minimum slope" in ins,
       "instructions carry the user's preferences and the suite's practices")

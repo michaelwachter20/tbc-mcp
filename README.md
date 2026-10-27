@@ -45,7 +45,9 @@ their panels the way you would, and keeps getting smarter with every session.
   reads every document of a job into one database; TBC MCP and
   [Civil 3D MCP](https://github.com/michaelwachter20/civil3d-mcp-unified) search it, follow its facts and add what
   they learn, so facts found in Civil 3D or in the job's documents come back in TBC, and the
-  other way round.
+  other way round. TBC MCP doesn't need either of them: on its own it keeps the job's notes in the same database.
+- **Your own documents for each job.** Put proposal guidelines, requirements for the building type, standards or
+  code books in the job's **User Knowledge** folder; the AI follows them when they apply and says which one.
 - **Knows your license.** Every user's subscription is different. The server builds a license profile each time it
   starts and quietly skips commands you aren't licensed for, without a single license popup.
 - **Polite by design.** Paced command launches, waits for Compute Project, never cancels a progress bar, and backs out
@@ -434,7 +436,7 @@ in it. Civil 3D MCP and TBC MCP are the workers: they do the work using what it 
 Documents\Civil3DMcp-KnowledgeBase\     (or CIVIL3D_KNOWLEDGE_DIR; set it the same for all three)
   practices.json                        good practices, shared by all three tools
   projects\<job>.db                     one SQLite database per job
-  projects\<job>\                       files you put there for the job (standards, specs); no tool copies job files
+  projects\<job>\User Knowledge\        your own documents for the job (guidelines, requirements, standards)
   tbc\                                  what TBC MCP learned on this PC (see above)
 ```
 
@@ -450,8 +452,16 @@ Documents\Civil3DMcp-KnowledgeBase\     (or CIVIL3D_KNOWLEDGE_DIR; set it the sa
   marked high, the people in most files, the practices), `search` (every word or code such as MH-3, 12+50, C-104 or
   RFI 12 in every document, plus the facts), `file` (one document: details, summary, references, facts citing it,
   its text), `entity` (a person, structure, sheet or RFI: its files, events and story), `timeline`, `list`, and
-  `files` / `read` for the files you put in the job's folder. *"What happened with RFI 12?"* and *"What do the
+  `files` / `read` for the job's User Knowledge (below). *"What happened with RFI 12?"* and *"What do the
   documents say about MH-3?"* work from TBC.
+- **User Knowledge, per job.** `Documents\Civil3DMcp-KnowledgeBase\projects\<job>\User Knowledge\` is for your own
+  documents about how this job must be done: proposal guidelines, requirements for the building type, a client's
+  standards, design manuals, code books (subfolders are fine). It's created the first time a tool opens the job, and
+  no tool ever changes what's in it. The overview lists them, `read` opens one (`offset` continues a long one) and
+  `search` covers them; the AI follows a document when it applies, names it, and tells you when it conflicts with
+  a fact or the project. TBC MCP reads text files and Word, Excel and PowerPoint files itself. With Project
+  Analyzer installed, every document there (PDFs and scans too) is read into the job's database, and TBC uses
+  that text. Files that older versions kept directly in `projects\<job>\` are listed so you can move them in.
 - **Each tool changes only its own.** TBC adds facts marked `tbc` (ids `fact-N`, taken inside the write
   transaction), updates them, and removes them by marking them retired (they stay, hidden; ids are never reused).
   Another tool's fact is corrected by adding one that supersedes it. TBC unlinks only folders it linked.
@@ -483,6 +493,15 @@ Documents\Civil3DMcp-KnowledgeBase\     (or CIVIL3D_KNOWLEDGE_DIR; set it the sa
 
 Ask *"what do we know about this job?"* for its overview, or *"link this project to Elm Street Drainage"* to join a
 job Civil 3D or the analyzer already know.
+
+**Works on its own, better together.** TBC MCP never needs Civil 3D MCP or Project Analyzer, and their versions don't
+have to match: install any of them, in any order, and they share the folder above without any setup.
+
+| Installed | What TBC MCP has |
+|---|---|
+| TBC MCP alone | TBC's tools and know-how; the job's notes, practices and User Knowledge (text, Word, Excel, PowerPoint) |
+| + Project Analyzer | every document of the job folder and of User Knowledge (PDFs and scans too) searchable and readable, plus the people, timeline, problems to check and references it found |
+| + Civil 3D MCP | the notes Civil 3D adds about the job, and shared practices |
 
 ### Every user, every license
 

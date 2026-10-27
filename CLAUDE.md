@@ -27,7 +27,8 @@ AI client --stdio JSON-RPC--> mcp_server/tbc_mcp_server.py --TCP 127.0.0.1 + ses
 | `mcp_server/ipy/command_ui.py` | Panel engine, run inside TBC: reads and fills command panels, popups, panes and grids like a user |
 | `mcp_server/ipy/{license,view,import_export}.py` | Inside-TBC helpers: license profile, Plan View info and screenshots, Import/Export panes |
 | `mcp_server/knowledge.py` | TBC know-how: built-ins in `knowledge\` (committed, read only) merged with what is learned at runtime in `TBC_MCP_KNOWLEDGE_DIR` / `<shared>\tbc` (outside the repo); skills, scripts, lessons, panel layouts, preferences, the job-data guard, the shared folder (`shared_root`) |
-| `mcp_server/projects.py` | The suite's project database, one SQLite file per job in `<shared>\projects\` (`tbc_project_notes`) |
+| `mcp_server/projects.py` | The suite's project database, one SQLite file per job in `<shared>\projects\`, and each job's User Knowledge folder `<shared>\projects\<slug>\User Knowledge\` (`tbc_project_notes`) |
+| `mcp_server/office_text.py` | Text of .docx, .xlsx and .pptx with the standard library only (user knowledge Project Analyzer hasn't read) |
 | `mcp_server/practices.py` | The suite's good practices, `<shared>\practices.json` (`tbc_practices`) |
 | `mcp_server/project-db.sql` | Copy of Project Analyzer's `schema/project-db.sql` (byte for byte; a test compares them) |
 | `mcp_server/tbc_help.py` | Offline reader for TBC's installed HTML help |

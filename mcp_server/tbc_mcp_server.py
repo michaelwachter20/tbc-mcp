@@ -137,7 +137,7 @@ IPY_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ipy")
 
 # Reported to the client in the initialize answer (serverInfo)
 SERVER_NAME = "tbc-mcp"
-SERVER_VERSION = "0.4.1"
+SERVER_VERSION = "0.5.0"
 # MCP protocol revisions this server answers with; the first is used when the client asks for one not listed
 SUPPORTED_PROTOCOLS = ["2025-06-18", "2025-03-26", "2024-11-05"]
 
@@ -2039,7 +2039,7 @@ def t_project_notes(a):
     Analyzer (projects.py; <shared>\\projects\\<slug>.db, <shared> from CIVIL3D_KNOWLEDGE_DIR).
 
     a: {"action": one of PROJECT_ACTIONS (default list), "project": job name (omit = the job the open .vce belongs
-        to), plus per action: query + limit (search), file + max_chars (file, read), name (entity), from / to
+        to), plus per action: query + limit (search), file + max_chars (file, read; read also offset), name (entity), from / to
         (timeline), path (locate), folder (link, unlink), note + topics + date + key + confidence + supersedes +
         source (add; update takes note and the same optional fields), id (update, remove), limit (list)}.
     Which job: a named project is used as is (no TBC call), except for link and add, where the open .vce gives the
@@ -2084,7 +2084,7 @@ def t_project_notes(a):
         return P.remove_note(a.get("id"), name, path)
     if act == "files":
         return P.project_files(name, path)
-    return P.read_file(a.get("file"), name, path, int(a.get("max_chars", P.MAX_READ_CHARS)))  # read
+    return P.read_file(a.get("file"), name, path, int(a.get("max_chars", P.MAX_READ_CHARS)), int(a.get("offset", 0)))  # read
 
 
 def t_practices(a):
@@ -2583,7 +2583,10 @@ TOOLS += [
      "facts); file (file: id or path in the job folder - details, summary, references, facts citing it, its text); "
      "entity (name: a person, structure, station, sheet or document number - its files, events, stories and facts); "
      "timeline (optional from / to dates); list (folders and current facts, each with 'by': tbc, civil3d or "
-     "project-analyzer); files / read (the user's own reference files for the job in its files folder). "
+     "project-analyzer); files / read (the USER'S OWN DOCUMENTS for this job in its User Knowledge folder: proposal "
+     "guidelines, requirements for the building type, standards, code books - read, offset continues a long one; "
+     "overview lists them and search covers them; follow one when it applies and name it, and tell the user when it "
+     "conflicts with a fact or the project). "
      "Use them: the user asks about an RFI, change order or submittal -> entity or search for it; about a structure, "
      "station or sheet -> entity; before relying on an amount, revision or sheet that might be in dispute -> overview's "
      "checks_high and search. "
@@ -2612,7 +2615,8 @@ TOOLS += [
           "project": {"type": "string", "description": "Job name; omit to use the job the open TBC project belongs to."},
           "query": {"type": "string", "description": "search: words or codes (MH-3, 12+50, C-104, RFI 12)."},
           "file": {"type": "string", "description": "file: a file id or its path in the job folder; read: a path "
-                                                    "inside the job's files folder, as listed by action=files."},
+                                                    "inside the job's User Knowledge folder, as listed by action=files."},
+          "offset": {"type": "integer", "description": "read: start at this character (next_offset of the last read)."},
           "name": {"type": "string", "description": "entity: a name or alias (John Smith, MH-3, C-104, RFI 12)."},
           "from": {"type": "string", "description": "timeline: first date, YYYY, YYYY-MM or YYYY-MM-DD."},
           "to": {"type": "string", "description": "timeline: last date (included)."},
@@ -2699,7 +2703,7 @@ INSTRUCTIONS = (
     "action=overview for all of it) and follow its facts. Project Analyzer has usually read every document of the job "
     "into the database: tbc_project_notes action=search finds words and codes (MH-3, 12+50, C-104, RFI 12) in all of "
     "them, entity gives a person, structure, sheet or RFI with its files, events and story, file opens one document, "
-    "timeline lists events by date. Before relying on an amount, revision or sheet that might be in dispute, check the "
+    "timeline lists events by date. The user's own documents for the job (proposal guidelines, requirements for the building type, standards) are in its User Knowledge folder: the overview lists them, action=read opens one; follow them when they apply. Before relying on an amount, revision or sheet that might be in dispute, check the "
     "overview's checks_high and mention those that bear on the task. Job folders are usually COPIES of a project from "
     "elsewhere: when TBC reports a missing or unresolved file (imported file, linked image or data source) or a path "
     "the user gives doesn't exist, run tbc_project_notes action=locate (path) before saying it's missing, and never "

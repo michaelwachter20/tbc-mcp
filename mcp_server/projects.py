@@ -8,7 +8,8 @@ fails when it differs from the analyzer's, when that repository is next to this 
 
     <shared>\\projects\\<slug>.db      everything about one job: the analyzer's files, text (zstd-compressed),
                                        references, automatic findings (intel_*), and the facts every tool learned
-    <shared>\\projects\\<slug>\\        files the user puts there for the job (standards, specs); read, never filled
+    <shared>\\projects\\<slug>\\User Knowledge\\   the user's own documents for the job (guidelines, requirements,
+                                       standards); only read (Project Analyzer reads them into the database too)
     <shared>\\practices.json           good practices of the whole suite (practices.py)
 
 <shared> follows civil3d-mcp-unified's knowledgeRoot() exactly: CIVIL3D_KNOWLEDGE_DIR, else
@@ -17,7 +18,10 @@ Documents\\Civil3DMcp-KnowledgeBase (moved there from the pre-2.2.0 Documents\\C
 What TBC does with it:
   - finds the job of the open .vce: meta.source_root and every `folders` row, across all <shared>\\projects\\*.db,
     case-insensitive on normalized absolute paths, the deepest folder wins (job_index, cached by file stamps)
-  - reads: overview, search (full-text index + facts), file, entity, timeline, locate (copied job folders), list
+  - reads: overview, search (full-text index + facts), file, entity, timeline, locate (copied job folders), list,
+    and the job's user knowledge (files, read; also in overview and search): the analyzer's stored text when it read
+    that version of a document, else the file itself (text, .docx, .xlsx, .pptx via office_text.py)
+  - works with no other suite tool installed: creates the database and the User Knowledge folder when needed
   - writes only its own rows: facts with tool='tbc' (add with a duplicate check and fact-N taken inside a
     BEGIN IMMEDIATE transaction; update; remove = set `retired`, nothing is deleted) and folders with tool='tbc'
     (link / unlink). Another tool's fact is corrected by adding one with `supersedes` set to it.
@@ -40,13 +44,17 @@ import secrets
 import sqlite3
 import urllib.parse
 
+import office_text
 from knowledge import KnowledgeError, shared_root, migrate_legacy_folder  # noqa: F401 (re-exported for callers)
 
 TOOL = "tbc"                          # the `tool` value of every row TBC writes
 SCHEMA_VERSION = 1
 # A copy of project-analyzer's schema/project-db.sql (see the module docstring); run when TBC creates a database
 SCHEMA_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "project-db.sql")
-MAX_READ_CHARS = 20000                # action=read (a file in the job's files folder)
+MAX_READ_CHARS = 20000                # action=read (a document in the job's User Knowledge folder)
+USER_KNOWLEDGE_FOLDER = "User Knowledge"
+USER_PREFIX = "<user knowledge>\\"   # files.path of a user-knowledge document read by Project Analyzer
+MAX_SCAN_FILES, MAX_SCAN_BYTES = 200, 20 * 1024 * 1024   # search: documents not in the database, read directly
 FILE_TEXT_CHARS = 4000                # action=file: the first part of a file's text
 TOOL_LABELS = {"civil3d": "Civil 3D MCP", "project-analyzer": "Project Analyzer", TOOL: "TBC MCP"}
 
@@ -65,11 +73,13 @@ _FORMAT_CHECKS = [
 ]
 TEXT_EXTENSIONS = {".md", ".txt", ".csv", ".tsv", ".json", ".jsonl", ".xml", ".html", ".htm", ".log", ".ini",
                    ".yaml", ".yml", ".landxml", ".gsi", ".job", ".raw", ".rw5", ".fbk", ".asc", ".pts"}
+BINARY_EXTENSIONS = {".pdf", ".doc", ".xls", ".ppt", ".rtf", ".odt", ".dwg", ".dgn", ".jpg", ".jpeg", ".png", ".tif",
+                     ".tiff", ".bmp", ".gif", ".zip", ".7z", ".msg", ".eml", ".pst", ".vce", ".exe", ".dll"}
 _DATE = re.compile(r"^\d{4}(?:-\d{2}(?:-\d{2})?)?$")
 
 
 def projects_dir():
-    """<shared>\\projects, where each job's <slug>.db and its files folder live."""
+    """<shared>\\projects, where each job's <slug>.db and its folder (with User Knowledge) live."""
     return os.path.join(shared_root(), "projects")
 
 
@@ -107,8 +117,8 @@ def db_path(name):
 
 
 def files_dir(name):
-    """The job's files folder, <shared>\\projects\\<slug>\\ next to <slug>.db (the user's own files for the job)."""
-    return db_path(name)[:-len(".db")]
+    """The job's User Knowledge folder, <shared>\\projects\\<slug>\\User Knowledge (next to <slug>.db)."""
+    return os.path.join(db_path(name)[:-len(".db")], USER_KNOWLEDGE_FOLDER)
 
 
 def _loads(text, default):
@@ -747,7 +757,7 @@ def link(name, folder, active_path):
         folders = _folders(db)
         job_name = _meta(db, "project_name") or job["name"]
     return {"success": True, "action": action, "project": job_name, "folders": folders, "database": job["db"],
-            "files_folder": _ensure_files_dir(job)}
+            "user_knowledge_folder": _ensure_files_dir(job)}
 
 
 def unlink(name, folder):
@@ -815,7 +825,7 @@ def describe(job, limit=100):
         r = _base(job, db)
         total = _count(db, "SELECT COUNT(*) FROM facts f WHERE " + _CURRENT)
         r.update({"folders": _folders(db), "facts": _facts(db, limit=limit), "facts_total": total,
-                  "files_folder": files_dir(job["slug"]),
+                  "user_knowledge_folder": _ensure_files_dir(job),
                   "hint": "Facts from every tool ('by': tbc, civil3d, project-analyzer). Only TBC's own can be "
                           "updated or removed. For the whole picture use action=overview; to find anything in the "
                           "job's documents use action=search."})
@@ -855,8 +865,9 @@ def overview(name, active_path):
             if v:
                 r[k] = v
         r["folders"] = _folders(db)
-        r["files_by_status"] = {s: n for s, n in db.execute("SELECT status, COUNT(*) FROM files GROUP BY status "
-                                                            "ORDER BY COUNT(*) DESC").fetchall()}
+        r["files_by_status"] = {s: n for s, n in db.execute(
+            "SELECT status, COUNT(*) FROM files WHERE substr(path, 1, ?) <> ? GROUP BY status ORDER BY COUNT(*) DESC",
+            (len(USER_PREFIX), USER_PREFIX)).fetchall()}
         r["key_facts"] = _facts(db, "f.key = 1", limit=50)
         r["newest_facts"] = _facts(db, limit=10)
         r["open_questions"] = [{"id": q["id"], "question": q["question"], "by": q["tool"]} for q in db.execute(
@@ -869,6 +880,7 @@ def overview(name, active_path):
         r["people"] = [{"name": p["name"], "aliases": _loads(p["aliases"], []), "files": p["files"]} for p in db.execute(
             "SELECT name, aliases, files FROM intel_entities WHERE type = 'person' ORDER BY files DESC, name LIMIT 15")]
         r["missing_files"] = _missing_files(db)
+        r["user_knowledge"] = user_knowledge_summary(job, db)
         hint = _copy_hint(db)
         if hint:
             r["copied_folder"] = hint
@@ -877,7 +889,7 @@ def overview(name, active_path):
         r["practices"] = [{"id": p["id"], "practice": p["practice"]} for p in practices.current()]
     except Exception:
         pass  # practices are advice; a broken practices.json never breaks the overview
-    r["hint"] = ("Follow the key facts and rules. Before relying on something in checks_high, tell the user. Look things "
+    r["hint"] = ("Follow the key facts, rules and the user's own documents (user_knowledge). Before relying on something in checks_high, tell the user. Look things "
                  "up with action=search (words, codes like MH-3 or 12+50), action=entity (a person, structure, sheet, "
                  "RFI), action=file and action=timeline.")
     return r
@@ -916,12 +928,16 @@ def search(query, name, active_path, limit=20):
             hit = {"file": file_id, "path": f["path"] if f else None, "part": label, "snippet": _snippet(body, words)}
             if f and f["doc_date"]:
                 hit["date"] = f["doc_date"]
+            if f and f["path"].startswith(USER_PREFIX):
+                hit["user_knowledge"] = True
             hits.append(hit)
+        hits += _search_unread(job, db, words, max(int(limit) - len(hits), 0))
         where = " AND ".join(["(f.fact LIKE ? OR f.topics LIKE ?)"] * len(words))
         args = [a for w in words for a in ("%" + w + "%",) * 2]
         r.update({"query": query, "documents": hits, "facts": _facts(db, where, args, limit=int(limit))})
-        r["hint"] = ("Open a document with action=file (file=<id or path>). Codes are matched as phrases (MH-3 finds "
-                     "'MH 3' and 'MH-3').")
+        r["hint"] = ("Open a document with action=file (file=<id or path>); one marked user_knowledge (the user's own "
+                     "guidelines and requirements) also with action=read (file=<its path without '<user knowledge>\\'>). "
+                     "Codes are matched as phrases (MH-3 finds 'MH 3' and 'MH-3').")
     return r
 
 
@@ -1179,14 +1195,18 @@ def locate(path, name, active_path):
 
 
 # ---------------------------------------------------------------------------
-# the job's files folder: <shared>\projects\<slug>\ (the user's own files for the job)
+# the job's user knowledge: <shared>\projects\<slug>\User Knowledge\ (the user's own documents for the job:
+# guidelines, requirements, standards). Contract: "User knowledge (per job)". Read, never changed; Project Analyzer,
+# when installed, reads it into the database as files rows under USER_PREFIX.
 # ---------------------------------------------------------------------------
-def list_files(directory, limit=500):
-    """Files under a job's files folder: relative path, size and UTC modified time, sorted, at most `limit`.
-    Returns (files, truncated)."""
+def list_files(directory, limit=500, skip=None):
+    """Files under a folder: relative path, size and UTC modified time, sorted, at most `limit`. `skip`: a
+    subfolder name (any case) left out at the top level. Returns (files, truncated)."""
     files, truncated = [], False
     if os.path.isdir(directory):
         for dp, dns, fns in os.walk(directory):
+            if skip and dp == directory:
+                dns[:] = [d for d in dns if d.lower() != skip.lower()]
             dns.sort()
             for fn in sorted(fns):
                 if len(files) >= limit:
@@ -1203,27 +1223,130 @@ def list_files(directory, limit=500):
     return files, truncated
 
 
+def user_knowledge_dir(job):
+    """<shared>\\projects\\<slug>\\User Knowledge for a job (next to its database)."""
+    return os.path.join(os.path.splitext(job["db"])[0], USER_KNOWLEDGE_FOLDER)
+
+
 def _ensure_files_dir(job):
-    """The job's files folder, created when missing (Civil 3D MCP does the same when a project is listed)."""
-    d = os.path.join(projects_dir(), job["slug"])
+    """The job's User Knowledge folder, created (empty) when missing: the only thing any tool writes there."""
+    d = user_knowledge_dir(job)
     os.makedirs(d, exist_ok=True)
     return d
 
 
+def _epoch(text):
+    """Whole seconds since 1970 of an ISO time ('...Z' or '...+00:00'); None when it isn't one."""
+    try:
+        return int(datetime.datetime.fromisoformat((text or "").replace("Z", "+00:00")).timestamp())
+    except ValueError:
+        return None
+
+
+def _analyzer_docs(db):
+    """{lower-case path relative to User Knowledge: files row} of the user-knowledge documents in the database."""
+    rows = db.execute("SELECT id, path, size, mtime, status, duplicate_of, chars FROM files WHERE depth = 0 AND "
+                      "substr(path, 1, ?) = ?", (len(USER_PREFIX), USER_PREFIX)).fetchall()
+    return {r["path"][len(USER_PREFIX):].lower(): r for r in rows}
+
+
+def _fresh(row, full):
+    """The database row when Project Analyzer read this very version of the file (same size and modified time,
+    with text), else None."""
+    if not row or row["status"] not in ("done", "partial", "duplicate"):
+        return None
+    st = os.stat(full)
+    if row["size"] != st.st_size or _epoch(row["mtime"]) != int(st.st_mtime):
+        return None
+    return row
+
+
+def _readable_here(full):
+    """True when TBC MCP can read the file itself: a text format, or Word / Excel / PowerPoint (.docx .xlsx .pptx)."""
+    ext = os.path.splitext(full)[1].lower()
+    if ext in TEXT_EXTENSIONS or ext in office_text.EXTENSIONS:
+        return True
+    if ext in BINARY_EXTENSIONS:
+        return False
+    try:
+        with open(full, "rb") as f:
+            return b"\0" not in f.read(4096)
+    except OSError:
+        return False
+
+
+def _direct_text(full, limit):
+    """Text of a file TBC can read itself (at most `limit` characters are needed; more may be returned)."""
+    if os.path.splitext(full)[1].lower() in office_text.EXTENSIONS:
+        try:
+            return office_text.read(full)
+        except office_text.OfficeTextError as ex:
+            raise KnowledgeError("%s couldn't be read (%s)." % (os.path.basename(full), ex))
+    with open(full, "rb") as f:
+        raw = f.read(int(limit) * 4 + 1)
+    return raw.decode("utf-8-sig", errors="replace")
+
+
+def _legacy_files(job):
+    """Files put directly in <slug>\\ by versions before User Knowledge (not read; listed so they can be moved)."""
+    files, _ = list_files(os.path.splitext(job["db"])[0], limit=100, skip=USER_KNOWLEDGE_FOLDER)
+    return [f["path"] for f in files]
+
+
+def _cant_read(job, rel, full):
+    return KnowledgeError(
+        "%s can't be read by TBC MCP (it reads text files and Word, Excel and PowerPoint files). Project Analyzer reads "
+        "PDFs, scans, drawings and older Office files into the job's database: python analyze.py knowledge --project "
+        "\"%s\". Or open the file with your AI app: %s" % (rel, job["name"], full))
+
+
+def user_knowledge_summary(job, db, limit=30):
+    """For overview: the folder, how many documents, their names (at most `limit`), how many the analyzer read."""
+    d = _ensure_files_dir(job)
+    files, truncated = list_files(d)
+    docs = _analyzer_docs(db)
+    read = sum(1 for f in files if _fresh(docs.get(f["path"].lower()), os.path.join(d, f["path"])))
+    out = {"folder": d, "documents": len(files) if not truncated else "%d+" % len(files),
+           "names": [f["path"] for f in files[:limit]], "read_by_analyzer": read}
+    out["hint"] = ("The user's own documents for this job (guidelines, requirements, standards). When one applies to "
+                   "the task, follow it and name it; when it conflicts with a fact, a practice or the project, tell the "
+                   "user rather than choose. action=read opens one, action=search searches them with the job's "
+                   "documents." if files else
+                   "Empty. The user can put guidelines, requirements for the building type, standards or code books "
+                   "for this job here (subfolders are fine).")
+    return out
+
+
 def project_files(name, active_path):
-    """action=files: the files the user put in the job's files folder (standards, specs ...)."""
+    """action=files: the documents in the job's User Knowledge folder, each with whether Project Analyzer has read
+    this version into the database and whether TBC can read it itself."""
     job = resolve(name, active_path)
     d = _ensure_files_dir(job)
     files, truncated = list_files(d)
-    return {"project": job["name"], "files_folder": d, "files": files, "truncated": truncated,
-            "hint": "Empty. The user can drop standards, specs or other reference files for this job here (subfolders "
-                    "are fine). The job's own documents are in the project database: action=search / file."
-            if not files else "Read text files with action=read (file=<path as listed>). The job's own documents are in "
-                              "the project database: action=search / file."}
+    with opened(job) as db:
+        docs = _analyzer_docs(db)
+    for f in files:
+        full = os.path.join(d, f["path"])
+        f["read_by_analyzer"] = bool(_fresh(docs.get(f["path"].lower()), full))
+        f["readable_here"] = f["read_by_analyzer"] or _readable_here(full)
+    r = {"project": job["name"], "user_knowledge_folder": d, "files": files, "truncated": truncated,
+         "hint": "Empty. The user can put guidelines, requirements for the building type, standards or code books for "
+                 "this job here (subfolders are fine). The job's own documents are in the project database: "
+                 "action=search / file." if not files else
+                 "The user's own documents for this job. Open one with action=read (file=<path as listed>); follow it "
+                 "when it applies and name it. The job's own documents are in the project database: action=search / file."}
+    legacy = _legacy_files(job)
+    if legacy:
+        r["elsewhere"] = legacy
+        r["elsewhere_hint"] = ("These files are directly in %s, outside User Knowledge, so they aren't read. Suggest the "
+                               "user moves them into %s." % (os.path.dirname(d), d))
+    return r
 
 
-def read_file(rel, name, active_path, max_chars=MAX_READ_CHARS):
-    """action=read: text of one file in the job's files folder (paths outside it are refused)."""
+def read_file(rel, name, active_path, max_chars=MAX_READ_CHARS, offset=0):
+    """action=read: one document of the job's User Knowledge folder (paths outside it are refused): the text Project
+    Analyzer stored for this version of it, else read directly (text, .docx, .xlsx, .pptx). `offset` (characters)
+    continues a long document where the last read stopped."""
     if not rel:
         raise KnowledgeError("file is required (a path as listed by action=files)")
     job = resolve(name, active_path)
@@ -1234,22 +1357,56 @@ def read_file(rel, name, active_path, max_chars=MAX_READ_CHARS):
     except ValueError:  # another drive
         inside = False
     if not inside:
-        raise KnowledgeError("Only files inside the project's files folder can be read. For the job's documents use "
-                             "action=file.")
+        raise KnowledgeError("Only files inside the job's User Knowledge folder can be read. For the job's documents "
+                             "use action=file.")
     if not os.path.isfile(full):
         raise KnowledgeError("No file %r in %s. Use action=files to list them (or action=file for the job's documents)."
                              % (rel, d))
-    with open(full, "rb") as f:
-        raw = f.read(int(max_chars) * 4 + 1)
-    ext = os.path.splitext(full)[1].lower()
-    if ext not in TEXT_EXTENSIONS and b"\0" in raw[:4096]:
-        raise KnowledgeError("%s isn't a text file. Ask the user what's in it, or open it with a tool that reads that type." % rel)
-    text = raw.decode("utf-8-sig", errors="replace")
-    max_chars = int(max_chars)
-    r = {"project": job["name"], "file": os.path.relpath(full, d), "size": os.path.getsize(full), "text": text[:max_chars]}
-    if len(text) > max_chars or os.path.getsize(full) > len(raw):
+    rel = os.path.relpath(full, d)
+    max_chars, offset = int(max_chars), max(int(offset or 0), 0)
+    with opened(job) as db:
+        row = _fresh(_analyzer_docs(db).get(rel.lower()), full)
+        if row:
+            text_id = row["duplicate_of"] if row["status"] == "duplicate" and row["duplicate_of"] else row["id"]
+            text, more = _Blocks(db).file_text(text_id, offset + max_chars)
+            source = "the project database (read by Project Analyzer)"
+    if not row:
+        if not _readable_here(full):
+            raise _cant_read(job, rel, full)
+        text = _direct_text(full, offset + max_chars)
+        # a plain file is read only as far as needed (4 bytes per character at most)
+        more = len(text) > offset + max_chars or (os.path.splitext(full)[1].lower() not in office_text.EXTENSIONS
+                                                   and os.path.getsize(full) > (offset + max_chars) * 4 + 1)
+        source = "the file"
+    r = {"project": job["name"], "file": rel, "size": os.path.getsize(full), "read_from": source,
+         "text": text[offset:offset + max_chars]}
+    if offset:
+        r["offset"] = offset
+    if more or len(text) > offset + max_chars:
         r["truncated"] = True
+        r["next_offset"] = offset + max_chars
     return r
+
+
+def _search_unread(job, db, words, limit):
+    """Hits in User Knowledge documents the database doesn't have (or has an older version of) that TBC can read."""
+    d = _ensure_files_dir(job)
+    files, _ = list_files(d, limit=MAX_SCAN_FILES)
+    docs, hits = _analyzer_docs(db), []
+    for f in files:
+        full = os.path.join(d, f["path"])
+        if len(hits) >= limit or f["size"] > MAX_SCAN_BYTES or _fresh(docs.get(f["path"].lower()), full) \
+                or not _readable_here(full):
+            continue
+        try:
+            text = _direct_text(full, MAX_SCAN_BYTES)
+        except (KnowledgeError, OSError):
+            continue
+        low = text.lower()
+        if all(w in low for w in words):
+            hits.append({"file": None, "path": USER_PREFIX + f["path"], "user_knowledge": True,
+                         "not_in_database": True, "snippet": _snippet(text, words)})
+    return hits
 
 
 # ---------------------------------------------------------------------------
@@ -1268,10 +1425,11 @@ def notes_once(active_path):
             return None
         with opened(job) as db:
             facts = _count(db, "SELECT COUNT(*) FROM facts f WHERE " + _CURRENT)
-            files = _count(db, "SELECT COUNT(*) FROM files")
+            files = _count(db, "SELECT COUNT(*) FROM files WHERE substr(path, 1, ?) <> ?", (len(USER_PREFIX), USER_PREFIX))
+            user_docs, _ = list_files(user_knowledge_dir(job), limit=31)
             checks = [{"id": c["id"], "title": c["title"]} for c in db.execute(
                 "SELECT id, title FROM intel_checks WHERE severity = 'high' ORDER BY id LIMIT 10").fetchall()]
-            if not facts and not files and not checks:
+            if not facts and not files and not checks and not user_docs:
                 return None
             _announced.add(job["db"])
             r = {"project": _meta(db, "project_name") or job["name"], "facts": facts, "files": files,
@@ -1280,8 +1438,10 @@ def notes_once(active_path):
                  "checks_high": checks,
                  "checks_high_total": _count(db, "SELECT COUNT(*) FROM intel_checks WHERE severity = 'high'"),
                  "missing_files": _missing_files(db),
+                 "user_knowledge": [f["path"] for f in user_docs[:30]],
                  "hint": "The job's shared project database (also used by Civil 3D MCP and Project Analyzer). Follow "
-                         "these facts; mention checks_high that bear on the task. More: tbc_project_notes "
+                         "these facts and the user's own documents for the job (user_knowledge: guidelines, "
+                         "requirements; tbc_project_notes action=read opens one); mention checks_high that bear on the task. More: tbc_project_notes "
                          "action=overview / search / entity / file / timeline. Add what you learn about this job with "
                          "action=add (ask the user first), in the suite's reference formats: %s." % REFERENCE_FORMATS}
             hint = _copy_hint(db)
