@@ -11,7 +11,7 @@ their panels the way you would, and keeps getting smarter with every session.
 [![IronPython](https://img.shields.io/badge/IronPython-3.4-1E5A99)](https://ironpython.net/)
 [![Trimble Business Center](https://img.shields.io/badge/Trimble%20Business%20Center-2026.10-0063A3)](https://geospatial.trimble.com/)
 [![MCP](https://img.shields.io/badge/Model%20Context%20Protocol-stdio-6E56CF)](https://modelcontextprotocol.io/)
-[![Dependencies](https://img.shields.io/badge/dependencies-none-2EA44F)](#what-you-need)
+[![Dependencies](https://img.shields.io/badge/dependencies-zstandard-2EA44F)](#what-you-need)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 [Highlights](#highlights) •
@@ -37,13 +37,14 @@ their panels the way you would, and keeps getting smarter with every session.
   objects, ticks grid checkboxes and presses Apply. No new geometry engine, just TBC doing what TBC does best.
 - **It sees what you see.** "Put a grid where I'm looking" works: the AI can read the visible area of the Plan View
   and take a screenshot of TBC (and only TBC).
-- **Remembers how you like to work.** Your preferences (numeric point IDs, feature codes in the Feature code box,
-  tidy up when finished) are handed to every AI that connects, in every new chat.
+- **Remembers how you like to work.** Your preferences, and your company's practices (numeric point IDs, codes in
+  the Feature code box), are handed to every AI that connects, in every new chat.
 - **Learns as it goes.** Verified recipes, gotchas and panel layouts are saved on your PC, next to the built-in
   ones it ships with, so the next session starts where the last one finished.
-- **One project database per job for the whole suite.** Project Analyzer reads every document of a job into one
-  database; TBC MCP and [Civil 3D MCP](https://github.com/michaelwachter20/civil3d-mcp-unified) search it, follow its
-  facts and add what they learn, so facts found in Civil 3D or in the job's documents come back in TBC, and the
+- **One project database per job for the whole suite.** [Project Analyzer](https://github.com/michaelwachter20/project-analyzer)
+  reads every document of a job into one database; TBC MCP and
+  [Civil 3D MCP](https://github.com/michaelwachter20/civil3d-mcp-unified) search it, follow its facts and add what
+  they learn, so facts found in Civil 3D or in the job's documents come back in TBC, and the
   other way round.
 - **Knows your license.** Every user's subscription is different. The server builds a license profile each time it
   starts and quietly skips commands you aren't licensed for, without a single license popup.
@@ -215,8 +216,10 @@ it knows what it may do and which commands your license includes.
 
 - **Save first, or work on a copy**, before big project-wide changes. Every change the AI makes through the API is
   one undo step (Ctrl+Z in TBC).
-- **Tell it your preferences once** ("always use numeric point IDs", "put descriptions in the feature code") - they
-  are saved and given to every AI in every future chat. Ask *"list my preferences"* to see them.
+- **Tell it your preferences once** ("leave Layer Manager open", "don't use online tools") - they are saved and
+  given to every AI in every future chat. Ask *"list my preferences"* to see them. Rules your company follows on
+  every job, whatever the program ("point IDs are plain numbers, descriptions go in the feature code"), are
+  **practices**: saved once, they're shared with Civil 3D MCP and Project Analyzer too. Ask *"list the practices"*.
 - **Let it finish.** While TBC is computing, the AI waits; don't cancel progress windows.
 - **Some steps need you.** A few commands only accept clicks in the Plan View (Fillet, Capture Outline, Angular
   Dimension, Insert Image ...). The AI will say so; do that click and it carries on.
@@ -385,7 +388,7 @@ experienced. It lives in two layers with the same layout:
 | `memory\crash_log.md` | crash investigations on this machine (learned folder only) | - |
 | `memory\tbc_errors.log` | TBC error popups the tools caught (learned folder only) | - |
 
-**Built in today:** 7 preferences, 19 skills, 81 lessons, 109 recorded panel layouts and 2 scripts, all verified on TBC 2026.10.
+**Built in today:** 5 preferences, 19 skills, 82 lessons, 117 recorded panel layouts and 2 scripts, all verified on TBC 2026.10. They're general TBC know-how only: nothing from one person's way of working or from a job.
 
 The skills cover TBC basics and safe working, the CAD, Survey, Linework and Drafting tabs, Home's Import/Export and
 Selection tools, command panel automation, Layer Manager, creating points, surfaces and reusable scripts.
@@ -421,8 +424,8 @@ Panel layouts were already recorded without the entries of project-data dropdown
 
 ### Shared project knowledge
 
-TBC MCP, [Civil 3D MCP](https://github.com/michaelwachter20/civil3d-mcp-unified) and Project Analyzer work like a
-suite, with one contract: `docs\suite-knowledge.md` in the Project Analyzer repository (the exact table layout is its
+TBC MCP, [Civil 3D MCP](https://github.com/michaelwachter20/civil3d-mcp-unified) and
+[Project Analyzer](https://github.com/michaelwachter20/project-analyzer) work like a suite, with one contract: `docs\suite-knowledge.md` in the Project Analyzer repository (the exact table layout is its
 `schema\project-db.sql`, shipped here as `mcp_server\project-db.sql`). TBC's side is `mcp_server\projects.py` and
 `mcp_server\practices.py`. Project Analyzer is the project manager: it only reads a job folder and learns everything
 in it. Civil 3D MCP and TBC MCP are the workers: they do the work using what it learned, and add what they find.
