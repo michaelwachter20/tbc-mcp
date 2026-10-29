@@ -70,6 +70,9 @@ SCHEMA_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "project-
 MAX_READ_CHARS = 20000                # action=read (a document in the job's User Knowledge folder)
 USER_KNOWLEDGE_FOLDER = "User Knowledge"
 USER_PREFIX = "<user knowledge>\\"   # files.path of a user-knowledge document read by Project Analyzer
+# The job's other folders (contract: "More than one folder per job"): meta job_folders [{"name", "path"}]; their files'
+# paths start with "<job folder: NAME>\\". on_disk gives any stored path's place on this computer.
+FOLDER_PREFIX = "<job folder: "
 MAX_SCAN_FILES, MAX_SCAN_BYTES = 200, 20 * 1024 * 1024   # search: documents not in the database, read directly
 FILE_TEXT_CHARS = 4000                # action=file: the first part of a file's text
 TOOL_LABELS = {"civil3d": "Civil 3D MCP", "project-analyzer": "Project Analyzer", TOOL: "TBC MCP"}
@@ -121,6 +124,29 @@ def slug(name):
 def one_line(value):
     """Collapse line breaks and runs of spaces: every fact is one line."""
     return " ".join((value or "").split())
+
+
+def job_folders(db):
+    """The job's other folders (meta job_folders): [{"name", "path"}], [] when none or unreadable."""
+    folders = _loads(_meta(db, "job_folders"), [])
+    return [f for f in folders if isinstance(f, dict) and f.get("name") and f.get("path")] if isinstance(folders, list) else []
+
+
+def on_disk(db, relative):
+    """Where a top-level file (its files.path) is on this computer: an extra job folder's path + the rest for
+    "<job folder: NAME>\\rest", else source_root + the path; None for user knowledge, Outlook emails, or a folder
+    the database doesn't know (contract: "More than one folder per job")."""
+    relative = to_windows(relative or "")
+    if relative.startswith(FOLDER_PREFIX):
+        name, _, rest = relative[len(FOLDER_PREFIX):].partition(">\\")
+        for folder in job_folders(db):
+            if folder["name"].lower() == name.lower():
+                return ntpath.join(folder["path"], rest)
+        return None
+    root = _meta(db, "source_root")
+    if relative.startswith("<") or not root:
+        return None
+    return ntpath.join(root, relative) if relative else root
 
 
 def normalize_folder(folder):
@@ -708,7 +734,8 @@ def _read_job_db(path):
         db = sqlite3.connect(_uri(path), uri=True, timeout=BUSY_TIMEOUT)
         try:
             db.execute("PRAGMA busy_timeout = %d" % int(BUSY_TIMEOUT * 1000))
-            meta = dict(db.execute("SELECT key, value FROM meta WHERE key IN ('project_name', 'source_root')").fetchall())
+            meta = dict(db.execute("SELECT key, value FROM meta WHERE key IN ('project_name', 'source_root', "
+                                   "'job_folders')").fetchall())
             folders = [(r[0], r[1]) for r in db.execute("SELECT path, tool FROM folders").fetchall()]
         finally:
             db.close()
@@ -719,7 +746,9 @@ def _read_job_db(path):
                 "damaged": "can't be read (%s): TBC MCP neither reads nor changes it; a backup can be put back (python "
                            "analyze.py restore --project \"%s\" with Project Analyzer, or the newest copy in %s)"
                            % (ex, stem, backups_dir(path))}
-    roots = [f for f, _ in folders] + ([meta["source_root"]] if meta.get("source_root") else [])
+    extra = _loads(meta.get("job_folders"), [])
+    roots = [f for f, _ in folders] + ([meta["source_root"]] if meta.get("source_root") else []) + [
+        f["path"] for f in (extra if isinstance(extra, list) else []) if isinstance(f, dict) and f.get("path")]
     return {"name": meta.get("project_name") or stem, "slug": stem, "db": path, "json": None,
             "source_root": meta.get("source_root"), "folders": folders, "roots": roots}
 
@@ -1085,6 +1114,7 @@ def _folders(db):
     root = _meta(db, "source_root")
     if root:
         out.append({"path": root, "by": "project-analyzer", "source_root": True})
+    out.extend({"path": f["path"], "by": "project-analyzer", "job_folder": f["name"]} for f in job_folders(db))
     out.extend({"path": r["path"], "by": r["tool"]} for r in db.execute("SELECT path, tool FROM folders ORDER BY added, path"))
     return out
 
@@ -1376,6 +1406,9 @@ def _find_file(db, ref):
     root = _meta(db, "source_root")
     if root and _key(rel).startswith(_key(root) + "\\"):
         rel = os.path.abspath(rel)[len(normalize_folder(root)) + 1:]
+    for folder in job_folders(db):
+        if _key(rel).startswith(_key(folder["path"]) + "\\"):
+            rel = "%s%s>\\%s" % (FOLDER_PREFIX, folder["name"], os.path.abspath(rel)[len(normalize_folder(folder["path"])) + 1:])
     for col in ("path", "name"):
         rows = db.execute("SELECT * FROM files WHERE %s = ? COLLATE NOCASE ORDER BY depth, path" % col, (rel,)).fetchall()
         if len(rows) == 1:
@@ -1426,9 +1459,9 @@ def file_info(ref, name, active_path, max_chars=FILE_TEXT_CHARS):
                 r["truncated"] = True
             if text_id != f["id"]:
                 r["text_from"] = "the same content stored as %s" % text_id
-        root = _meta(db, "source_root")
-        if root and f["depth"] == 0:
-            r["absolute"] = os.path.join(root, f["path"])
+        full = on_disk(db, f["path"]) if f["depth"] == 0 else None
+        if full:
+            r["absolute"] = full
     return r
 
 
@@ -1706,10 +1739,8 @@ def latest(file_name, name, active_path, near=None):
         if hints:
             found = [k for k in ([m for m in ms if set(hints) <= set(_words(m["path"]))] for ms in found) if k]
         found.sort(key=lambda ms: (ms[0]["kind"] != "cad", ms[0]["key"] or ""))
-        root = _meta(db, "source_root")
-
         def member(m):
-            full = os.path.join(root, m["path"]) if root else None
+            full = on_disk(db, m["path"])
             out = {"path": m["path"], "absolute": full, "exists": bool(full) and os.path.exists(_long(full)),
                    "modified": (m["modified"] or "")[:10] or None}
             if m["title_date"]:
@@ -1757,11 +1788,15 @@ def to_windows(raw):
     return ntpath.normpath(s) if s else s
 
 
-def _in_copy(root, relative):
-    """(absolute path, exists) for a path relative to source_root; (None, False) without a root."""
-    if not root or relative is None:
+def _in_copy(db, relative):
+    """(absolute path, exists) for a stored path (on_disk: in the job folder or one of the job's other folders);
+    (None, False) when its folder isn't known."""
+    if relative is None:
         return None, False
-    full = os.path.normpath(os.path.join(root, to_windows(relative))) if relative else normalize_folder(root)
+    full = on_disk(db, relative)
+    if not full:
+        return None, False
+    full = os.path.normpath(full)
     return full, os.path.exists(full)
 
 
@@ -1798,7 +1833,7 @@ def locate(path, name, active_path):
             r.update({"source": "refs", "status": status, "times_referenced": len(rows),
                       "referenced_by": sorted({x["from_path"] for x in rows if x["from_path"]})[:10]})
             if best["target_path"]:
-                full, exists = _in_copy(root, best["target_path"])
+                full, exists = _in_copy(db, best["target_path"])
                 r.update({"relative": best["target_path"], "absolute": full, "exists": exists})
                 if not root:
                     r["note"] = "The project database has no source_root, so only the relative path is known."
@@ -1807,7 +1842,7 @@ def locate(path, name, active_path):
                                  "analysis." % root)
             if status == "missing":
                 if best["expected_path"]:
-                    where, _ = _in_copy(root, best["expected_path"])
+                    where, _ = _in_copy(db, best["expected_path"])
                     r["expected_at"] = {"relative": best["expected_path"], "absolute": where}
                 r["hint"] = ("Not in the job folder. It belongs at %s. Ask the user for the file; don't point TBC at "
                              "another file." % (best["expected_path"] or "a place Project Analyzer could not tell"))
@@ -1830,7 +1865,7 @@ def locate(path, name, active_path):
             if low == o or low.startswith(o + "\\"):
                 rest = written[len(o):].lstrip("\\")
                 relative = ntpath.join(in_copy, rest) if in_copy and in_copy != "." else rest
-                full, exists = _in_copy(root, relative)
+                full, exists = _in_copy(db, relative)
                 r.update({"source": "reference_roots", "original_folder": original, "relative": relative,
                           "absolute": full, "exists": exists, "status": "translated" if exists else "translated, not found"})
                 if not root:

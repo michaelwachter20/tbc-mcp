@@ -217,6 +217,34 @@ check(sha(elm) == before and os.path.getmtime(elm) == before_mtime and not any(
       os.path.exists(elm + x) for x in ("-journal", "-wal", "-shm")), "read actions never write the database (bytes, time, no journal)")
 check(sql(elm, "PRAGMA journal_mode")[0][0] == "delete", "...nor switch its journal to WAL (only a write does)")
 
+# A job with more than one folder (contract: "More than one folder per job"): an extra folder's files are stored as
+# "<job folder: NAME>\\..."; TBC finds the job from a project in that folder and gives each file's real place.
+survey = os.path.join(work, "survey drive", "Survey")
+os.makedirs(os.path.join(survey, "TBC"))
+open(os.path.join(survey, "CP.job"), "w").close()
+sql(elm, "INSERT INTO meta(key, value) VALUES ('job_folders', ?)", (json.dumps([{"name": "Survey", "path": survey}]),))
+sql(elm, "INSERT INTO files(id, root_id, parent_id, depth, path, name, ext, kind, status) VALUES "
+         "('5555555555555555', '5555555555555555', NULL, 0, '<job folder: Survey>\\CP.job', 'CP.job', '.job', 'survey', 'done')")
+sql(elm, "INSERT INTO refs(file_id, root_id, kind, raw, normalized, status, target_path) VALUES (?, ?, 'path in text', "
+         "'S:\\Survey\\CP.job', 'S:\\Survey\\CP.job', 'found', '<job folder: Survey>\\CP.job')",
+    ("5555555555555555", "5555555555555555"))
+P.forget_jobs()
+check(P.project_for_path(os.path.join(survey, "TBC", "Survey.vce")) and P.project_for_path(os.path.join(
+    survey, "TBC", "Survey.vce"))["db"] == elm, "a TBC project in the job's other folder belongs to the job")
+with P.opened(P.project_for_path(vce)) as extra_db:
+    check(P.on_disk(extra_db, "<job folder: Survey>\\CP.job") == os.path.join(survey, "CP.job"),
+          "on_disk: an extra folder's file is in that folder")
+f = P.file_info(os.path.join(survey, "CP.job"), None, vce)
+check(f.get("absolute") == os.path.join(survey, "CP.job"), "file: found by its real path, with its place on this computer")
+r = P.locate("S:\\Survey\\CP.job", None, vce)
+check(r["status"] == "found" and r["absolute"] == os.path.join(survey, "CP.job") and r["exists"],
+      "locate: a reference into the job's other folder gives that folder's path")
+check(any(x.get("job_folder") == "Survey" for x in P.overview(None, vce)["folders"]), "the overview lists the job's other folders")
+sql(elm, "DELETE FROM refs WHERE file_id = '5555555555555555'")
+sql(elm, "DELETE FROM files WHERE id = '5555555555555555'")
+sql(elm, "DELETE FROM meta WHERE key = 'job_folders'")
+P.forget_jobs()
+
 # --- 3. facts: TBC writes only its own --------------------------------------------------------------------------
 r = P.add_note("Survey control is on layer CTRL\nat 12+50", None, vce, topics=["control"], date="2026-10-12")
 fact = r["fact"]

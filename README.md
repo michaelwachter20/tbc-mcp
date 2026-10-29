@@ -469,6 +469,9 @@ Documents\Project Knowledge\     (or PROJECT_KNOWLEDGE_DIR; an existing Civil3DM
   a fact or the project. TBC MCP reads text files and Word, Excel and PowerPoint files itself. With Project
   Analyzer installed, every document there (PDFs and scans too) is read into the job's database, and TBC uses
   that text. Files that older versions kept directly in `projects\<job>\` are listed so you can move them in.
+- **More than one folder per job.** When Project Analyzer reads other folders for a job (`run ... --also`), a TBC
+  project in any of them belongs to the job, and `file`, `locate` and `latest` give each file's place in its own
+  folder (paths starting `<job folder: NAME>\`). Emails read from Outlook (`<outlook>\`) have no file on disk.
 - **For reference only.** The job's database is a snapshot of the job's files, for finding and understanding
   things. The AI never takes coordinates, elevations, points, quantities or text from it to edit or import into a
   project: those come from the current file you name, and if you haven't named one it asks which file is current.
