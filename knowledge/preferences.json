@@ -29,5 +29,11 @@
   "topic": "versions",
   "text": "Everything in the knowledge base (skills, lessons, command layouts, scripts) is verified on TBC 2026.10 (build 44.0.9666). When a newer TBC release behaves differently, ADD documentation for that release (a '## TBC <release>' section, a new lesson, a new script version) - never delete or rewrite the 2026.10 (or any older release's) information. Scripts are versioned: saving again bumps script_version and archives the previous file.",
   "added": "2026-10-14T09:46:24"
+ },
+ {
+  "id": 8,
+  "topic": "project knowledge",
+  "text": "The job's project database (tbc_project_notes) is for reference only: a snapshot of the job's files for finding and understanding things (what a file says, where it is, who did what and when). Never take coordinates, elevations, points, stations, dimensions, quantities or text from it to edit or import into a TBC project or drawing. Take them from the current source file the user names; if they haven't named one, ask which file is current before changing anything.",
+  "added": "2026-10-29T14:00:00"
  }
 ]

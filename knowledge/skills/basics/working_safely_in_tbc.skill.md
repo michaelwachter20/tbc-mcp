@@ -25,6 +25,8 @@ verified: "2026-10-13, compiled from live sessions with the user on TBC 2026.10"
 6. **Don't record TBC crashes** as lessons or in skills. TBC sometimes crashes for no reason: tell the user, wait for
    them to restart it, and carry on.
 7. When the user states a new lasting preference, record it with `tbc_preferences action=add`.
+8. **The job database is for reference only.** Values for an edit or import come from the current source file
+   the user names, never from `tbc_project_notes`; with none named, ask which file is current (see below).
 
 ## Before doing something
 
