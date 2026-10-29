@@ -469,6 +469,11 @@ Documents\Project Knowledge\     (or PROJECT_KNOWLEDGE_DIR; an existing Civil3DM
   a fact or the project. TBC MCP reads text files and Word, Excel and PowerPoint files itself. With Project
   Analyzer installed, every document there (PDFs and scans too) is read into the job's database, and TBC uses
   that text. Files that older versions kept directly in `projects\<job>\` are listed so you can move them in.
+- **For reference only.** The job's database is a snapshot of the job's files, for finding and understanding
+  things. The AI never takes coordinates, elevations, points, quantities or text from it to edit or import into a
+  project: those come from the current file you name, and if you haven't named one it asks which file is current.
+  Every answer from the database says so (`reference_only`, with the date of the last Project Analyzer run),
+  `tbc_import` refuses folders inside the shared knowledge folder, and its scan shows each file's saved date.
 - **Each tool changes only its own.** TBC adds facts marked `tbc` (ids `fact-N`, taken inside the write
   transaction), updates them, and removes them by marking them retired (they stay, hidden; ids are never reused).
   Another tool's fact is corrected by adding one that supersedes it. TBC unlinks only folders it linked.

@@ -86,6 +86,13 @@ TEXT_CACHE_CHARS = 64 * 1024 * 1024   # search: text of User Knowledge documents
 REFERENCE_FORMATS = ("dates 2026-10-03; stations 12+50 (12+50.25 only when decimals matter); structures MH-3, CB-12, "
                      "FES-1; sheets C-104; documents RFI 12, CO 4, PCO 7, Submittal 3, ASI 2, Addendum 1, Pay App 5; "
                      "amounts $12,500.00; people by full name, then initials if the files use them: John Smith (J. Smith)")
+# The suite's rule for the job database (contract: Reference only), on every read answer with the date it describes.
+# Its stored text, coordinates and quantities are a snapshot of the job folder: for finding things, never for edits.
+REFERENCE_ONLY = ("Reference only: the job database is a snapshot of the job's files as of %s, and they may have "
+                  "changed since. Use it to find and understand things (what a file says, where it is, who did what, "
+                  "when). Never use its coordinates, elevations, points, stations, dimensions, quantities or text as "
+                  "data to edit or import into a drawing or TBC project: take them from the current source file the "
+                  "user names, and if they haven't named one, ask which file is current.")
 _FORMAT_CHECKS = [
     (re.compile(r"\b\d{1,2}/\d{1,2}/\d{2,4}\b"), "write dates as 2026-10-03"),
     (re.compile(r"\bsta(?:tion)?\.?\s*\d{3,}(?:\.\d+)?\b(?!\+)", re.I), "write stations as 12+50"),
@@ -1177,8 +1184,26 @@ def _copy_hint(db):
             "user it's missing; never guess." % (" (%s)" % copy if copy else ""))
 
 
+def reference_only(db):
+    """REFERENCE_ONLY with the date of the last Project Analyzer run (meta last_run_finished), if there was one."""
+    when = None if db.memory else _meta(db, "last_run_finished")
+    return REFERENCE_ONLY % ((when or "")[:10] or "the last time a tool wrote to it")
+
+
+def in_shared(path):
+    """True when path is inside the suite's shared folder (job databases, their backups and User Knowledge folders),
+    which is never a source for editing or importing."""
+    try:
+        root = os.path.normcase(os.path.abspath(shared_root())).rstrip("\\/")
+        full = os.path.normcase(os.path.abspath(path))
+        return full == root or full.startswith(root + os.sep)
+    except (OSError, ValueError):
+        return False
+
+
 def _base(job, db):
-    out = {"project": _meta(db, "project_name") or job["name"], "database": job["db"]}
+    out = {"project": _meta(db, "project_name") or job["name"], "database": job["db"],
+           "reference_only": reference_only(db)}
     if db.memory:
         out["database"] = None
         out["old_notes_file"] = ("This job's notes are still in the old notes file %s; they move into %s the first time "
@@ -2156,6 +2181,7 @@ def notes_once(active_path):
                  "checks_high_total": _count(db, "SELECT COUNT(*) FROM intel_checks WHERE severity = 'high'"),
                  "missing_files": _missing_files(db),
                  "user_knowledge": [f["path"] for f in user_docs[:30]],
+                 "reference_only": reference_only(db),
                  "hint": "The job's shared project database (also used by Civil 3D MCP and Project Analyzer). Follow "
                          "these facts and the user's own documents for the job (user_knowledge: guidelines, "
                          "requirements; tbc_project_notes action=read opens one); mention checks_high that bear on the task. More: tbc_project_notes "

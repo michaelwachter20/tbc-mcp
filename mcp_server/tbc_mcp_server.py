@@ -1622,6 +1622,20 @@ def t_export(a):
         _close_pane()
 
 
+def _with_saved_dates(st, folder):
+    """The scan result with each file's saved date ("saved", YYYY-MM-DD HH:MM) and a reminder to check with the user
+    that these are the current files: an import takes its data from the files, never from the job database."""
+    for f in st.get("files") or []:
+        try:
+            full = os.path.join(f.get("folder") or folder, f["name"])
+            f["saved"] = time.strftime("%Y-%m-%d %H:%M", time.localtime(os.path.getmtime(full)))
+        except (OSError, KeyError, TypeError):
+            pass
+    st["source_check"] = ("Import only from the current source the user named. If they didn't name one, or a saved "
+                          "date looks old, ask which file is current before importing.")
+    return st
+
+
 def t_import(a):
     """Import through TBC's Import pane: scan a folder (shows the importer TBC picked per file), then import.
 
@@ -1630,8 +1644,9 @@ def t_import(a):
     compatibility)}.
     scan:   points the Import pane at the folder and waits (up to 60 s) for TBC's importer detection; returns
             import_export.import_state: {"folder", "scanning", "files_left_to_scan", "files": [{"name",
-            "importer", "folder", "already_imported"}], "selected"}. The AI must check the detected importer
-            (e.g. a P,N,E CSV detected as P,E,N) before importing.
+            "importer", "folder", "already_imported", "saved"}], "selected", "source_check"}. The AI must check
+            the detected importer (e.g. a P,N,E CSV detected as P,E,N) and that these are the current files
+            before importing. A folder inside the suite's shared folder (P.in_shared) is refused.
     import: refused without confirm=true (importing changes the project and TBC copies each file into the
             project folder). Selects the files, presses Import, presses Import in TBC's Import Format Editor
             wizard if it appears (custom / CSV formats), waits for Compute Project, logs TBC error popups.
@@ -1644,6 +1659,10 @@ def t_import(a):
     folder = a.get("folder") or ""
     if not os.path.isdir(folder):
         raise BridgeError("folder must be an existing folder: %r" % folder)
+    if P.in_shared(folder):
+        raise BridgeError("That folder is in the suite's shared knowledge folder (job databases, backups, User "
+                          "Knowledge), which is for reference only and never a source for importing. Ask the user "
+                          "for the current source file in the job folder.")
     t_command_ui_open({"key": "import"})
     done_ok = False
     try:
@@ -1654,7 +1673,7 @@ def t_import(a):
             time.sleep(0.5)
             st = run_ipy("import_export", "import_state", {})
         if act == "scan":
-            return st
+            return _with_saved_dates(st, folder)
         if not a.get("confirm"):
             raise BridgeError("Importing changes the project and TBC copies each file into the project folder. "
                               "Check the importer shown for each file (action=scan), ask the user, then call again with confirm=true.")
@@ -2522,7 +2541,9 @@ TOOLS += [
      "importer TBC detected (CHECK it, e.g. a P,N,E CSV can be detected as P,E,N). action=import: folder + files + "
      "confirm=true (ask the user first: importing changes the project and TBC COPIES each file into the project "
      "folder). Custom/CSV formats open TBC's Import Format Editor wizard; its Import button is pressed for you. Waits "
-     "for Compute Project. Imported points go to the default Points layer.",
+     "for Compute Project. Imported points go to the default Points layer. Import only from the current source "
+     "file the user named (scan shows each file's saved date; if none was named or a date looks old, ask which is "
+     "current); never from the suite's shared knowledge folder or data copied out of the job database.",
      obj({"action": {"type": "string", "enum": ["scan", "import"], "default": "scan"},
           "folder": {"type": "string"}, "files": {"type": "array", "items": {"type": "string"}},
           "confirm": {"type": "boolean", "default": False}, "wait_seconds": {"type": "number", "default": 3},
@@ -2606,8 +2627,11 @@ TOOLS += [
      "conflicts with a fact or the project). "
      "Use them: the user asks about an RFI, change order or submittal -> entity or search for it; about a structure, "
      "station or sheet -> entity; before relying on an amount, revision or sheet that might be in dispute -> checks "
-     "and search; the user names a file to use or copy from -> the one open in TBC, else latest; 'what changed?' -> "
-     "changes. Reads never change the database; when it is busy (a long Project Analyzer run) or damaged the answer "
+     "and search; the user names a file to use or copy from -> the one open in TBC, else latest (and confirm with the user it is current); 'what changed?' -> "
+     "changes. REFERENCE ONLY: the database is a snapshot of the job's files as of the last Project Analyzer run, for "
+     "finding and understanding things; never use its coordinates, elevations, points, stations, quantities or text as "
+     "data for editing or importing - take those from the current source file the user names, or ask which file is "
+     "current (every read answer repeats this as reference_only). Reads never change the database; when it is busy (a long Project Analyzer run) or damaged the answer "
      "says so and what to do - pass that on, don't retry in a loop. "
      "WRITE (ask the user first): link (project, optional folder; default the open .vce's folder) creates the job's "
      "database or adds a folder to it - link to the existing name when Civil 3D or the analyzer already know the job; "
@@ -2732,7 +2756,11 @@ INSTRUCTIONS = (
     "overview's checks_high and mention those that bear on the task. Job folders are usually COPIES of a project from "
     "elsewhere: when TBC reports a missing or unresolved file (imported file, linked image or data source) or a path "
     "the user gives doesn't exist, run tbc_project_notes action=locate (path) before saying it's missing, and never "
-    "guess where a file went. Write facts one per line in the suite's reference formats (2026-10-03, 12+50, MH-3, "
+    "guess where a file went. REFERENCE ONLY: the job database (tbc_project_notes) is a snapshot of the job's files "
+    "for finding and understanding things - what a file says, where it is, who did what and when. Never use its "
+    "coordinates, elevations, points, stations, dimensions, quantities or text as data to edit or import into a TBC "
+    "project or drawing: take them from the current source file the user names, and if they haven't named one, ask "
+    "which file is current before changing anything. Write facts one per line in the suite's reference formats (2026-10-03, 12+50, MH-3, "
     "C-104, RFI 12, CO 4, $12,500.00, John Smith (J. Smith)). Never put license details, licensee/company names, "
     "user-profile paths or tokens in shared facts or practices.\n"
     "'Here' / 'where I'm looking' = tbc_view action=info center. Leave TBC tidy: close every command panel and pane "

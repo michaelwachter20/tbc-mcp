@@ -456,7 +456,11 @@ check(sorted(f["id"] for f in first.get("key_facts", [])) == ["fact-1", "fact-3"
 check("12+50" in first.get("hint", "") and "COPIED FOLDER" in first.get("copied_folder", ""), "...with the reference formats and the copy hint")
 check(os.path.join("Guidelines", "Proposal guide.pdf") in first.get("user_knowledge", []) and
       "user_knowledge" in first.get("hint", ""), "...and the names of the user's own documents for the job")
+check("Reference only" in first.get("reference_only", ""), "...and the reference-only rule")
 check(P.notes_once(vce) is None, "...and only once per server run")
+check(P.in_shared(P.projects_dir()) and P.in_shared(os.path.join(P.shared_root(), "x", "y.csv"))
+      and not P.in_shared(job) and not P.in_shared(P.shared_root() + "-other"),
+      "in_shared: the shared folder and what's inside it, not a job folder or a look-alike name")
 check(P.notes_once(os.path.join(work, "nowhere", "a.vce")) is None, "no job, no overview")
 
 # --- 8. which shared folder (contract "Where"): nothing is created, renamed or moved ----------------------------
@@ -916,6 +920,8 @@ def call(i, name, args):
 init = rpc(1, "initialize", {"protocolVersion": "2025-06-18", "capabilities": {}})
 ins = init["instructions"]
 check(init["serverInfo"]["version"] == "0.5.0", "server version 0.5.0")
+check("REFERENCE ONLY" in ins and "which file is current" in ins,
+      "instructions say the job database is for reference only and to ask for the current file")
 check("THREE KINDS OF KNOWLEDGE" in ins and "tbc_practices" in ins and "tbc_project_notes" in ins, "instructions explain the three kinds of knowledge")
 check("Use numeric point IDs for new points" in ins and "GOOD PRACTICES" in ins and "[practice-1] Storm pipe minimum slope" in ins,
       "instructions carry the user's preferences and the suite's practices")
@@ -931,6 +937,8 @@ check(all(s in desc for s in ("locate", "never guess", "BEFORE telling the user"
                                "latest", "checks", "changes", "busy")), "the tool says when to use locate and the read actions")
 err, r = call(3, "tbc_project_notes", {"action": "overview", "project": "Elm Street Drainage"})
 check(not err and r["project"] == "Elm Street Drainage" and r["checks_high"], "overview of a named job works without TBC")
+check("Reference only" in r.get("reference_only", "") and "ask which file is current" in r["reference_only"],
+      "a job-database answer says it is for reference only and to ask for the current file")
 err, r = call(4, "tbc_project_notes", {"action": "search", "project": "Elm Street Drainage", "query": "culvert 36"})
 check(not err and r["documents"], "search over MCP%s" % ("" if not err else ": " + r))
 err, r = call(5, "tbc_project_notes", {"action": "entity", "project": "Elm Street Drainage", "name": "RFI 12"})
@@ -943,6 +951,8 @@ err, r = call(8, "tbc_project_notes", {"action": "add", "project": "Elm Street D
 check(not err and r["fact"]["by"] == "tbc" and r["fact"]["sources"][0]["file"] == "user", "add over MCP")
 err, r = call(9, "tbc_project_notes", {"action": "nonsense"})
 check(err and "overview" in r, "an unknown action lists the actions")
+err, r = call(16, "tbc_import", {"action": "scan", "folder": P.projects_dir()})
+check(err and "reference only" in r and "current source file" in r, "an import from the shared knowledge folder is refused")
 err, r = call(12, "tbc_project_notes", {"action": "checks", "project": "Elm Street Drainage", "severity": "high"})
 check(not err and [c["id"] for c in r["checks"]] == ["check-1"], "checks over MCP")
 err, r = call(13, "tbc_project_notes", {"action": "latest", "project": "Elm Street Drainage", "name": "C-104"})

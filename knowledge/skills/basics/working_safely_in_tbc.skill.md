@@ -39,6 +39,11 @@ verified: "2026-10-13, compiled from live sessions with the user on TBC 2026.10"
   still point at the original location. When TBC reports a missing or unresolved file, or a path doesn't exist,
   run `tbc_project_notes action=locate path=<path as TBC shows it>` before telling the user it's missing. If it
   says "not known", ask the user where the original folder was; never guess.
+- **The job database is for reference only.** It is a snapshot of the job's files as of the last Project
+  Analyzer run: use it to find and understand things (what a file says, where it is, who did what and when). Never
+  use its coordinates, elevations, points, stations, dimensions, quantities or text as data to edit or import into
+  the project. Take them from the current source file the user names; if they haven't named one, ask which file
+  is current before changing anything.
 - Read the command's help: `tbc_help action=read command=<key>`. It says what the command does and whether it
   **acts immediately** (no panel).
 - Ask the user to save (or confirm it's a test copy) before experiments that change project-wide data
@@ -57,6 +62,7 @@ verified: "2026-10-13, compiled from live sessions with the user on TBC 2026.10"
 | TBC error-report popups (buttons << / OK) are logged to `memory\tbc_errors.log` in the learned know-how folder and work stops | after every button press |
 | Grid checkboxes / radio buttons are clicked like a user (setting them in code leaves TBC out of sync) | command_ui_fill, ui_grid |
 | Deletion goes through TBC's own Delete command (also for layers) | delete_entities |
+| Every job-database answer carries `reference_only` (the snapshot's date and the rule above); imports from the suite's shared knowledge folder are refused, and a scan shows each file's saved date | tbc_project_notes, tbc_import |
 
 ## Working rules
 
