@@ -427,7 +427,6 @@ def log_tbc_error(d, context=""):
     "tbc_import"). Side effect: creates the memory folder if needed and writes to the local log file. TBC is not
     touched.
     """
-    K.shared_root()  # the learned folder is usually inside the shared folder: move the pre-2.2.0 folder first
     os.makedirs(os.path.dirname(ERROR_LOG), exist_ok=True)
     with open(ERROR_LOG, "a", encoding="utf-8") as f:
         f.write("%s  [%s] %s\n%s\n\n" % (time.strftime("%Y-%m-%d %H:%M:%S"), context, d.get("title"), d.get("message")))
@@ -2031,8 +2030,8 @@ def t_execute_python(a):
     return r
 
 
-PROJECT_ACTIONS = ("list", "overview", "search", "file", "entity", "timeline", "locate", "link", "unlink", "add",
-                   "update", "remove", "files", "read")
+PROJECT_ACTIONS = ("list", "overview", "search", "file", "entity", "timeline", "locate", "latest", "checks",
+                   "changes", "link", "unlink", "add", "update", "remove", "files", "read")
 
 
 def t_project_notes(a):
@@ -2041,13 +2040,15 @@ def t_project_notes(a):
 
     a: {"action": one of PROJECT_ACTIONS (default list), "project": job name (omit = the job the open .vce belongs
         to), plus per action: query + limit (search), file + max_chars (file, read; read also offset), name (entity), from / to
-        (timeline), path (locate), folder (link, unlink), note + topics + date + key + confidence + supersedes +
-        source (add; update takes note and the same optional fields), id (update, remove), limit (list)}.
+        (timeline), path (locate), name + near (latest), severity + kind + limit (checks), since + file + limit
+        (changes), folder (link, unlink), note + topics + date + key + confidence + supersedes + source (add; update
+        takes note and the same optional fields), id (update, remove), limit (list)}.
     Which job: a named project is used as is (no TBC call), except for link and add, where the open .vce gives the
     default folder and the fact's source; otherwise the open project's path is fetched fresh from TBC and matched by
     folder. Each action is one projects.py call (see there for the rules: TBC changes only its own facts and
     folders, private values such as the bridge token and license fingerprint are refused, reference formats).
-    Writes the project database for link/unlink/add/update/remove. Raises K.KnowledgeError.
+    Writes the project database for link/unlink/add/update/remove; every other action opens it read only. Raises
+    K.KnowledgeError (also for a busy or damaged database, with what to do).
     """
     act = a.get("action", "list")
     name = a.get("project")
@@ -2072,6 +2073,12 @@ def t_project_notes(a):
         return P.timeline(name, path, a.get("from"), a.get("to"), int(a.get("limit", 200)))
     if act == "locate":
         return P.locate(a.get("path"), name, path)
+    if act == "latest":
+        return P.latest(a.get("name"), name, path, a.get("near"))
+    if act == "checks":
+        return P.checks(name, path, a.get("severity"), a.get("kind"), int(a.get("limit", 50)))
+    if act == "changes":
+        return P.changes(name, path, a.get("since"), a.get("file"), int(a.get("limit", 50)))
     if act == "link":
         if not name:
             raise K.KnowledgeError("project (a name) is required to link a folder")
@@ -2120,7 +2127,8 @@ def t_memory(a):
             With `command` the text is also stored as a note on that command's recorded panel, so it shows next
             time the command is opened. A lesson containing
             DANGER_WORDS makes check_known_danger require confirm=true for its topic: the answer says so.
-    search / list: lessons (and recorded commands for search).
+    search / list: lessons (and recorded commands for search); list also says how many lines of the learned
+            lessons.jsonl couldn't be read (skipped_lines).
     delete: K.delete_lesson (knowledge.py only allows deleting lessons of the running release).
     add and delete first look up the running TBC release (tbc_version) for knowledge.py. Local files only.
     """
@@ -2148,7 +2156,11 @@ def t_memory(a):
     if act == "search":
         return {"results": K.search(a["query"], ["lesson", "command"], int(a.get("limit", 20)))}
     if act == "list":
-        return {"lessons": K.list_lessons(a.get("topic"))}
+        r = {"lessons": K.list_lessons(a.get("topic"))}
+        if K.skipped_lines():
+            r["skipped_lines"] = ("%d line(s) of the learned lessons.jsonl couldn't be read and were left out (the file "
+                                  "is %s)." % (K.skipped_lines(), K.MEMORY))
+        return r
     if act == "delete":
         return K.delete_lesson(a["id"])
     raise K.KnowledgeError("action must be add, search, list or delete")
@@ -2583,14 +2595,20 @@ TOOLS += [
      "search (query: words or codes such as MH-3, 12+50, C-104, RFI 12 - searches the text of every document and the "
      "facts); file (file: id or path in the job folder - details, summary, references, facts citing it, its text); "
      "entity (name: a person, structure, station, sheet or document number - its files, events, stories and facts); "
-     "timeline (optional from / to dates); list (folders and current facts, each with 'by': tbc, civil3d or "
+     "timeline (optional from / to dates); latest (name: a file name or path, optional near: words about its folder - "
+     "the newest version of that file and the older ones, from Project Analyzer's version list); checks (problems "
+     "Project Analyzer found to check, high first; optional severity, kind, limit); changes (requirement changes the "
+     "documents announce and files changed in the job folder, newest first; optional since date - default the last 30 "
+     "days - and file); list (folders and current facts, each with 'by': tbc, civil3d or "
      "project-analyzer); files / read (the USER'S OWN DOCUMENTS for this job in its User Knowledge folder: proposal "
      "guidelines, requirements for the building type, standards, code books - read, offset continues a long one; "
      "overview lists them and search covers them; follow one when it applies and name it, and tell the user when it "
      "conflicts with a fact or the project). "
      "Use them: the user asks about an RFI, change order or submittal -> entity or search for it; about a structure, "
-     "station or sheet -> entity; before relying on an amount, revision or sheet that might be in dispute -> overview's "
-     "checks_high and search. "
+     "station or sheet -> entity; before relying on an amount, revision or sheet that might be in dispute -> checks "
+     "and search; the user names a file to use or copy from -> the one open in TBC, else latest; 'what changed?' -> "
+     "changes. Reads never change the database; when it is busy (a long Project Analyzer run) or damaged the answer "
+     "says so and what to do - pass that on, don't retry in a loop. "
      "WRITE (ask the user first): link (project, optional folder; default the open .vce's folder) creates the job's "
      "database or adds a folder to it - link to the existing name when Civil 3D or the analyzer already know the job; "
      "unlink (project, folder) drops a folder TBC linked; add (note; optional topics, date, key, confidence, "
@@ -2615,10 +2633,16 @@ TOOLS += [
      obj({"action": {"type": "string", "enum": list(PROJECT_ACTIONS), "default": "list"},
           "project": {"type": "string", "description": "Job name; omit to use the job the open TBC project belongs to."},
           "query": {"type": "string", "description": "search: words or codes (MH-3, 12+50, C-104, RFI 12)."},
-          "file": {"type": "string", "description": "file: a file id or its path in the job folder; read: a path "
-                                                    "inside the job's User Knowledge folder, as listed by action=files."},
+          "file": {"type": "string", "description": "file, changes: a file id or its path in the job folder; read: a "
+                                                    "path inside the job's User Knowledge folder, as listed by action=files."},
           "offset": {"type": "integer", "description": "read: start at this character (next_offset of the last read)."},
-          "name": {"type": "string", "description": "entity: a name or alias (John Smith, MH-3, C-104, RFI 12)."},
+          "name": {"type": "string", "description": "entity: a name or alias (John Smith, MH-3, C-104, RFI 12); "
+                                                    "latest: a file name or path (C-104, Drawings\\C-104.dwg)."},
+          "near": {"type": "string", "description": "latest: words about the file's folder (phase 2 area b)."},
+          "severity": {"type": "string", "description": "checks: only this severity (high, medium, info)."},
+          "kind": {"type": "string", "description": "checks: only this kind (e.g. missing file, no reply)."},
+          "since": {"type": "string", "description": "changes: from this date, YYYY, YYYY-MM or YYYY-MM-DD "
+                                                     "(default the last 30 days unless file is given)."},
           "from": {"type": "string", "description": "timeline: first date, YYYY, YYYY-MM or YYYY-MM-DD."},
           "to": {"type": "string", "description": "timeline: last date (included)."},
           "path": {"type": "string", "description": "locate: a file path as TBC or a file shows it (the original location)."},

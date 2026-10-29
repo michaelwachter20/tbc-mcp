@@ -13,8 +13,10 @@ docs/suite-knowledge.md:
 Rules kept here: practice-N ids are never reused (removing sets "retired"); one line each; duplicate check (any case)
 before adding; TBC changes only entries whose source is "tbc"; fields TBC doesn't know are kept; the file is re-read
 right before every write and written atomically (temp file in the same folder, then rename), UTF-8 without BOM, LF,
-2-space indent; a file that doesn't parse is never rewritten. The current practices are shown to the AI at the start
-of a session, next to the user's preferences (practices_text).
+2-space indent; a file that doesn't parse is never rewritten. Each change holds practices.json.lock (knowledge.file_lock,
+so two servers never lose each other's change), keeps the last 3 versions as practices.json.bak1..3, and retries the
+rename while Windows holds the file. The current practices are shown to the AI at the start of a session, next to the
+user's preferences (practices_text).
 """
 import json
 import os
@@ -51,14 +53,16 @@ def _load():
 
 
 def _save(data):
-    """Write atomically: a temp file in the same folder, then rename over the target. UTF-8 without BOM, LF,
-    2-space indent (the layout JavaScript's JSON.stringify(x, null, 2) writes)."""
+    """Write atomically: a temp file in the same folder, then rename over the target (retried while Windows holds
+    it), the previous version kept as practices.json.bak1 (.bak1..3). UTF-8 without BOM, LF, 2-space indent (the
+    layout JavaScript's JSON.stringify(x, null, 2) writes). Call under K.file_lock(path())."""
     p = path()
     os.makedirs(os.path.dirname(p), exist_ok=True)
     tmp = os.path.join(os.path.dirname(p), ".practices.json.%d.%d.tmp" % (os.getpid(), int(time.time() * 1000)))
     with open(tmp, "w", encoding="utf-8", newline="\n") as f:
         f.write(json.dumps(data, indent=2, ensure_ascii=False) + "\n")
-    os.replace(tmp, p)
+    K.keep_backup(p)
+    K.replace(tmp, p)
 
 
 def _entries(data):
@@ -122,6 +126,11 @@ def add(text, topics=None):
     unchanged."""
     text = _clean(text)
     topics = _topics(topics) or []
+    with K.file_lock(path()):
+        return _add(text, topics)
+
+
+def _add(text, topics):
     data = _load()  # re-read right before writing
     for e in _entries(data):
         if not e.get("retired") and str(e.get("practice", "")).strip().lower() == text.lower():
@@ -152,6 +161,11 @@ def update(pid, text=None, topics=None):
     topics = _topics(topics)
     if text is None and topics is None:
         raise K.KnowledgeError("Give text and/or topics to change.")
+    with K.file_lock(path()):
+        return _update(pid, text, topics)
+
+
+def _update(pid, text, topics):
     data = _load()
     entry = _own(data, pid)
     if text is not None:
@@ -165,10 +179,11 @@ def update(pid, text=None, topics=None):
 
 def remove(pid):
     """action=remove: retire one of TBC's own practices (kept, hidden, its id never reused)."""
-    data = _load()
-    entry = _own(data, pid)
-    entry["retired"] = P._now()
-    _save(data)
+    with K.file_lock(path()):
+        data = _load()
+        entry = _own(data, pid)
+        entry["retired"] = P._now()
+        _save(data)
     return {"success": True, "action": "removed", "practice": entry}
 
 

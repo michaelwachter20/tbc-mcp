@@ -316,7 +316,7 @@ identified by their integer `serial`.
 |---|---|
 | `tbc_license` | license profile: features, expiry, which commands you can run |
 | `tbc_preferences` | your standing rules; add, update or remove them |
-| `tbc_project_notes` | the job's project database, shared with Civil 3D MCP and Project Analyzer: overview, search every document, a file, a person or structure (entity), timeline; link folders, add facts, find a file's place in a copied job folder |
+| `tbc_project_notes` | the job's project database, shared with Civil 3D MCP and Project Analyzer: overview, search every document, a file, a person or structure (entity), timeline, the latest version of a file, problems to check, what changed; link folders, add facts, find a file's place in a copied job folder |
 | `tbc_practices` | the suite's good practices (`practices.json`): list, search, add, update, remove |
 | `tbc_skills` | search and read verified how-tos (skills, lessons, scripts, panel layouts) |
 | `tbc_memory` | record and read lessons |
@@ -397,7 +397,10 @@ Selection tools, command panel automation, Layer Manager, creating points, surfa
 
 It follows the same rules as Civil 3D MCP and Project Analyzer: **add, never delete**; small one-line entries with
 ids; the same entry is never stored twice; files are written whole (temp file, then rename), so a crash never
-leaves half a file; and the AI asks you before it saves anything.
+leaves half a file; and the AI asks you before it saves anything. Two AI chats can save at the same time: each change
+holds a lock file, so neither loses the other's. `preferences.json`, `lessons.jsonl` and the shared
+`practices.json` keep their last 3 versions as `.bak1`..`.bak3` before they are rewritten, and a damaged line in
+`lessons.jsonl` is skipped (and counted) instead of breaking the lessons.
 
 ### No job data in the repository
 
@@ -452,8 +455,11 @@ Documents\Project Knowledge\     (or PROJECT_KNOWLEDGE_DIR; an existing Civil3DM
 - **What the AI can ask** (`tbc_project_notes`): `overview` (key and newest facts, open questions, rules, problems
   marked high, the people in most files, the practices), `search` (every word or code such as MH-3, 12+50, C-104 or
   RFI 12 in every document, plus the facts), `file` (one document: details, summary, references, facts citing it,
-  its text), `entity` (a person, structure, sheet or RFI: its files, events and story), `timeline`, `list`, and
-  `files` / `read` for the job's User Knowledge (below). *"What happened with RFI 12?"* and *"What do the
+  its text), `entity` (a person, structure, sheet or RFI: its files, events and story), `timeline`, `latest` (the
+  newest version of a file such as C-104, and the older ones, from Project Analyzer's version list; `near` picks a
+  folder), `checks` (the problems Project Analyzer found to check, high first, filtered by severity or kind),
+  `changes` (requirement changes the documents announce and files changed in the job folder, newest first, since a
+  date or for one file), `list`, and `files` / `read` for the job's User Knowledge (below). *"What happened with RFI 12?"* and *"What do the
   documents say about MH-3?"* work from TBC.
 - **User Knowledge, per job.** `Documents\Project Knowledge\projects\<job>\User Knowledge\` is for your own
   documents about how this job must be done: proposal guidelines, requirements for the building type, a client's
@@ -466,8 +472,15 @@ Documents\Project Knowledge\     (or PROJECT_KNOWLEDGE_DIR; an existing Civil3DM
 - **Each tool changes only its own.** TBC adds facts marked `tbc` (ids `fact-N`, taken inside the write
   transaction), updates them, and removes them by marking them retired (they stay, hidden; ids are never reused).
   Another tool's fact is corrected by adding one that supersedes it. TBC unlinks only folders it linked.
-- **Safe together.** The database is shared with a long Project Analyzer run: WAL journal, a 30-second busy
-  timeout and short write transactions. A database written by a newer version of a tool is only read.
+- **Safe together.** The database is shared with a long Project Analyzer run: WAL journal, short write
+  transactions, a 10-second busy timeout and one retry; if it is still busy the AI is told to try again in a moment.
+  Every read opens the database read only, so reading never changes it; only `link` and the note actions write. A
+  database written by a newer version of a tool is only read. A damaged one is neither read nor written: the AI
+  says so and how to put a backup back (`python analyze.py restore --project NAME` with Project Analyzer, else the
+  newest copy in `projects\<job>.backups\`), and the job list still shows it, with a note.
+- **Backups.** Before the first change of the day to a job database no Project Analyzer run looks after (one TBC
+  created), TBC copies it to `projects\<job>.backups\<job> YYYY-MM-DD HHMMSS.db`, the same place and names
+  Project Analyzer uses, checks the copy and keeps the newest 3.
 - **Same reference formats everywhere**, so Project Analyzer can connect a TBC fact to every document and drawing
   that mentions the same thing: `2026-10-03`, `12+50`, `MH-3`, `C-104`, `RFI 12`, `CO 4`, `$12,500.00`,
   `John Smith (J. Smith)`. A fact's source (the open TBC project, or you) is recorded with it. A fact written another
@@ -481,8 +494,8 @@ Documents\Project Knowledge\     (or PROJECT_KNOWLEDGE_DIR; an existing Civil3DM
   relative to the job folder, and for a missing file where it should be. When neither covers the path it says so,
   and the AI asks you where the original folder was instead of guessing. When TBC reports a missing file the AI runs
   `locate` first; when you relink a file in TBC, it offers to save that as a fact.
-- **Old notes files.** Before the database, a job's notes were in `projects\<job>.json`. The first tool to open the
-  job moves them into its database once (each note keeps its author and times) and renames the file
+- **Old notes files.** Before the database, a job's notes were in `projects\<job>.json`. TBC reads them as they
+  are; the first time a tool writes to the job it moves them into its database once (each note keeps its author and times) and renames the file
   `<job>.json.imported`.
 - **Good practices** (`tbc_practices`): engineering and company practice for every job, in `practices.json`. All
   three tools read them, and the AI sees them at the start of every chat next to your preferences. TBC changes only
@@ -596,7 +609,17 @@ All settings are optional environment variables.
 - Use Python 3.12 (`py -3.12`). Python 3.15 failed inside its own HTML parser.
 
 **"The zstandard package isn't installed"**
-- Run `py -3.12 -m pip install zstandard` and restart your AI app. It's needed to show the text of a job's documents.
+- Run `py -3.12 -m pip install zstandard` and restart your AI app. It's needed to show the text of a job's documents;
+  without it `search` still lists the hits (without snippets) and `read` and `file` return everything but the stored
+  text.
+
+**"The job's database is busy"**
+- Project Analyzer is writing to it (a long run commits every few seconds). Ask again in a moment.
+
+**"The job's project database ... is damaged"**
+- Close the tools using the job, then put a backup back: `python analyze.py restore --project "<job>"` with Project
+  Analyzer installed, or copy the newest file from `Documents\Project Knowledge\projects\<job>.backups\` over
+  `<job>.db` (keep the damaged file). TBC MCP never writes to a damaged database.
 
 **TBC crashed mid-task**
 - TBC can be temperamental. Restart it, switch the bridge back on and carry on; the server reconnects. Crashes are

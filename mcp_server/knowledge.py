@@ -26,6 +26,12 @@ Everything here is GENERAL TBC knowledge, useful on any job, so every writer run
 Same rules as the other tools: add, never delete; small one-line entries with ids; duplicate check on add; atomic
 writes; lessons surface by topic.
 
+Two AI chats (two servers) may write the same files at once, so every read-modify-write and every append holds a lock
+file <target>.lock (file_lock: created exclusively, holding the pid; a dead holder's or a minute-old lock is taken
+over); a file is replaced with retries (an antivirus or the indexer may hold it a moment); preferences.json and
+lessons.jsonl keep their last 3 versions as <name>.bak1..3 before a rewrite; temp files a crashed write left behind
+are swept after an hour; a lessons.jsonl line that can't be read is skipped (and counted), never fatal.
+
 TBC VERSIONS: everything here records the TBC release it was verified on (baseline: 2026.10, build 44.0.9666).
 When a newer TBC behaves differently, knowledge is ADDED for that release and never deleted:
   - skills: frontmatter tbc_versions + a '## TBC <release>' section appended (append_version_section)
@@ -33,10 +39,13 @@ When a newer TBC behaves differently, knowledge is ADDED for that release and ne
   - command layouts: a different release's layout goes under 'versions' -> {release: layout}; the original stays
   - scripts: script_version increments on every save; the previous file is archived in scripts/_archive/
 """
+import contextlib
 import datetime
 import json
 import os
 import re
+import shutil
+import threading
 import time
 
 # ---------------------------------------------------------------------------
@@ -175,17 +184,189 @@ def _check_name(name, what="name"):
         raise KnowledgeError("%s must be 1-80 chars of letters, digits, '_' or '-': %r" % (what, name))
 
 
+# ---------------------------------------------------------------------------
+# writing safely: two servers at once, Windows holding files, crashed writes (module variables: tests shorten them)
+# ---------------------------------------------------------------------------
+LOCK_WAIT = 5.0          # seconds to wait for another server's lock before saying so
+LOCK_STALE = 60          # a lock older than this is taken over (its holder hung or crashed)
+REPLACE_TRIES = 6        # os.replace attempts while Windows (antivirus, indexer) holds the target
+TMP_MAX_AGE = 3600       # seconds after which a temp file of a crashed write is swept away
+BACKUPS_KEPT = 3         # <name>.bak1 (newest) .. .bak3 kept before preferences or lessons are rewritten
+_TMP = re.compile(r"^\..+\.\d+\.\d+\.tmp$")   # the temp names _write and practices._save use
+_held = threading.local()  # the locks this thread holds (file_lock is re-entrant within one thread)
+_swept = [False]
+
+
+def _pid_alive(pid):
+    """True when a process with this id is running (Windows: OpenProcess + GetExitCodeProcess == STILL_ACTIVE). A
+    process this user may not look at counts as alive."""
+    if pid <= 0:
+        return False
+    if os.name != "nt":
+        try:
+            os.kill(pid, 0)
+        except ProcessLookupError:
+            return False
+        except OSError:
+            return True
+        return True
+    import ctypes
+    from ctypes import wintypes
+    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    kernel32.OpenProcess.restype = wintypes.HANDLE
+    handle = kernel32.OpenProcess(0x1000, False, pid)  # PROCESS_QUERY_LIMITED_INFORMATION
+    if not handle:
+        return ctypes.get_last_error() == 5  # ERROR_ACCESS_DENIED: it exists, it isn't ours
+    try:
+        code = wintypes.DWORD()
+        if not kernel32.GetExitCodeProcess(handle, ctypes.byref(code)):
+            return True
+        return code.value == 259  # STILL_ACTIVE
+    finally:
+        kernel32.CloseHandle(handle)
+
+
+def _stale(lock):
+    """True when a lock file's holder is gone (its pid isn't running) or it is older than LOCK_STALE seconds. A lock
+    just created, its pid not written yet, isn't stale."""
+    try:
+        age = time.time() - os.path.getmtime(lock)
+        with open(lock, "rb") as f:
+            text = f.read(32).decode("ascii", "replace").strip()
+    except OSError:
+        return False  # gone or being deleted meanwhile: just try again
+    if age > LOCK_STALE:
+        return True
+    try:
+        pid = int(text.split()[0])
+    except (ValueError, IndexError):
+        return age > 2  # empty or garbled: stale once its writer has had time to fill it
+    return not _pid_alive(pid)
+
+
+def _remove_lock(lock):
+    """Delete a lock file, retried for about a second: on Windows another server reading it (_stale) briefly
+    stops the delete, and a lock left behind would hold everyone up until it is LOCK_STALE old."""
+    for _ in range(50):
+        try:
+            os.remove(lock)
+            return True
+        except FileNotFoundError:
+            return True
+        except OSError:
+            time.sleep(0.02)
+    return False
+
+
+@contextlib.contextmanager
+def file_lock(target):
+    """Hold <target>.lock while reading, changing and writing `target`, so two servers (two AI chats) never lose
+    each other's change. The lock file is created exclusively (os.O_EXCL) and holds this process's id; one whose
+    process is gone, or older than LOCK_STALE, is taken over. Waits up to LOCK_WAIT seconds for a live one, then
+    raises KnowledgeError. Re-entrant within one thread."""
+    held = getattr(_held, "locks", None)
+    if held is None:
+        held = _held.locks = set()
+    lock = os.path.abspath(target) + ".lock"
+    if lock in held:
+        yield
+        return
+    sweep_temp_files()
+    os.makedirs(os.path.dirname(lock), exist_ok=True)
+    deadline = time.time() + LOCK_WAIT
+    while True:
+        try:
+            fd = os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+            break
+        except (FileExistsError, PermissionError):  # PermissionError: Windows, a lock file being deleted
+            if time.time() > deadline:
+                raise KnowledgeError("%s is being changed by another TBC MCP (another AI chat) and stayed locked; try "
+                                     "again in a moment. If no other chat is working, delete %s." % (target, lock))
+            if _stale(lock) and _remove_lock(lock):
+                continue  # taken over: create it again at once
+            time.sleep(0.02)
+    try:
+        os.write(fd, str(os.getpid()).encode("ascii"))
+    finally:
+        os.close(fd)
+    held.add(lock)
+    try:
+        yield
+    finally:
+        held.discard(lock)
+        _remove_lock(lock)
+
+
+def replace(tmp, path):
+    """os.replace(tmp, path), tried again a few times while Windows holds the target (an antivirus or the search
+    indexer reading it); the temp file is removed when it still fails."""
+    for attempt in range(REPLACE_TRIES):
+        try:
+            os.replace(tmp, path)
+            return
+        except PermissionError:
+            if attempt == REPLACE_TRIES - 1:
+                try:
+                    os.remove(tmp)
+                except OSError:
+                    pass
+                raise
+            time.sleep(0.05 * (attempt + 1))
+
+
+def keep_backup(path, keep=BACKUPS_KEPT):
+    """Before a file is rewritten: its current version becomes <path>.bak1 (.bak1 -> .bak2 ... the oldest beyond
+    `keep` dropped). Nothing happens when the file doesn't exist; a backup that can't be made never stops the write."""
+    if not os.path.isfile(path):
+        return
+    try:
+        for n in range(keep, 1, -1):
+            older = "%s.bak%d" % (path, n - 1)
+            if os.path.exists(older):
+                os.replace(older, "%s.bak%d" % (path, n))
+        shutil.copy2(path, path + ".bak1")
+    except OSError:
+        pass
+
+
+def sweep_temp_files(root=None, max_age=None):
+    """Remove the temp files ('.<name>.<pid>.<ms>.tmp') crashed writes left in the learned folder (and practices.py's
+    in the shared folder) once they are older than TMP_MAX_AGE; done once per server run unless `root` is given.
+    Returns how many were removed."""
+    if root is None:
+        if _swept[0]:
+            return 0
+        _swept[0] = True
+        roots = [(USER_ROOT, True), (shared_dir(), False)]
+    else:
+        roots = [(root, True)]
+    cutoff, removed = time.time() - (TMP_MAX_AGE if max_age is None else max_age), 0
+    for top, deep in roots:
+        walk = os.walk(top) if deep else [(top, [], os.listdir(top) if os.path.isdir(top) else [])]
+        for dp, _, fns in walk:
+            for fn in fns:
+                if _TMP.match(fn) and (deep or fn.startswith(".practices.json.")):
+                    full = os.path.join(dp, fn)
+                    try:
+                        if os.path.getmtime(full) < cutoff:
+                            os.remove(full)
+                            removed += 1
+                    except OSError:
+                        pass
+    return removed
+
+
 def _write(path, text):
     """Write a knowledge file atomically: a uniquely named temp file in the same folder, then os.replace over the
-    target, so a crash (or a second server writing at the same time) never leaves half a file. UTF-8, LF line
-    endings."""
-    shared_root()  # the learned layer is usually inside the shared folder: move the pre-2.2.0 folder first
+    target (retried while Windows holds it), so a crash (or a second server writing at the same time) never leaves
+    half a file. UTF-8, LF line endings. Callers that read, change and write a file hold file_lock around it."""
+    sweep_temp_files()
     os.makedirs(os.path.dirname(path), exist_ok=True)
     # unique temp name: two AI chats (two servers) can write the same knowledge folder at once
     tmp = os.path.join(os.path.dirname(path), ".%s.%d.%d.tmp" % (os.path.basename(path), os.getpid(), int(time.time() * 1000)))
     with open(tmp, "w", encoding="utf-8", newline="\n") as f:
         f.write(text)
-    os.replace(tmp, path)
+    replace(tmp, path)
 
 
 def _read(path):
@@ -407,6 +588,11 @@ def save_skill(name, category, description, body, requires_write=False, paramete
     if not body or not body.strip():
         raise KnowledgeError("body is required (markdown: when to use, steps/code, gotchas)")
     check_general("skill", name, category, description, body, parameters)
+    with file_lock(os.path.join(SKILLS, category, name + ".skill.md")):
+        return _save_skill(name, category, description, body, requires_write, parameters, overwrite)
+
+
+def _save_skill(name, category, description, body, requires_write, parameters, overwrite):
     existing = _skill_path(name)
     path = existing if existing and is_learned(existing) else os.path.join(SKILLS, category, name + ".skill.md")
     rel = current_release()
@@ -436,6 +622,13 @@ def append_version_section(name, body, release=None):
     if not body or not body.strip():
         raise KnowledgeError("body is required: what is different on this release")
     check_general("skill section", body)
+    with file_lock(target):
+        return _append_section(name, p, target, body, release)
+
+
+def _append_section(name, p, target, body, release):
+    if is_learned(target) and os.path.exists(target):
+        p = target  # re-read under the lock: another server may have added a section meanwhile
     rel = release or current_release()
     text = _read(p)
     meta, _ = parse_frontmatter(text)
@@ -549,6 +742,11 @@ def save_script(name, text, overwrite=False):
     p = _script_path(name)
     meta, _ = parse_script(text)
     check_general("script", text)
+    with file_lock(p):
+        return _save_script(name, p, text, meta, overwrite)
+
+
+def _save_script(name, p, text, meta, overwrite):
     existing = _script_file(name)
     if existing:
         if not overwrite:
@@ -573,6 +771,11 @@ def delete_script(name):
     built-in script ships with TBC MCP and is refused (save a new version instead); when a learned script hid a
     built-in one, the built-in one is used again."""
     p = _script_path(name)
+    with file_lock(p):
+        return _delete_script(name, p)
+
+
+def _delete_script(name, p):
     if not os.path.exists(p):
         if _script_file(name):
             raise KnowledgeError("Script %r is built in (shipped with TBC MCP), so it can't be retired here. Save a new "
@@ -618,23 +821,39 @@ def bind_args(meta, given):
 # ---------------------------------------------------------------------------
 # memory (lessons learned)
 # ---------------------------------------------------------------------------
+_skipped = {}  # .jsonl path -> how many lines the last read of it skipped
+
+
 def _read_jsonl(path):
-    """The JSON objects of a .jsonl file, one per line ([] when it is missing). Blank or unreadable lines are
-    skipped."""
+    """The JSON objects of a .jsonl file, one per line ([] when it is missing). Blank lines are skipped; a line that
+    isn't UTF-8 or JSON (a torn write, a bad edit) is skipped and counted (skipped_lines), never fatal."""
     if not path or not os.path.exists(path):
         return []
-    out = []
-    with open(path, "r", encoding="utf-8-sig") as f:
-        for line in f:
-            line = line.strip()
-            if line:
-                try:
-                    rec = json.loads(line)
-                except ValueError:
-                    continue
-                if isinstance(rec, dict):
-                    out.append(rec)
+    out, bad = [], 0
+    with open(path, "rb") as f:
+        data = f.read()
+    for n, raw in enumerate(data.split(b"\n")):
+        if n == 0 and raw.startswith(b"\xef\xbb\xbf"):
+            raw = raw[3:]
+        raw = raw.strip()
+        if not raw:
+            continue
+        try:
+            rec = json.loads(raw.decode("utf-8"))
+        except ValueError:  # UnicodeDecodeError is a ValueError too
+            bad += 1
+            continue
+        if isinstance(rec, dict):
+            out.append(rec)
+        else:
+            bad += 1
+    _skipped[path] = bad
     return out
+
+
+def skipped_lines():
+    """How many lines of the learned lessons.jsonl its last read skipped (they can't be read; 0 when none)."""
+    return _skipped.get(MEMORY, 0)
 
 
 def _merge_by_id(builtin, learned):
@@ -668,6 +887,11 @@ def add_lesson(text, topic=None, tags=None):
     if not text or not text.strip():
         raise KnowledgeError("text is required")
     check_general("lesson", text, topic, tags)
+    with file_lock(MEMORY):
+        return _add_lesson(text, topic, tags)
+
+
+def _add_lesson(text, topic, tags):
     ls = _lessons()
     duplicate = next((l for l in ls if l.get("text", "").strip().lower() == text.strip().lower()), None)
     if duplicate:
@@ -675,11 +899,18 @@ def add_lesson(text, topic=None, tags=None):
     lid = _next_user_id(_read_jsonl(MEMORY))
     rec = {"id": lid, "ts": _now(), "topic": (topic or "general").strip().lower(), "tags": tags or [], "text": text.strip(),
            "tbc_version": current_release()}
-    shared_root()  # the learned layer is usually inside the shared folder: move the pre-2.2.0 folder first
     os.makedirs(os.path.dirname(MEMORY), exist_ok=True)
-    with open(MEMORY, "a", encoding="utf-8", newline="\n") as f:
-        f.write(json.dumps(rec, ensure_ascii=False) + "\n")
+    with open(MEMORY, "ab") as f:
+        if f.tell() and not _ends_with_newline(MEMORY):
+            f.write(b"\n")  # a torn last line stays its own (skipped) line
+        f.write((json.dumps(rec, ensure_ascii=False) + "\n").encode("utf-8"))
     return rec
+
+
+def _ends_with_newline(path):
+    with open(path, "rb") as f:
+        f.seek(-1, os.SEEK_END)
+        return f.read(1) == b"\n"
 
 
 def list_lessons(topic=None):
@@ -714,6 +945,11 @@ def delete_lesson(lid):
     removed from the learned file; a built-in one is hidden by a learned {"id", "retired"} entry (the repository's
     file is never changed)."""
     lid = int(lid)
+    with file_lock(MEMORY):
+        return _delete_lesson(lid)
+
+
+def _delete_lesson(lid):
     gone = next((l for l in _lessons() if l.get("id") == lid), None)
     if not gone:
         raise KnowledgeError("No lesson with id %s" % lid)
@@ -723,6 +959,7 @@ def delete_lesson(lid):
     keep = [l for l in _read_jsonl(MEMORY) if l.get("id") != lid]
     if any(l.get("id") == lid for l in _read_jsonl(_builtin("memory", "lessons.jsonl"))):
         keep.append({"id": lid, "retired": _now()})
+    keep_backup(MEMORY)  # the rewrite also drops lines that couldn't be read: the .bak keeps them
     _write(MEMORY, "".join(json.dumps(l, ensure_ascii=False) + "\n" for l in keep))
     return {"deleted": lid}
 
@@ -778,6 +1015,11 @@ def record_command(state):
     c = state.get("command")
     if not c:
         return None
+    with file_lock(_cmd_path(c["key"])):
+        return _record_command(state, c)
+
+
+def _record_command(state, c):
     old = get_command(c["key"]) or {}
     fields = []
     for f in state.get("fields", []):
@@ -808,9 +1050,10 @@ def add_command_note(key, text):
     """Attach a note to a command's record (created if needed), stamped with the running release; it is shown the
     next time that command is opened. Text that names a job is refused (check_general)."""
     check_general("command note", key, text)
-    rec = get_command(key) or {"key": key, "fields": [], "buttons": [], "notes": []}
-    rec.setdefault("notes", []).append({"ts": _now(), "text": text.strip(), "tbc_version": current_release()})
-    _write(_cmd_path(key), json.dumps(rec, indent=1, ensure_ascii=False))
+    with file_lock(_cmd_path(key)):
+        rec = get_command(key) or {"key": key, "fields": [], "buttons": [], "notes": []}
+        rec.setdefault("notes", []).append({"ts": _now(), "text": text.strip(), "tbc_version": current_release()})
+        _write(_cmd_path(key), json.dumps(rec, indent=1, ensure_ascii=False))
     return rec
 
 
@@ -853,14 +1096,21 @@ def add_pref(text, topic=None):
     if not text or not text.strip():
         raise KnowledgeError("text is required")
     check_general("preference", text, topic)
-    duplicate = next((p for p in list_prefs() if p.get("text", "").strip().lower() == text.strip().lower()), None)
-    if duplicate:
-        return dict(duplicate, action="unchanged", note="That preference already exists.")
-    learned = _read_prefs(PREFS)
-    rec = {"id": _next_user_id(learned), "topic": (topic or "general").strip().lower(), "text": text.strip(), "added": _now()}
-    learned.append(rec)
-    _write(PREFS, json.dumps(learned, indent=1, ensure_ascii=False))
+    with file_lock(PREFS):
+        duplicate = next((p for p in list_prefs() if p.get("text", "").strip().lower() == text.strip().lower()), None)
+        if duplicate:
+            return dict(duplicate, action="unchanged", note="That preference already exists.")
+        learned = _read_prefs(PREFS)
+        rec = {"id": _next_user_id(learned), "topic": (topic or "general").strip().lower(), "text": text.strip(), "added": _now()}
+        learned.append(rec)
+        _save_prefs(learned)
     return rec
+
+
+def _save_prefs(learned):
+    """Rewrite the learned preferences.json (its last versions kept as .bak1..3). Call under file_lock(PREFS)."""
+    keep_backup(PREFS)
+    _write(PREFS, json.dumps(learned, indent=1, ensure_ascii=False))
 
 
 def update_pref(pid, text):
@@ -868,6 +1118,11 @@ def update_pref(pid, text):
     (same id), which wins. Text that names a job is refused; KnowledgeError for an unknown id."""
     check_general("preference", text)
     pid = int(pid)
+    with file_lock(PREFS):
+        return _update_pref(pid, text)
+
+
+def _update_pref(pid, text):
     current = next((p for p in list_prefs() if p.get("id") == pid), None)
     if not current:
         raise KnowledgeError("No preference with id %s" % pid)
@@ -878,7 +1133,7 @@ def update_pref(pid, text):
         learned.append(entry)
     entry["text"] = text.strip()
     entry["updated"] = _now()
-    _write(PREFS, json.dumps(learned, indent=1, ensure_ascii=False))
+    _save_prefs(learned)
     return entry
 
 
@@ -886,12 +1141,13 @@ def remove_pref(pid):
     """Remove a preference the user has retracted: a learned one is deleted, a built-in one is hidden by a learned
     {"id", "retired"} entry. KnowledgeError for an unknown id."""
     pid = int(pid)
-    if not any(p.get("id") == pid for p in list_prefs()):
-        raise KnowledgeError("No preference with id %s" % pid)
-    keep = [p for p in _read_prefs(PREFS) if p.get("id") != pid]
-    if any(p.get("id") == pid for p in _read_prefs(_builtin("preferences.json"))):
-        keep.append({"id": pid, "retired": _now()})
-    _write(PREFS, json.dumps(keep, indent=1, ensure_ascii=False))
+    with file_lock(PREFS):
+        if not any(p.get("id") == pid for p in list_prefs()):
+            raise KnowledgeError("No preference with id %s" % pid)
+        keep = [p for p in _read_prefs(PREFS) if p.get("id") != pid]
+        if any(p.get("id") == pid for p in _read_prefs(_builtin("preferences.json"))):
+            keep.append({"id": pid, "retired": _now()})
+        _save_prefs(keep)
     return {"removed": pid}
 
 

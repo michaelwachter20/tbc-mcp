@@ -191,27 +191,41 @@ writer in a session and checks the repository is unchanged.
 
 The suite's contract is Project Analyzer's `docs/suite-knowledge.md`; the table layout is its
 `schema/project-db.sql`, copied byte for byte to `mcp_server/project-db.sql` (`tests/test_project_knowledge.py`
-compares the two, and the fixtures, when the analyzer's repository is on the PC). In short:
+checks it and the fixtures against their recorded SHA-256, and against the analyzer's files when its repository is
+on the PC). In short:
 
 - **Where.** `<shared>` = `PROJECT_KNOWLEDGE_DIR`, else `Documents\Project Knowledge`, or an earlier folder used as it is (`Documents\Civil3DMcp-KnowledgeBase`); nothing renames or moves it. `projects\<slug>.db` is
   one SQLite database per job; `projects\<slug>\` holds files the user puts there for the job; `practices.json` the
   good practices. No tool keeps copies of a job's files.
-- **Connections.** WAL journal, 30 s busy timeout, autocommit with explicit `BEGIN IMMEDIATE ... COMMIT` for each
-  write (`_write`), so TBC can add a fact while a long Project Analyzer run writes. A database whose
-  `meta.schema_version` is newer than 1 is read, never written.
+- **Connections.** One per action (`opened`). Reads open the file read only (SQLite URI `mode=ro`): no schema, no
+  journal switch, no JSON import. `link` and the note actions open it read-write: an existing database is switched
+  to WAL if it isn't yet and gets the schema's `CREATE INDEX IF NOT EXISTS` lines (`ensure_indexes`). Autocommit with
+  explicit `BEGIN IMMEDIATE ... COMMIT` for each write (`_write`), so TBC can add a fact while a long Project
+  Analyzer run writes; a 10 s busy timeout (`BUSY_TIMEOUT`), then one retry (`_busy_retry`), then a KnowledgeError
+  saying the database is busy. A database whose `meta.schema_version` is newer than 1 is read, never written. A
+  damaged one (an unreadable `meta`, or `PRAGMA quick_check` not ok after an SQLite error) is neither read nor
+  set up again: the error names `analyze.py restore` and the newest file in `projects\<slug>.backups\`.
+- **Backups.** Before the first write of a day to a database whose `meta.source_root` is empty (no analyzer looks
+  after it), `_backup_daily` copies it with SQLite's backup API to `projects\<slug>.backups\<slug> YYYY-MM-DD
+  HHMMSS.db` (Project Analyzer's naming), checks it with `quick_check` and keeps the newest 3.
 - **Finding the job.** `job_index` reads `meta.project_name`, `meta.source_root` and the `folders` rows of every
   `projects\*.db` (read-only connections), cached per file by size and modified time of the database and its WAL
-  file; old `<slug>.json` notes files without a database count too. The open `.vce` belongs to the job whose folder
+  file, the whole list kept 60 s (`INDEX_TTL`; a write or a name not found looks again); old `<slug>.json` notes
+  files without a database count too, and a database that can't be read is listed with `damaged`. The open `.vce` belongs to the job whose folder
   contains it, compared case-insensitively on normalized absolute paths; the deepest folder wins.
 - **Creating and importing.** `link` creates a new job's database (runs `project-db.sql`, sets `schema_version`,
-  `project_id` (12 random hex), `created`, `project_name`). Opening a database while `<slug>.json` exists imports it
-  once (`import_json_notes`, the same as the analyzer's): name, folders (`tool` civil3d), each note as a fact owned
+  `project_id` (12 random hex), `created`, `project_name`). The first writable open while `<slug>.json` exists
+  imports it once (until then a read builds the notes in memory, `_from_json`) (`import_json_notes`, the same as the analyzer's): name, folders (`tool` civil3d), each note as a fact owned
   by its `source` (none = civil3d) with its times, `sources` `[{"file": "user", "path": "project note"}]` and
   `origin` `{"note_id"}`; then the file is renamed `.json.imported` (`meta.json_notes_imported` stops a second import).
 - **Reading.** `overview`, `search` (FTS5 `text_search` with `fts_query`: each word quoted, codes such as MH-3 or
-  12+50 as phrases; snippets from the decompressed part; facts by `LIKE`), `file`, `entity`, `timeline` and
-  `locate`, as the contract's "What to tell the AI" table says. Text is decompressed in memory, block by block
-  (`zstandard`, imported lazily; `zlib` and `none` codecs also read). The first result of a session for a job
+  12+50 as phrases; snippets from the decompressed part; facts by `LIKE`), `file`, `entity`, `timeline`, `locate`,
+  `latest` (`intel_series`), `checks` (`intel_checks`) and `changes` (events of kind `change`, `file_changes`), as
+  the contract's "What to tell the AI" table says. Lookups are written `col = ? COLLATE NOCASE` so the schema's
+  NOCASE indexes answer them, and filtering, ordering and limits happen in SQL. Text is decompressed in memory, block
+  by block (`zstandard`, imported lazily; `zlib` and `none` codecs also read); without `zstandard`, search, read and
+  file still answer, without the stored text. User Knowledge is read with `\\?\` paths when they are long; a file
+  that can't be read is left out with a note. The first result of a session for a job
   carries a short overview (`notes_once`): key facts, TBC's own facts, `intel_checks` of severity high, the number
   of missing referenced files.
 - **Writing.** Only TBC's own rows: facts with `tool = 'tbc'` (`add` checks for the same text among current facts

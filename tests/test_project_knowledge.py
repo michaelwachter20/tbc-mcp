@@ -8,13 +8,21 @@ Needs TBC
     copy of tests/fixtures/fixture.db, the suite's made-up test job; the real knowledge bases are never touched.
 
 What it checks
-    - the shipped schema (mcp_server/project-db.sql) and fixtures are the same as project-analyzer's, when that
-      repository is next to this one (skipped otherwise)
+    - the shipped schema (mcp_server/project-db.sql) and fixtures have the SHA-256 recorded below (always), and are
+      the same as project-analyzer's when that repository is next to this one (skipped otherwise)
     - finding the job of the open .vce: source_root and folders rows, deepest folder wins, across databases
-    - every action of tbc_project_notes: list, overview, search, file, entity, timeline, locate, link, unlink, add,
-      update, remove, files, read; ownership (TBC changes only its own facts and folders), fact-N ids, supersedes,
-      retired facts, privacy, reference-format hints, a database written by a newer tool (read only)
-    - creating a database for a new job, and importing an old <slug>.json notes file once
+    - every action of tbc_project_notes: list, overview, search, file, entity, timeline, locate, latest, checks,
+      changes, link, unlink, add, update, remove, files, read; ownership (TBC changes only its own facts and folders),
+      fact-N ids, supersedes, retired facts, privacy, reference-format hints, a database written by a newer tool
+      (read only)
+    - creating a database for a new job, and importing an old <slug>.json notes file once (on the first write)
+    - opening: reads open read only and never change the file; a writable open adds the schema's indexes; a busy
+      database gives a friendly error; a damaged one says how to restore a backup and is listed with a note; TBC's
+      daily backup of a database it looks after alone, 3 kept
+    - User Knowledge with long paths and unreadable files; search, read and file without the zstandard package
+    - TBC MCP installed alone (an empty shared folder): every action answers
+    - knowledge files: lock files (a dead holder's taken over), concurrent lessons from threads and processes, a bad
+      lessons.jsonl line, temp-file sweep, .bak1..3 of preferences and practices
     - the once-per-job overview attached to the first result of a session
     - tbc_practices on practices.json: list, search, add, update, remove, ownership, unknown fields, file format
     - the server over stdio: instructions, tool list and descriptions, calls without TBC
@@ -85,6 +93,13 @@ def sql(path, query, args=()):
 
 
 # --- 0. the shipped schema and fixtures are project-analyzer's -------------------------------------------------
+# The contract copies' SHA-256 as project-analyzer's schema/sync_copies.py prints them (CRLF read as LF for text), so
+# drift is caught even where that repository isn't checked out. Update them with the copies.
+CONTRACT_SHA = {"mcp_server/project-db.sql": "44c31481779f67dc3187f4f66e3a81f48c40b1c1c0452505456550473a218abb",
+                "tests/fixtures/fixture.db": "451ee3ea467c7bcdc5ebad3b0866ce0b6597ea5e102582a7831ae2e9cfbf8a0b",
+                "tests/fixtures/fixture-practices.json": "f2021ce1b963686cec2270567e8050e25bdb814c6cff76412c2f8338dbcdafa6"}
+for ours, expected in CONTRACT_SHA.items():
+    check(sha(os.path.join(repo, *ours.split("/")), not ours.endswith(".db")) == expected, "%s has the recorded SHA-256" % ours)
 for ours, theirs in (("mcp_server/project-db.sql", "schema/project-db.sql"), ("tests/fixtures/fixture.db", "schema/fixture.db"),
                      ("tests/fixtures/fixture-practices.json", "schema/fixture-practices.json")):
     src = os.path.join(analyzer, *theirs.split("/"))
@@ -124,8 +139,8 @@ P.project_for_path(vce)
 check(P._index[elm][0] == stamp, "the job index is cached by the database's file stamp")
 
 # --- 2. read actions on the fixture ----------------------------------------------------------------------------
-P.list_notes(None, vce)  # the first open switches the copy to WAL; reads from here on must not change it
-before = sha(elm)
+# Reads open the database read only: the copy (journal mode delete, as the fixture is) must not change at all
+before, before_mtime = sha(elm), os.path.getmtime(elm)
 listed = P.list_notes(None, vce)
 ids = {f["id"]: f["by"] for f in listed["facts"]}
 check(ids == {"fact-1": "project-analyzer", "fact-3": "project-analyzer", "fact-4": "civil3d", "fact-5": "tbc"},
@@ -195,7 +210,12 @@ check(r["status"] == "translated, not found" and not r["exists"], "locate: a tra
 r = P.locate("Q:\\Other Job\\x.job", None, vce)
 check(r["status"] == "not known" and r["source"] is None and "ask the user where the original" in r["hint"], "locate: never guesses")
 check(raises(lambda: P.locate("", None, vce), "path is required"), "locate: needs a path")
-check(sha(elm) == before and not os.path.exists(elm + "-journal"), "read actions never write the database")
+for read in (lambda: P.latest("C-104", None, vce), lambda: P.checks(None, vce), lambda: P.changes(None, vce, since="2026"),
+             lambda: P.project_files(None, vce), lambda: P.describe(P.project_for_path(vce))):
+    read()
+check(sha(elm) == before and os.path.getmtime(elm) == before_mtime and not any(
+      os.path.exists(elm + x) for x in ("-journal", "-wal", "-shm")), "read actions never write the database (bytes, time, no journal)")
+check(sql(elm, "PRAGMA journal_mode")[0][0] == "delete", "...nor switch its journal to WAL (only a write does)")
 
 # --- 3. facts: TBC writes only its own --------------------------------------------------------------------------
 r = P.add_note("Survey control is on layer CTRL\nat 12+50", None, vce, topics=["control"], date="2026-10-12")
@@ -221,6 +241,7 @@ check(r["fact"]["fact"].endswith("12+50.25") and r["fact"].get("key") and r["fac
 r = P.remove_note("fact-7", None, vce)
 check(r["fact"].get("retired") and "fact-7" not in [x["id"] for x in P.list_notes(None, vce)["facts"]], "remove: sets retired, hidden from list")
 check(sql(elm, "SELECT COUNT(*) FROM facts WHERE id = 'fact-7'")[0][0] == 1, "remove: the row is kept")
+check(sql(elm, "PRAGMA journal_mode")[0][0] == "wal", "the first write switched the database to WAL")
 r = P.add_note("Storm pipes are on layer C-STRM-NEW in the TBC export", None, vce, supersedes="fact-4")
 check(r["fact"]["id"] == "fact-8" and r["fact"]["supersedes"] == "fact-4", "add: ids are never reused; supersedes corrects another tool's fact")
 check("fact-4" not in [x["id"] for x in P.list_notes(None, vce)["facts"]], "...and the corrected fact is no longer current")
@@ -244,8 +265,11 @@ newer = os.path.join(projects_dir, "newer-job.db")
 shutil.copy(os.path.join(fixtures, "fixture.db"), newer)
 sql(newer, "UPDATE meta SET value = '2' WHERE key = 'schema_version'")
 sql(newer, "UPDATE meta SET value = 'Newer Job' WHERE key = 'project_name'")
+newer_sha = sha(newer)
 check(P.overview("Newer Job", None).get("read_only") and raises(lambda: P.add_note("x", "Newer Job", None), "newer version"),
       "a database of a newer schema is read, never written")
+check(sha(newer) == newer_sha and not os.path.isdir(os.path.join(projects_dir, "newer-job.backups")),
+      "...its file is left exactly as it was (no backup, no index, no journal switch)")
 
 # --- 4. link / unlink, a new job's database ---------------------------------------------------------------------
 r = P.link("Phase Two", None, deep_vce)
@@ -282,13 +306,19 @@ legacy_path = os.path.join(projects_dir, "three-tools.json")
 with open(legacy_path, "w", encoding="utf-8-sig") as f:  # as Civil 3D MCP wrote it, with a BOM
     f.write(json.dumps(legacy, indent=2, ensure_ascii=False) + "\n")
 three_vce = os.path.join(legacy_dir, "TBC", "Three.vce")
+P.forget_jobs()  # a new file in the projects folder: look again now rather than in INDEX_TTL seconds
 check((P.project_for_path(three_vce) or {}).get("name") == "Three Tools" and not os.path.exists(legacy_path[:-5] + ".db"),
       "a job known only from its JSON file is found (without creating anything)")
 listed = P.list_notes(None, three_vce)
 three_db = legacy_path[:-5] + ".db"
+check(sorted(f["id"] for f in listed["facts"]) == ["fact-1", "fact-2", "fact-3"] and not os.path.exists(three_db)
+      and os.path.isfile(legacy_path) and "old_notes_file" in listed, "a read shows its notes from memory, creating nothing")
+check(P.overview(None, three_vce)["project"] == "Three Tools" and P.search("right-of-way", None, three_vce)["facts"]
+      and not os.path.exists(three_db), "...for every read action")
+check(P.link("Three Tools", legacy_dir, None)["action"] == "unchanged", "the first write (a folder it already has) ...")
 facts = {r[0]: r[1:] for r in sql(three_db, "SELECT fact, tool, sources, origin, added, updated FROM facts")}
 check(os.path.isfile(three_db) and not os.path.exists(legacy_path) and os.path.isfile(legacy_path + ".imported"),
-      "first open creates <slug>.db and renames the JSON file to .json.imported")
+      "...creates <slug>.db and renames the JSON file to .json.imported")
 check(facts.get("Point group Hide holds the shots beyond the right-of-way.", [None])[0] == "civil3d"
       and facts.get("Müller Surveying set the control", [None])[0] == "project-analyzer"
       and facts.get("The TBC project uses US feet.", [None])[0] == "tbc" and len(facts) == 3,
@@ -299,11 +329,13 @@ check(json.loads(tbc_note[1]) == [{"file": "user", "path": "project note"}] and 
       "sources, origin note_id and the times are kept")
 check(sql(three_db, "SELECT path, tool FROM folders") == [(legacy_dir, "civil3d")] and
       dict(sql(three_db, "SELECT key, value FROM meta")).get("project_name") == "Three Tools", "folders (civil3d) and the name are imported")
-check(sorted(f["id"] for f in listed["facts"]) == ["fact-1", "fact-2", "fact-3"], "the imported facts are listed")
+check(sorted(f["id"] for f in P.list_notes(None, three_vce)["facts"]) == ["fact-1", "fact-2", "fact-3"], "the imported facts are listed")
 os.rename(legacy_path + ".imported", legacy_path)  # as if the rename had failed (file in use): no second import
 P.list_notes("Three Tools", None)
+check(os.path.isfile(legacy_path), "a read leaves the JSON file where it is")
+P.link("Three Tools", legacy_dir, None)
 check(sql(three_db, "SELECT COUNT(*) FROM facts")[0][0] == 3 and not os.path.exists(legacy_path)
-      and os.path.isfile(legacy_path + ".imported"), "a second open never imports again, only renames")
+      and os.path.isfile(legacy_path + ".imported"), "a second writable open never imports again, only renames")
 check(P.update_note("fact-3", "The TBC project uses US survey feet.", "Three Tools", None)["action"] == "updated"
       and raises(lambda: P.remove_note("fact-1", "Three Tools", None), "civil 3d mcp"), "imported TBC notes are TBC's own, others' are not")
 with open(os.path.join(projects_dir, "broken-job.json"), "w", encoding="utf-8") as f:
@@ -487,7 +519,382 @@ check(raises(lambda: PR.add("x y z"), "can't be read") and open(practices_path, 
 with open(practices_path, "w", encoding="utf-8", newline="\n") as f:
     f.write(json.dumps(data, indent=2, ensure_ascii=False) + "\n")
 
-# --- 10. the server, over stdio, without TBC ------------------------------------------------------------------
+# --- 10. the new read actions and the SQL-side reads, on the fixture -------------------------------------------
+check(P.series_key("C-101 rev2 (2).dwg") == "c 101" and P.series_key("Site Plan current copy.pdf") == "site plan",
+      "series_key matches the analyzer's (dates, rev N, current, (2) taken out)")
+r = P.latest("C-104", None, vce)
+check(r["series"] == [] and "no version list" in r["hint"], "latest: no version list yet -> a hint, no error")
+for row in (("s1", "c 104", "cad", 1, "0000000000000003", "Drawings\\Old\\C-104 rev1.dwg", "2026-09-01T10:00:00.000Z", None, "1", 0, None),
+            ("s1", "c 104", "cad", 2, "0000000000000003", "Drawings\\C-104 rev2.dwg", "2026-10-01T10:00:00.000Z", None, "2", 0, None),
+            ("s1", "c 104", "cad", 3, "0000000000000003", "Drawings\\C-104.dwg", "2026-10-10T10:00:00.000Z", "2026-10-10", "3", 1, None),
+            ("s2", "c 104", "pdf", 1, None, "Plots\\C-104.pdf", "2026-10-11T10:00:00.000Z", None, None, 1, None)):
+    sql(elm, "INSERT INTO intel_series(series_id, key, kind, position, file_id, path, modified, title_date, revision, latest, note) "
+             "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", row)
+with open(os.path.join(job, "Drawings", "C-104.dwg"), "w") as f:
+    f.write("x")
+r = P.latest("C-104", None, vce)
+s1 = r["series"][0]
+check([x["kind"] for x in r["series"]] == ["cad", "pdf"] and s1["versions"] == 3 and s1["latest"]["path"] == "Drawings\\C-104.dwg",
+      "latest: by series key, drawings first, the one modified last")
+check(s1["latest"]["absolute"] == os.path.join(job, "Drawings", "C-104.dwg") and s1["latest"]["exists"] and
+      s1["latest"]["modified"] == "2026-10-10" and s1["latest"]["revision"] == "3" and s1["folders"] == 2,
+      "latest: full path, modified date, revision, folders")
+check([x["path"] for x in s1["older"]] == ["Drawings\\C-104 rev2.dwg", "Drawings\\Old\\C-104 rev1.dwg"], "latest: older ones newest first")
+check([len(x["series"]) for x in (P.latest("drawings/c-104.dwg", None, vce), P.latest("c-104 rev2.dwg", None, vce),
+                                    P.latest("C-104 rev 7.dwg", None, vce))] == [1, 1, 2],
+      "latest: an exact path (any case, any slashes) or a file name picks its series; else the series key")
+r = P.latest("C-104", None, vce, near="old")
+check(len(r["series"]) == 1 and r["series"][0]["latest"]["path"] == "Drawings\\Old\\C-104 rev1.dwg", "latest: near keeps the folder's members")
+check(P.latest("Nothing Like It", None, vce)["series"] == [] and raises(lambda: P.latest(" ", None, vce), "name is required"),
+      "latest: an unknown name says so, an empty one is refused")
+
+r = P.checks(None, vce)
+check([c["id"] for c in r["checks"]] == ["check-1", "check-2"] and r["by_severity"] == {"high": 1, "medium": 1}
+      and r["by_kind"] == {"missing file": 1, "no reply": 1} and r["total"] == 2, "checks: high first, with counts by severity and kind")
+check(r["checks"][0]["files"] == ["Drawings\\C-104.dwg"] and r["checks"][1]["files"] == ["Email\\RFI 12.msg"]
+      and r["checks"][1]["refs"] == ["RFI 12"], "checks: file ids become paths")
+check([c["id"] for c in P.checks(None, vce, severity="HIGH")["checks"]] == ["check-1"]
+      and [c["id"] for c in P.checks(None, vce, kind="No Reply")["checks"]] == ["check-2"], "checks: severity and kind filters (any case)")
+r = P.checks(None, vce, limit=1)
+check(len(r["checks"]) == 1 and r.get("more"), "checks: limit, with how many more")
+sql(elm, "INSERT INTO intel_checks(id, severity, kind, title, detail, refs, files) VALUES (?, ?, ?, ?, ?, ?, ?)",
+    ("check-9", "info", "amounts", "CO 4 amounts differ", "$12,500.00 vs $12,050.00", "[]",
+     json.dumps(["0000000000000001"] * 12 + ["ffffffffffffffff"])))
+c9 = P.checks(None, vce, severity="info")["checks"][0]
+check(len(c9["files"]) == P.MAX_CHECK_FILES and c9["more_files"] == 3, "checks: at most %d paths per check" % P.MAX_CHECK_FILES)
+
+check(P.changes(None, vce, since="2026")["requirement_changes"] == [] and "No changes" in P.changes(None, vce)["hint"],
+      "changes: none yet -> a hint")
+sql(elm, "INSERT INTO intel_events(date, precision, kind, confidence, title, file_id, location) VALUES "
+         "('2026-10-20', 'day', 'change', 'medium', 'Going forward use 18 inch pipe at MH-3', '0000000000000001', 'p.1'), "
+         "('2026-09-02', 'day', 'change', 'high', 'Revised spec: 36 inch culvert no longer required', '0000000000000002', NULL)")
+sql(elm, "INSERT INTO file_changes(file_id, path, change, seen, mtime, summary, details) VALUES "
+         "('0000000000000003', 'Drawings\\C-104.dwg', 'changed', '2026-10-21T10:00:00.000Z', '2026-10-20T09:00:00.000Z', "
+         "'title block revision 2 -> 3', '{\"lines_added\": 12}')")
+r = P.changes(None, vce, since="2026-09")
+check([x["date"] for x in r["requirement_changes"]] == ["2026-10-20", "2026-09-02"] and r["requirement_changes_total"] == 2
+      and r["requirement_changes"][0]["path"] == "Documents\\minutes.docx", "changes: requirement changes newest first, with paths")
+check(r["file_changes"][0]["summary"] == "title block revision 2 -> 3" and r["file_changes"][0]["details"] == {"lines_added": 12}
+      and r["file_changes_total"] == 1, "changes: the file_changes rows, details parsed")
+check([x["date"] for x in P.changes(None, vce, since="2026-10")["requirement_changes"]] == ["2026-10-20"], "changes: since a date")
+r = P.changes(None, vce, file="documents\\SPECS.pdf")
+check(r["since"] is None and [x["date"] for x in r["requirement_changes"]] == ["2026-09-02"] and r["file_changes"] == [],
+      "changes: one file, all time")
+check(P.changes(None, vce)["since"] == (datetime.date.today() - datetime.timedelta(days=30)).isoformat()
+      and raises(lambda: P.changes(None, vce, since="9/1/26"), "yyyy"), "changes: the last 30 days by default; ISO dates only")
+
+t = P.timeline(None, vce)
+dates = [x["date"] for x in t["events"]]
+check(dates == sorted(dates) and len(dates) == 7, "timeline: events (SQL-ordered) and dated facts merged in order")
+october = P.timeline(None, vce, "2026-10", "2026-10")["events"]
+check(october and all(x["date"].startswith("2026-10") for x in october) and len(october) == sum(d.startswith("2026-10") for d in dates),
+      "timeline: a YYYY-MM end takes in that whole month")
+r = P.timeline(None, vce, limit=2)
+check(len(r["events"]) == 2 and r["more"].startswith("5 more") and [x["date"] for x in r["events"]] == dates[:2],
+      "timeline: limit is applied in SQL, the rest counted")
+check(P.entity("structure:mh-3", None, vce)["found"] and P.entity("mh-3", None, vce)["entity"]["name"] == "MH-3",
+      "entity: by id, or by name in any case")
+e = P.entity("john smith", None, vce)
+check([x["title"] for x in e["events"]][:1] == ["Drainage design review"] and len(e["events"]) == 3
+      and e["stories"][0]["steps"][0]["who"] == "Robin Lee", "entity: events of its files (SQL), stories with steps (one query)")
+check(P.locate("P:\\JOBS\\1234 ELM ST\\CAD\\topo.dwg", None, vce)["status"] == "found", "locate: by the normalized path, any case")
+plan = " ".join(str(x[-1]) for x in sql(elm, "EXPLAIN QUERY PLAN SELECT * FROM refs WHERE normalized = ? COLLATE NOCASE", ("x",)))
+plan += " " + " ".join(str(x[-1]) for x in sql(elm, "EXPLAIN QUERY PLAN SELECT * FROM intel_entities WHERE name = ? COLLATE NOCASE", ("x",)))
+check("refs_normalized_nocase" in plan and "intel_entities_name" in plan, "the NOCASE lookups use the schema's indexes")
+
+# --- 11. opening: indexes added by a write, journal mode, read-only opens ----------------------------------------
+old = os.path.join(projects_dir, "old-index-job.db")
+shutil.copy(os.path.join(fixtures, "fixture.db"), old)
+sql(old, "UPDATE meta SET value = 'Old Index Job' WHERE key = 'project_name'")
+sql(old, "UPDATE meta SET value = ? WHERE key = 'source_root'", (os.path.join(work, "jobs", "Old Index"),))
+schema_indexes = [line.split()[5] for line in open(P.SCHEMA_FILE, encoding="utf-8") if line.startswith("CREATE INDEX IF NOT EXISTS")]
+readers = schema_indexes[-11:]  # the readers' indexes at the end of the schema, missing in an older database
+for ix in readers:
+    sql(old, "DROP INDEX %s" % ix)
+have = lambda: {r[0] for r in sql(old, "SELECT name FROM sqlite_master WHERE type = 'index'")}  # noqa: E731
+old_sha = sha(old)
+P.overview("Old Index Job", None)
+check(sha(old) == old_sha and not set(readers) & have(), "a read of an older database adds nothing")
+P.add_note("Index check note", "Old Index Job", None)
+check(set(schema_indexes) <= have() and sql(old, "PRAGMA journal_mode")[0][0] == "wal",
+      "a write adds the schema's indexes (%d) and switches it to WAL" % len(schema_indexes))
+check(readers[0] == "files_path_nocase" and readers[-1] == "intel_story_steps_story" and "intel_events_date" in readers,
+      "the schema's index lines are read from project-db.sql")
+check(raises(lambda: P.connect(os.path.join(projects_dir, "nothing-here.db")), "no project database")
+      and not os.path.exists(os.path.join(projects_dir, "nothing-here.db")), "a read of a missing database creates nothing")
+
+# --- 12. a busy database: a friendly error after one retry -------------------------------------------------------
+P.BUSY_TIMEOUT, P.BUSY_RETRY_DELAY = 0.2, 0.05
+busy = os.path.join(projects_dir, "busy-job.db")
+shutil.copy(os.path.join(fixtures, "fixture.db"), busy)
+sql(busy, "UPDATE meta SET value = 'Busy Job' WHERE key = 'project_name'")
+P.overview("Busy Job", None)  # known to the job index before the lock is taken
+hold = sqlite3.connect(busy, isolation_level=None)
+hold.execute("BEGIN EXCLUSIVE")
+import time  # noqa: E402
+started = time.time()
+check(raises(lambda: P.overview("Busy Job", None), "database is busy") and time.time() - started < 5,
+      "a read of a locked database: 'busy, try again in a moment' (one retry, quickly)")
+check(raises(lambda: P.add_note("Busy note", "Busy Job", None), "project analyzer is probably writing"), "...and a write")
+hold.execute("ROLLBACK")
+sql(busy, "PRAGMA journal_mode = WAL")
+hold.execute("BEGIN IMMEDIATE")
+check(P.overview("Busy Job", None)["project"] == "Busy Job", "in WAL a reader isn't blocked by another tool's write")
+check(raises(lambda: P.add_note("Busy note", "Busy Job", None), "busy"), "...but a second writer gets the friendly busy error")
+hold.execute("ROLLBACK")
+check(P.add_note("Busy note", "Busy Job", None)["action"] == "added", "once the lock is gone the write goes through")
+hold.close()
+P.BUSY_TIMEOUT, P.BUSY_RETRY_DELAY = 10.0, 0.5
+
+# --- 13. a damaged database: never read on, written or set up again; listed with a note ---------------------------
+damaged = os.path.join(projects_dir, "damaged-job.db")
+shutil.copy(os.path.join(fixtures, "fixture.db"), damaged)
+page = sql(damaged, "PRAGMA page_size")[0][0]
+with open(damaged, "r+b") as f:  # garbage over every page but the first (the header and the start of the schema)
+    size = os.path.getsize(damaged)
+    f.seek(page)
+    f.write(bytes((i * 37 + 11) % 256 for i in range(size - page)))
+os.makedirs(os.path.join(projects_dir, "damaged-job.backups"))
+older_copy = os.path.join(projects_dir, "damaged-job.backups", "damaged-job 2026-10-01 101010.db")
+newest_copy = os.path.join(projects_dir, "damaged-job.backups", "damaged-job 2026-10-02 090000.db")
+for copy in (older_copy, newest_copy):
+    shutil.copy(os.path.join(fixtures, "fixture.db"), copy)
+damaged_sha = sha(damaged)
+P.forget_jobs()
+listed = {j["name"]: j for j in P.list_notes(None, os.path.join(work, "nowhere", "a.vce"))["known_projects"]}
+check("damaged-job" in listed and "can't be read" in listed["damaged-job"].get("damaged", "")
+      and "Elm Street Drainage" in listed, "the job list shows a damaged job with a note (it doesn't vanish)")
+try:
+    P.overview("damaged-job", None)
+    message = ""
+except K.KnowledgeError as ex:
+    message = str(ex)
+check("is damaged" in message and 'analyze.py restore --project "damaged-job"' in message and newest_copy in message,
+      "a read: 'damaged', how to restore with Project Analyzer, and the newest backup")
+check(raises(lambda: P.add_note("x", "damaged-job", None), "is damaged") and raises(lambda: P.link("damaged-job", job, None), "is damaged"),
+      "a write is refused the same way (never set up again over itself)")
+check(sha(damaged) == damaged_sha and not os.path.exists(damaged + "-wal") and P.quick_check(damaged) != "ok",
+      "the damaged file is left exactly as it was")
+check(P.notes_once(os.path.join(work, "nowhere", "a.vce")) is None, "a damaged job never breaks the first-result overview")
+os.remove(older_copy)
+os.remove(newest_copy)
+check(raises(lambda: P.overview("damaged-job", None), "there is no backup"), "without backups it says so")
+
+# --- 13b. damage is remembered: a write that wouldn't touch the damaged pages is refused too -----------------------
+
+
+def spoil(path):
+    """0xFF over pages 4-11 (pages adding a note doesn't touch)."""
+    with open(path, "r+b") as f:
+        f.seek(4096 * 3)
+        f.write(b"\xff" * 4096 * 8)
+
+
+partly = os.path.join(projects_dir, "partly-damaged.db")
+shutil.copy(os.path.join(fixtures, "fixture.db"), partly)
+sql(partly, "UPDATE meta SET value = 'Partly Damaged Job' WHERE key = 'project_name'")
+spoil(partly)
+partly_sha = sha(partly)
+check(raises(lambda: P.overview("Partly Damaged Job", None), "is damaged"), "a read finds the damage")
+check(raises(lambda: P.add_note("Note into a damaged file", "Partly Damaged Job", None), "is damaged") and sha(partly) == partly_sha,
+      "...and a write after it is refused too, the file unchanged (the damage is remembered)")
+shutil.copy(os.path.join(fixtures, "fixture.db"), partly)  # as if a backup was put back
+sql(partly, "UPDATE meta SET value = 'Partly Damaged Job' WHERE key = 'project_name'")
+check(P.add_note("Note after the restore", "Partly Damaged Job", None)["action"] == "added" and P.known_damage(partly) is None,
+      "once the file is replaced with a good copy, writes work again")
+pine = os.path.join(work, "jobs", "Pine Lane")
+os.makedirs(pine)
+P.link("Pine Lane Survey", pine, None)  # created by TBC: no source_root, so its first write of the day is backed up
+pine_db = os.path.join(projects_dir, "pine-lane-survey.db")
+spoil(pine_db)
+pine_sha = sha(pine_db)
+check(raises(lambda: P.add_note("First note of the day", "Pine Lane Survey", None), "is damaged") and sha(pine_db) == pine_sha,
+      "a backup copy that fails its check stops the write (the source is damaged), the file unchanged")
+pine_backups = os.path.join(projects_dir, "pine-lane-survey.backups")
+check(os.path.isdir(pine_backups) and not os.listdir(pine_backups) and P.known_damage(pine_db),
+      "...found by the backup (no copy kept), and remembered")
+check(raises(lambda: P.add_note("Second try", "Pine Lane Survey", None), "is damaged") and sha(pine_db) == pine_sha,
+      "...so the next write is refused at once")
+
+# --- 14. TBC's daily backup of a database it looks after alone ---------------------------------------------------
+import re  # noqa: E402
+bjob = os.path.join(work, "jobs", "Backup Job")
+os.makedirs(bjob)
+P.link("Backup Job", bjob, None)
+bdir = os.path.join(projects_dir, "backup-job.backups")
+check(not os.path.isdir(bdir), "creating a database makes no backup of it")
+P.add_note("Before the first backup", "Backup Job", None)
+copies = sorted(os.listdir(bdir)) if os.path.isdir(bdir) else []
+today = datetime.date.today().isoformat()
+check(len(copies) == 1 and re.match(r"^backup-job %s \d{6}\.db$" % today, copies[0]), "the first write of the day makes a copy: %s" % copies)
+check(P.quick_check(os.path.join(bdir, copies[0])) == "ok" and sql(os.path.join(bdir, copies[0]), "SELECT COUNT(*) FROM facts")[0][0] == 0,
+      "...checked, taken before the write")
+P.add_note("Second note today", "Backup Job", None)
+P._backed_up.clear()  # as after a restart of the server: today's copy is found by its name
+P.add_note("Third note today", "Backup Job", None)
+check(len(os.listdir(bdir)) == 1, "one copy a day")
+os.rename(os.path.join(bdir, copies[0]), os.path.join(bdir, "backup-job 2026-01-04 100000.db"))
+for day in ("01", "02", "03"):
+    shutil.copy(os.path.join(bdir, "backup-job 2026-01-04 100000.db"), os.path.join(bdir, "backup-job 2026-01-%s 100000.db" % day))
+for other in ("other-job 2025-01-01 100000.db", "notes.txt"):
+    with open(os.path.join(bdir, other), "w") as f:
+        f.write("not ours")
+P._backed_up.clear()
+P.add_note("Fourth note, the next day", "Backup Job", None)
+left = sorted(os.listdir(bdir))
+check([n for n in left if n.startswith("backup-job ")][:2] == ["backup-job 2026-01-03 100000.db", "backup-job 2026-01-04 100000.db"]
+      and len([n for n in left if n.startswith("backup-job ")]) == 3, "the newest 3 copies are kept: %s" % left)
+check("other-job 2025-01-01 100000.db" in left and "notes.txt" in left and not [n for n in left if n.endswith(".partial")],
+      "only its own older copies are deleted")
+check(not os.path.isdir(os.path.join(projects_dir, "elm-street-drainage.backups")),
+      "a database Project Analyzer looks after (source_root set) gets no TBC backup")
+
+# --- 15. User Knowledge: long paths, unreadable files; no zstandard ---------------------------------------------
+deep_rel = os.path.join(*["deep folder %02d" % i for i in range(14)], "deep standard.md")
+deep = os.path.join(uk, deep_rel)
+os.makedirs("\\\\?\\" + os.path.dirname(deep), exist_ok=True)
+with open("\\\\?\\" + deep, "w", encoding="utf-8") as f:
+    f.write("Deep inlets need a sump.")
+check(len(deep) > 260, "a User Knowledge file with a path of %d characters" % len(deep))
+r = P.project_files(None, vce)
+check(deep_rel in [x["path"] for x in r["files"]] and "unreadable" not in r, "files lists it (the \\\\?\\ form)")
+check(P.read_file(deep_rel, None, vce)["text"] == "Deep inlets need a sump.", "read opens it")
+check("<user knowledge>\\" + deep_rel in [h["path"] for h in P.search("sump", None, vce)["documents"]], "search reads it")
+real_stat = os.stat
+
+
+def flaky_stat(path, *args, **kwargs):
+    if str(path).endswith("layers.md"):
+        raise PermissionError(13, "Permission denied", path)
+    return real_stat(path, *args, **kwargs)
+
+
+os.stat = flaky_stat
+try:
+    r = P.project_files(None, vce)
+    o = P.overview(None, vce)
+finally:
+    os.stat = real_stat
+check(os.path.join("Standards", "layers.md") not in [x["path"] for x in r["files"]] and len(r["files"]) == 6
+      and r["unreadable"]["files"][0]["path"] == os.path.join("Standards", "layers.md"), "a file that can't be read is left out with a note")
+check(o["user_knowledge"].get("unreadable") and o["user_knowledge"]["documents"] == 6, "...in the overview too, which still works")
+P._zstd[0] = False  # as without the zstandard package
+try:
+    s = P.search("MH-3", None, vce)
+    g = P.read_file(gpath, None, vce)
+    f = P.file_info("documents/specs.pdf", None, vce)
+finally:
+    P._zstd[0] = None
+check(s["documents"] and any(h["snippet"] is None for h in s["documents"]) and "pip install zstandard" in s.get("text_error", ""),
+      "search without zstandard: the hits, without snippets, and how to install it")
+check(g["text"] == "" and "to read the stored text" in g.get("text_error", "") and g["file"] == gpath,
+      "read without zstandard: what it can, and how to install it")
+check("text" not in f and "pip install zstandard" in f.get("text_error", "") and f["file"]["id"], "file without zstandard: the details")
+
+# --- 16. TBC MCP installed alone: an empty shared folder, no fixture, no other tool --------------------------------
+alone = os.path.join(work, "alone-shared")
+os.environ["PROJECT_KNOWLEDGE_DIR"] = alone
+P.forget_jobs()
+alone_job = os.path.join(work, "jobs", "Maple Court")
+os.makedirs(os.path.join(alone_job, "TBC"))
+alone_vce = os.path.join(alone_job, "TBC", "Maple.vce")
+answers, problems = {}, []
+for label, action in (
+        ("list before", lambda: P.list_notes(None, alone_vce)),
+        ("link", lambda: P.link("Maple Court Survey", None, alone_vce)),
+        ("add", lambda: P.add_note("Control points CP-1 and CP-2 set 2026-10-03", None, alone_vce, source="user", date="2026-10-03")),
+        ("list", lambda: P.list_notes(None, alone_vce)), ("overview", lambda: P.overview(None, alone_vce)),
+        ("search", lambda: P.search("control", None, alone_vce)), ("file", lambda: P.file_info("C-101.dwg", None, alone_vce)),
+        ("entity", lambda: P.entity("CP-1", None, alone_vce)), ("timeline", lambda: P.timeline(None, alone_vce)),
+        ("locate", lambda: P.locate("P:\\Jobs\\1234 Elm St\\x.dwg", None, alone_vce)),
+        ("latest", lambda: P.latest("C-101", None, alone_vce)), ("checks", lambda: P.checks(None, alone_vce)),
+        ("changes", lambda: P.changes(None, alone_vce)), ("files", lambda: P.project_files(None, alone_vce)),
+        ("read", lambda: P.read_file("guide.md", None, alone_vce)), ("once", lambda: P.notes_once(alone_vce))):
+    try:
+        answers[label] = action()
+    except K.KnowledgeError as ex:
+        answers[label] = str(ex)  # a message for the AI is a friendly answer too
+    except Exception as ex:
+        problems.append("%s: %s: %s" % (label, type(ex).__name__, ex))
+check(not problems, "installed alone: every action answers without an exception %s" % problems)
+check(answers["link"]["action"] == "created" and answers["add"]["action"] == "added" and answers["timeline"]["events"][0]["kind"] == "fact"
+      and answers["search"]["facts"] and "no version list" in answers["latest"]["hint"] and "No checks" in answers["checks"]["hint"]
+      and "No changes" in answers["changes"]["hint"] and answers["locate"]["status"] == "not known", "installed alone: the answers make sense")
+check("Use action=search" in answers["file"] and "No file" in answers["read"] and answers["overview"]["practices"] == [],
+      "installed alone: a missing file is a message, not a crash")
+alone_made = set(os.listdir(os.path.join(alone, "projects"))) - {"maple-court-survey.db-wal", "maple-court-survey.db-shm"}
+check(alone_made == {"maple-court-survey", "maple-court-survey.db", "maple-court-survey.backups"},
+      "...and only the job's database, its folder and its daily backup were made: %s" % sorted(alone_made))
+os.environ["PROJECT_KNOWLEDGE_DIR"] = shared
+P.forget_jobs()
+
+# --- 17. knowledge files: locks, concurrent writers, a bad lessons line, temp files, backups ----------------------
+K.LOCK_WAIT = 0.5
+dead = subprocess.Popen([sys.executable, "-c", "pass"])
+dead.wait()
+lock = K.MEMORY + ".lock"
+os.makedirs(os.path.dirname(K.MEMORY), exist_ok=True)
+with open(lock, "w") as f:
+    f.write(str(dead.pid))
+check(K.add_lesson("Stale locks are taken over when their process is gone")["id"] and not os.path.exists(lock),
+      "a lock left by a process that is gone is taken over (and released)")
+with open(lock, "w") as f:
+    f.write(str(os.getpid()))
+check(raises(lambda: K.add_lesson("Waits for a live lock"), "stayed locked"), "a live lock is waited for, then a clear error")
+os.utime(lock, (time.time() - 120, time.time() - 120))
+check(K.add_lesson("A lock older than a minute is taken over")["id"], "a lock older than a minute is taken over")
+import threading  # noqa: E402
+
+
+def lessons_from(n):
+    for i in range(15):
+        K.add_lesson("Thread lesson %d-%d about panels" % (n, i))
+
+
+threads = [threading.Thread(target=lessons_from, args=(n,)) for n in range(3)]
+for t in threads:
+    t.start()
+for t in threads:
+    t.join()
+worker = ("import sys; sys.path.insert(0, %r); import knowledge as K\n"
+          "for i in range(15): K.add_lesson('Process lesson %%s-%%d about panels' %% (sys.argv[1], i))" % os.path.join(repo, "mcp_server"))
+procs = [subprocess.Popen([sys.executable, "-c", worker, str(n)], env=dict(os.environ, PYTHONDONTWRITEBYTECODE="1")) for n in range(2)]
+for pr in procs:
+    pr.wait(timeout=120)
+learned = K._read_jsonl(K.MEMORY)
+texts = [l["text"] for l in learned]
+check(sum(t.startswith("Thread lesson") for t in texts) == 45 and sum(t.startswith("Process lesson") for t in texts) == 30
+      and all(pr.returncode == 0 for pr in procs), "3 threads and 2 processes adding lessons at once lose nothing")
+check(len({l["id"] for l in learned}) == len(learned), "...and every lesson has its own id")
+with open(K.MEMORY, "ab") as f:
+    f.write(b"\xff\xfe not utf-8\n{not json\n[1, 2]\n")
+count = len(K.list_lessons())
+check(count >= 78 and K.skipped_lines() == 3, "bad lessons.jsonl lines are skipped and counted (%d)" % K.skipped_lines())
+with open(K.MEMORY, "ab") as f:
+    f.write(b'{"torn": "line without its newline')
+added = K.add_lesson("A lesson after a torn line")
+check(added["text"] in [l["text"] for l in K.list_lessons()], "a lesson added after a torn last line is still read")
+gone = K.delete_lesson(added["id"])
+check(gone == {"deleted": added["id"]} and os.path.isfile(K.MEMORY + ".bak1"), "rewriting lessons keeps the old file as .bak1")
+for n in range(5):
+    K.update_pref(K.add_pref("Use numeric point IDs for new points")["id"], "Use numeric point IDs for new points (%d)" % n)
+check(sorted(n for n in os.listdir(K.USER_ROOT) if n.startswith("preferences.json.bak")) ==
+      ["preferences.json.bak1", "preferences.json.bak2", "preferences.json.bak3"], "preferences keep their last 3 versions")
+check(os.path.isfile(practices_path + ".bak1") and not [n for n in os.listdir(shared) if n.endswith(".lock")],
+      "practices keep a .bak, no lock file is left behind")
+old_tmp = os.path.join(K.USER_ROOT, "commands", ".x.json.123.456.tmp")
+new_tmp = os.path.join(K.USER_ROOT, ".preferences.json.123.789.tmp")
+os.makedirs(os.path.dirname(old_tmp), exist_ok=True)
+for t in (old_tmp, new_tmp, os.path.join(K.USER_ROOT, "keep.tmp")):
+    with open(t, "w") as f:
+        f.write("{")
+os.utime(old_tmp, (time.time() - 7200, time.time() - 7200))
+os.utime(os.path.join(K.USER_ROOT, "keep.tmp"), (time.time() - 7200, time.time() - 7200))
+check(K.sweep_temp_files(K.USER_ROOT) == 1 and not os.path.exists(old_tmp) and os.path.exists(new_tmp)
+      and os.path.exists(os.path.join(K.USER_ROOT, "keep.tmp")), "temp files of crashed writes are swept after an hour (only ours)")
+K.LOCK_WAIT = 5.0
+
+# --- 18. the server, over stdio, without TBC ------------------------------------------------------------------
 K.add_pref("Use numeric point IDs for new points")
 env = dict(os.environ, TBC_MCP_INFO=os.path.join(work, "no_bridge.json"), TBC_MCP_EXIT_WITH_TBC="0", PYTHONDONTWRITEBYTECODE="1")
 p = subprocess.Popen([sys.executable, server], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
@@ -515,13 +922,13 @@ check("Use numeric point IDs for new points" in ins and "GOOD PRACTICES" in ins 
 tools = {t["name"]: t for t in rpc(2, "tools/list", {})["tools"]}
 check("tbc_project_notes" in tools and "tbc_practices" in tools, "tbc_project_notes and tbc_practices are listed (%d tools)" % len(tools))
 check(set(tools["tbc_project_notes"]["inputSchema"]["properties"]["action"]["enum"]) ==
-      {"list", "overview", "search", "file", "entity", "timeline", "locate", "link", "unlink", "add", "update", "remove", "files", "read"},
-      "tbc_project_notes offers every action")
+      {"list", "overview", "search", "file", "entity", "timeline", "locate", "latest", "checks", "changes", "link", "unlink",
+       "add", "update", "remove", "files", "read"}, "tbc_project_notes offers every action")
 desc = tools["tbc_project_notes"]["description"]
 check(all(s in desc for s in ("12+50", "MH-3", "C-104", "RFI 12", "$12,500.00", "license", "supersedes", "tbc_memory", "tbc_practices")),
       "the tool tells the AI the reference formats, privacy, supersedes and where other knowledge goes")
-check(all(s in desc for s in ("locate", "never guess", "BEFORE telling the user", "overview", "search", "entity", "timeline")),
-      "the tool says when to use locate and the read actions")
+check(all(s in desc for s in ("locate", "never guess", "BEFORE telling the user", "overview", "search", "entity", "timeline",
+                               "latest", "checks", "changes", "busy")), "the tool says when to use locate and the read actions")
 err, r = call(3, "tbc_project_notes", {"action": "overview", "project": "Elm Street Drainage"})
 check(not err and r["project"] == "Elm Street Drainage" and r["checks_high"], "overview of a named job works without TBC")
 err, r = call(4, "tbc_project_notes", {"action": "search", "project": "Elm Street Drainage", "query": "culvert 36"})
@@ -536,6 +943,14 @@ err, r = call(8, "tbc_project_notes", {"action": "add", "project": "Elm Street D
 check(not err and r["fact"]["by"] == "tbc" and r["fact"]["sources"][0]["file"] == "user", "add over MCP")
 err, r = call(9, "tbc_project_notes", {"action": "nonsense"})
 check(err and "overview" in r, "an unknown action lists the actions")
+err, r = call(12, "tbc_project_notes", {"action": "checks", "project": "Elm Street Drainage", "severity": "high"})
+check(not err and [c["id"] for c in r["checks"]] == ["check-1"], "checks over MCP")
+err, r = call(13, "tbc_project_notes", {"action": "latest", "project": "Elm Street Drainage", "name": "C-104"})
+check(not err and r["series"][0]["latest"]["path"] == "Drawings\\C-104.dwg", "latest over MCP")
+err, r = call(14, "tbc_project_notes", {"action": "changes", "project": "Elm Street Drainage", "since": "2026-10"})
+check(not err and r["requirement_changes"] and r["file_changes"], "changes over MCP")
+err, r = call(15, "tbc_project_notes", {"action": "overview", "project": "damaged-job"})
+check(err and "damaged" in r and "analyze.py restore" in r, "a damaged database over MCP: a clear error, not SQLite's")
 err, r = call(10, "tbc_practices", {"action": "search", "query": "slope"})
 check(not err and r["practices"][0]["id"] == "practice-1", "tbc_practices over MCP")
 err, r = call(11, "tbc_memory", {"action": "add", "text": "Elm Street Drainage uses US feet", "topic": "units"})

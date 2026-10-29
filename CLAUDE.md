@@ -82,7 +82,8 @@ to run it.
    session of writes leaves the repository untouched.
 4. **Shared knowledge follows the suite contract** in Project Analyzer's `docs/suite-knowledge.md` (table layout:
    `schema/project-db.sql`, copied to `mcp_server/project-db.sql`; update both copies and the fixtures together):
-   WAL, 30 s busy timeout, short `BEGIN IMMEDIATE` writes; TBC writes only its own `facts` and `folders` rows
+   WAL, a 10 s busy timeout then one retry (`BUSY_TIMEOUT`), reads opened read-only, short `BEGIN IMMEDIATE`
+   writes; copy the schema and fixtures with Project Analyzer's `schema/sync_copies.py`; TBC writes only its own `facts` and `folders` rows
    (`tool = 'tbc'`), removes by setting `retired`, takes `fact-N` inside the write transaction, never writes a
    database with a newer `schema_version`; `practices.json`: only `source: "tbc"` entries, re-read before writing,
    keep unknown fields, atomic writes, never rewrite a file that doesn't parse. No tool keeps copies of job files.

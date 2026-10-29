@@ -55,6 +55,9 @@ knowledge/license/
 # here as a safety net for TBC_MCP_KNOWLEDGE_DIR pointed at the repository
 knowledge/memory/tbc_errors.log
 knowledge/memory/crash_log.md
+# ...and the backups (<name>.bak1..3) and lock files (<name>.lock) of the learned files, for the same reason
+knowledge/**/*.bak[0-9]
+knowledge/**/*.lock
 # Local MCP client config with your own paths
 mcp_config.json
 claude_desktop_config.json
