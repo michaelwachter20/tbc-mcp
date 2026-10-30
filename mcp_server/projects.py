@@ -244,6 +244,8 @@ class _Blocks(object):
         return self._slice(p)
 
     def _slice(self, p):
+        """One text part's text (a text_parts row): its stored block decompressed once and kept, then the part's bytes
+        cut out."""
         if p["block_id"] not in self.cache:
             b = self.db.execute("SELECT codec, data FROM text_blocks WHERE id = ?", (p["block_id"],)).fetchone()
             self.cache[p["block_id"]] = decompress(b["codec"], b["data"]) if b else b""
@@ -310,6 +312,7 @@ def _meta(db, key):
 
 
 def _set_meta(db, key, value):
+    """Write one meta row (insert or replace); the caller commits."""
     db.execute("INSERT INTO meta(key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value",
                (key, value))
 
@@ -326,6 +329,8 @@ def _busy_retry(action):
     BUSY_RETRY_DELAY; still locked, a KnowledgeError the AI can pass on (BUSY_MESSAGE) instead of SQLite's own."""
     @functools.wraps(action)
     def run(*args, **kwargs):
+        """`action`, retried once after BUSY_RETRY_DELAY when the database is busy; KnowledgeError(BUSY_MESSAGE) when
+        it still is."""
         try:
             return action(*args, **kwargs)
         except sqlite3.OperationalError as ex:
@@ -415,6 +420,8 @@ _CORRUPT = re.compile(r"malformed|not a database|disk i/o|corrupt", re.I)
 
 
 def _file_stamp(path):
+    """(size, modified time in ns) of a file, or None when it can't be read: tells whether a damaged database was
+    replaced since."""
     try:
         st = os.stat(path)
     except OSError:
@@ -958,6 +965,7 @@ def _fact(row):
 
 
 def _facts(db, where="1", args=(), order="f.added DESC, f.id DESC", limit=None):
+    """Current (not retired) facts matching `where` (SQL with `args`), in `order`, at most `limit`, as fact dicts."""
     sql = "SELECT f.* FROM facts f WHERE %s AND %s ORDER BY %s" % (_CURRENT, where, order)
     if limit:
         sql += " LIMIT %d" % int(limit)
@@ -1190,6 +1198,7 @@ def _count(db, sql, args=()):
 
 
 def _has_table(db, table):
+    """True when the database has this table (an older one may lack the analyzer's)."""
     return bool(db.execute("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?", (table,)).fetchone())
 
 
@@ -1232,6 +1241,8 @@ def in_shared(path):
 
 
 def _base(job, db):
+    """The fields every answer about a job starts with: its name, database path, the reference-only rule, and notes
+    when its notes are still in the old file or its database is newer than this TBC MCP."""
     out = {"project": _meta(db, "project_name") or job["name"], "database": job["db"],
            "reference_only": reference_only(db)}
     if db.memory:
@@ -1325,8 +1336,8 @@ def overview(name, active_path):
 
 
 def _snippet(body, words):
-    low = body.lower()
     """About 240 characters around the first place one of the words occurs, starting at a word."""
+    low = body.lower()
     at = min((i for i in (low.find(w) for w in words) if i >= 0), default=0)
     start = max(at - 100, 0)
     if start:
@@ -1692,6 +1703,7 @@ def series_key(file_name):
 
 
 def _words(text):
+    """The lower-case words and numbers of `text` (anything else separates them)."""
     return re.sub(r"[^a-z0-9]+", " ", (text or "").lower()).split()
 
 
@@ -1740,6 +1752,8 @@ def latest(file_name, name, active_path, near=None):
             found = [k for k in ([m for m in ms if set(hints) <= set(_words(m["path"]))] for ms in found) if k]
         found.sort(key=lambda ms: (ms[0]["kind"] != "cad", ms[0]["key"] or ""))
         def member(m):
+            """One version in a series as the answer shows it: its path, where it is on disk and whether it's there,
+            its modified date, title-block date and revision."""
             full = on_disk(db, m["path"])
             out = {"path": m["path"], "absolute": full, "exists": bool(full) and os.path.exists(_long(full)),
                    "modified": (m["modified"] or "")[:10] or None}
@@ -1916,6 +1930,7 @@ def list_files(directory, limit=500, skip=None, problems=None):
     if os.path.isdir(root):
 
         def failed(ex):
+            """os.walk's error handler: a folder that can't be listed is noted in `problems`, the walk goes on."""
             if problems is not None:
                 problems.append({"path": os.path.relpath(ex.filename, root) if ex.filename else directory,
                                  "error": ex.strerror or str(ex)})
@@ -2027,6 +2042,8 @@ def _legacy_files(job):
 
 
 def _cant_read(job, rel, full):
+    """The KnowledgeError for a User Knowledge file TBC MCP has no reader for, saying how Project Analyzer reads it or
+    that the AI app can open it."""
     return KnowledgeError(
         "%s can't be read by TBC MCP (it reads text files and Word, Excel and PowerPoint files). Project Analyzer reads "
         "PDFs, scans, drawings and older Office files into the job's database: python analyze.py knowledge --project "
