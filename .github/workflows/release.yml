@@ -10,7 +10,8 @@
 # and knowledge/license (the same clean-up as make_release.ps1), zips that folder to dist/tbc-mcp-<tag>.zip,
 # and creates the GitHub Release <tag> with that zip attached, fixed install notes and GitHub's generated
 # change list. If a release for the tag already exists, only the zip is replaced (--clobber); its notes are
-# left as they are. The zip name comes from the tag, not from SERVER_VERSION, so keep the two in step.
+# left as they are. The zip name comes from the tag, so the first step refuses a tag that isn't exactly
+# "v" + SERVER_VERSION: a mistyped "v.0.4.0" once published a release and zip under that name.
 # No TBC and no Python are involved; nothing is tested here.
 name: Release package
 
@@ -29,6 +30,15 @@ jobs:
     steps:
       - name: Check out the tagged code
         uses: actions/checkout@v4
+
+      # SERVER_VERSION = "0.5.0" in the server must be tagged v0.5.0; anything else stops here, before a release
+      - name: Tag matches SERVER_VERSION
+        run: |
+          version=$(sed -n 's/^SERVER_VERSION = "\(.*\)"$/\1/p' mcp_server/tbc_mcp_server.py)
+          if [ "v${version}" != "${GITHUB_REF_NAME}" ]; then
+            echo "::error::Tag ${GITHUB_REF_NAME} doesn't match SERVER_VERSION ${version} (expected v${version})."
+            exit 1
+          fi
 
       # GITHUB_REF_NAME is the pushed tag (e.g. v0.3.0), so the folder and zip are named tbc-mcp-v0.3.0
       - name: Build the zip from release_files.txt
