@@ -390,7 +390,7 @@ experienced. It lives in two layers with the same layout:
 | `memory\crash_log.md` | crash investigations on this machine (learned folder only) | - |
 | `memory\tbc_errors.log` | TBC error popups the tools caught (learned folder only) | - |
 
-**Built in today:** 5 preferences, 19 skills, 82 lessons, 117 recorded panel layouts and 2 scripts, all verified on TBC 2026.10. They're general TBC know-how only: nothing from one person's way of working or from a job.
+**Built in today:** 6 preferences, 19 skills, 82 lessons, 117 recorded panel layouts and 2 scripts, all verified on TBC 2026.10. They're general TBC know-how only: nothing from one person's way of working or from a job.
 
 The skills cover TBC basics and safe working, the CAD, Survey, Linework and Drafting tabs, Home's Import/Export and
 Selection tools, command panel automation, Layer Manager, creating points, surfaces and reusable scripts.
@@ -569,6 +569,7 @@ Each ribbon tab is surveyed (every button opened, its panel recorded and its hel
 | **Linework** | 55 / 55 | **29 of 31 licensed tools** | `linework_tools_usage`; Capture Outline and Fillet/Chamfer need Plan View picks |
 | **Drafting** | 47 / 47 | **22 tools**: text, dimensions, labels, label tables, leaders, blocks (create, insert, import, purge), hatch, quick profile, plotbox, plan/sheet sets, dynaview boundaries, scale bar, 3D PDF | `drafting_tools_usage`; style managers documented; Angular Dimension, Insert Image and sheet-view tools need the view; nothing is ever printed |
 | **Home** | Import, Export, Selection | export to CSV, DXF, LandXML; import of CSV points and DXF linework; all 12 selection tools | `home_import_export`, `selection_tools`; never delete import records |
+
 Run the Linework suite yourself (it cleans up after itself, and writes its results to
 `tests\linework_results.json`):
 
