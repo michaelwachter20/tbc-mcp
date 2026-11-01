@@ -552,6 +552,8 @@ with open(practices_path, "w", encoding="utf-8", newline="\n") as f:
     f.write(json.dumps(data, indent=2, ensure_ascii=False) + "\n")
 
 # --- 10. the new read actions and the SQL-side reads, on the fixture -------------------------------------------
+check({P.series_key(n) for n in ("C-104 Rev B.dwg", "C-104_rev2.dwg", "C-104.dwg")} == {"c 104"}
+      and P.series_key("Reverse curve.dwg") == "reverse curve", "revisions by letter or after an underscore are one series")
 check(P.series_key("C-101 rev2 (2).dwg") == "c 101" and P.series_key("Site Plan current copy.pdf") == "site plan",
       "series_key matches the analyzer's (dates, rev N, current, (2) taken out)")
 r = P.latest("C-104", None, vce)

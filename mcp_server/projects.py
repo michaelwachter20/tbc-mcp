@@ -1691,8 +1691,8 @@ def changes(name, active_path, since=None, file=None, limit=50):
 
 # A file name's series key, as Project Analyzer's analyzer/series.py (and Civil 3D MCP's seriesKey) make it: dates,
 # "rev N", "current", "copy" and the like taken out, so the versions of one drawing share it
-_SERIES_REMOVE = re.compile(r"\b(?:\d{8}|\d{6}|\d{2}[-_ ]\d{2}[-_ ]\d{2,4}|current|copy|backup|bak|old|new|test|void|draft|"
-                            r"final|rev(?:ision)?\s*\d*|v\d+|to)\b|\(\d+\)", re.I | re.A)
+_SERIES_REMOVE = re.compile(r"(?<![a-z0-9])(?:\d{8}|\d{6}|\d{2}[-_ ]\d{2}[-_ ]\d{2,4}|current|copy|backup|bak|old|new|test|"
+                            r"void|draft|final|rev(?:ision)?[\s_.-]*(?:\d+|[a-z])?|v\d+|to)(?![a-z0-9])|\(\d+\)", re.I | re.A)
 
 
 def series_key(file_name):
