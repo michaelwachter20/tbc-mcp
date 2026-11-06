@@ -1304,8 +1304,11 @@ def overview(name, active_path):
             if v:
                 r[k] = v
         r["folders"] = _folders(db)
+        # A file no longer in the job folder (props 'gone' on it or the file it was found in) is counted as "gone",
+        # not under the status it kept: a removed file that was never read isn't waiting to be read.
         r["files_by_status"] = {s: n for s, n in db.execute(
-            "SELECT status, COUNT(*) FROM files WHERE substr(path, 1, ?) <> ? GROUP BY status ORDER BY COUNT(*) DESC",
+            "SELECT CASE WHEN root_id IN (SELECT file_id FROM props WHERE key = 'gone') THEN 'gone' ELSE status END, "
+            "COUNT(*) FROM files WHERE substr(path, 1, ?) <> ? GROUP BY 1 ORDER BY COUNT(*) DESC",
             (len(USER_PREFIX), USER_PREFIX)).fetchall()}
         r["key_facts"] = _facts(db, "f.key = 1", limit=50)
         r["newest_facts"] = _facts(db, limit=10)
