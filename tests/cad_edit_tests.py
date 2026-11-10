@@ -138,6 +138,7 @@ def fresh_line(name="L1"):
 # ---------------------------------------------------------------- tests
 # Move Objects (moveobjects): From TA To TB must shift every vertex exactly 100 east.
 def t_move():
+    """Move Objects From TA To TB shifts the line exactly 100 east."""
     s = fresh_line("MOVE")
     before = verts(s)
     r = run_tool("moveobjects", [s], [["From", fx["TA"]], ["To", fx["TB"]]])
@@ -149,6 +150,7 @@ def t_move():
 # Rotate Objects (rotateobjects): 90 degrees around TA. TBC's rotation direction wasn't assumed, so either
 # direction passes; the detail line says which one TBC used.
 def t_rotate():
+    """Rotate Objects 90 degrees around TA turns the line a quarter turn (either direction passes)."""
     s = fresh_line("ROT")
     r = run_tool("rotateobjects", [s], [["Around", fx["TA"]], ["Angle", "90"]])
     a = verts(s)
@@ -161,6 +163,7 @@ def t_rotate():
 # Scale Objects (scaleobjects): factor 2 from TA. Only "Horizontal (X) scale" is filled, yet the expected last
 # vertex (E0+200, N0+600) is the original (E0+100, N0+300) doubled in both X and Y.
 def t_scale():
+    """Scale Objects factor 2 from TA doubles the line's distance from TA."""
     s = fresh_line("SCL")
     r = run_tool("scaleobjects", [s], [["From", fx["TA"]], ["Horizontal (X) scale", "2"]])
     a = verts(s)
@@ -170,6 +173,7 @@ def t_scale():
 # Mirror Objects (mirrorobjects): mirror line TA -> TC (the north-south line x = E0). Expects exactly one new
 # linestring (a mirrored copy, newest serial) whose 2nd vertex is (E0-100, N0+200), with the source kept.
 def t_mirror():
+    """Mirror Objects about the line TA-TC makes one mirrored copy and keeps the source."""
     s = fresh_line("MIR")
     n_before = len(on_layer(LAYER))
     r = run_tool("mirrorobjects", [s], [["From", fx["TA"]], ["To", fx["TC"]]])
@@ -182,6 +186,7 @@ def t_mirror():
 
 # Copy Objects (copyobjects) with "Relayer copied objects" off: one more object on the test layer.
 def t_copy():
+    """Copy Objects without relayering adds exactly one object to the test layer."""
     s = fresh_line("CPY")
     n_before = len(on_layer(LAYER))
     r = run_tool("copyobjects", [s], [["Relayer copied objects", False]])
@@ -192,6 +197,7 @@ def t_copy():
 # Change Elevation (changeelevation), absolute 12.5: every vertex's effective z must read 12.5.
 # "m_NewElevation" is the elevation box's control id (it is filled by id, not by label).
 def t_change_elev():
+    """Change Elevation absolute 12.5 gives every vertex an effective z of 12.5."""
     s = fresh_line("ELV")
     r = run_tool("changeelevation", [s], [["Absolute elevation", True], ["m_NewElevation", "12.5"]])
     zs = [p[2] for p in verts(s)]
@@ -200,6 +206,7 @@ def t_change_elev():
 
 # Relayer Objects (relayerobjects): the line must end up on MCP_CADTEST2.
 def t_relayer():
+    """Relayer Objects moves the line onto MCP_CADTEST2."""
     s = fresh_line("RLY")
     r = run_tool("relayerobjects", [s], [["Target layer", LAYER2]])
     lay = S.call_bridge("get_entity", {"serial": s, "property_filter": "zzz"}).get("layer")
@@ -209,6 +216,7 @@ def t_relayer():
 # Name Objects (nameobjects): nothing pre-selected; the object is given to the panel's "Object to name"
 # picker by serial, then renamed.
 def t_name():
+    """Name Objects renames a line given to its picker by serial."""
     s = fresh_line("UNNAMED")
     r = run_tool("nameobjects", [], [["Object to name", s], ["New name", "RENAMED_BY_MCP"]])
     nm = S.call_bridge("get_entity", {"serial": s, "property_filter": "zzz"}).get("name")
@@ -218,6 +226,7 @@ def t_name():
 # Explode (explode) on a copy of an existing block reference moved onto the test layer: the copy must be gone
 # afterwards and the layer must hold at least as many objects as before (the exploded parts).
 def t_explode():
+    """Explode on a copy of an existing block reference removes the copy and leaves its parts on the layer."""
     # Never create CAD entities through raw API (crash on 2026-10-13). Instead copy an existing CAD polyline
     # with TBC's own Copy Objects command onto the test layer, then explode the copy. The original is untouched.
     src = S.call_bridge("list_entities", {"type_contains": "ForeignCad.BlockReference", "limit": 1})["entities"]
@@ -249,6 +258,7 @@ def t_explode():
 # Create at Intervals (createatinterval): points every 25 along the selected line, IDs starting INT1, on the
 # test layer. Passes when the layer gained any points (the exact count isn't checked).
 def t_intervals():
+    """Create at Intervals every 25 along a line adds points to the test layer."""
     s = fresh_line("INT")
     before = S.call_bridge("list_points", {"layer": LAYER})["total_matched"]
     r = run_tool("createatinterval", [s], [["Selection", True], ["Interval", "25"], ["Starting point ID", "INT1"], ["Layer", LAYER]])
@@ -260,6 +270,7 @@ def t_intervals():
 # 5 x 5 grid of points with Create Surface (surfacecreate), then drapes a z-5 line onto it. Passes when every
 # resulting elevation is 0 (within 0.01), whether TBC made a new object or changed the line in place.
 def t_drape():
+    """Drape Objects on Surface puts a z-5 line onto a flat surface at z 0."""
     # build a small flat test surface (z = 0) 600 ft north of the fixtures with verified tools only
     gx, gy = E0, N0 + 600
     g = S.t_create_points({"points": [{"easting": gx + i * 50, "northing": gy + j * 50, "elevation": 0, "layer": LAYER}

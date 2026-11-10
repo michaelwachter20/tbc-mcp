@@ -228,6 +228,7 @@ class _Blocks(object):
     """Decompressed text blocks of one request, each decompressed once."""
 
     def __init__(self, db):
+        """Bind to an open database connection; the cache maps block id -> decompressed bytes for this request."""
         self.db, self.cache = db, {}
 
     def parts(self, part_ids):

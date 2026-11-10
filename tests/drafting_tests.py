@@ -108,6 +108,7 @@ TEXT = {}
 # Create Text (createtext) at point T, height 2, "Middle center", content typed into the rich text box: one new
 # object whose text property contains "MCP TEST TEXT".
 def t_text():
+    """Create Text at point T makes one text object reading "MCP TEST TEXT"."""
     b = ents_before()
     open_cmd("createtext")
     r = fill([["Layer", LAYER], ["Height", "2"], ["Justification", "Middle center"],
@@ -124,6 +125,7 @@ def t_text():
 # Edit Text (edittext) on t_text's text: the panel's richTextBox* field is found by id, set to "MCP EDITED"
 # and applied; the text property must now contain it. The panel's fields are printed as diagnostics.
 def t_edit_text():
+    """Edit Text changes t_text's text to "MCP EDITED" through its rich text box."""
     if "serial" not in TEXT:
         record("Edit Text", False, "needs the text from Create Text")
         return
@@ -142,6 +144,7 @@ def t_edit_text():
 # Linear Dimension (createlineardimension), "Two points" A and B, dimension line through L: exactly one new
 # Dimension object (TBC also adds an MText for its text). Candidate value properties are reported.
 def t_linear_dimension():
+    """Linear Dimension "Two points" A-B makes exactly one Dimension object."""
     b = ents_before()
     open_cmd("createlineardimension")
     r = fill([["Layer", LAYER], ["Two points", True], ["Point1CoordinateEdit", P["A"]], ["Point2CoordinateEdit", P["B"]],
@@ -157,6 +160,7 @@ def t_linear_dimension():
 # Angular Dimension (createangulardimension), "Two line segments" A-B and A-D, location M: one new Dimension
 # (90 degrees). In MANUAL, not run (see the note above MANUAL).
 def t_angular_dimension():
+    """Angular Dimension between two lines makes one Dimension object (MANUAL: not run)."""
     # "Arc segment" mode linked by serial says "A valid segment cannot be obtained from the selected object" (it
     # needs a pick). "Two line segments" with two single-segment lines leaves nothing to pick: A-B and A-D = 90 deg.
     l1 = ln("DR_ANG1", [(0, 0), (100, 0)])
@@ -177,6 +181,7 @@ def t_angular_dimension():
 # Label Points (labelpoints) for A and B (Selection box takes serials) -> Add: the panel must report
 # "labeled: 2".
 def t_label_points():
+    """Label Points labels A and B (the panel reports "labeled: 2")."""
     b = ents_before()
     open_cmd("labelpoints")
     r = fill([["Layer", LAYER], ["Selection", [SER["A"], SER["B"]]]], press="Add", wait=2)
@@ -190,6 +195,7 @@ def t_label_points():
 # Label Lines (labellines) on a two-segment line: passes when new objects appear on the layer or a panel
 # status line mentioning "label" contains a 1. A loose check: the detail line shows what TBC reported.
 def t_label_lines():
+    """Label Lines on a two-segment line makes labels or reports them (loose check)."""
     line = ln("DR_LBL_LINE", [(0, 0), (100, 0), (100, 50)])
     b = ents_before()
     open_cmd("labellines")
@@ -223,6 +229,7 @@ def make_polygon(name, keys=("A", "B", "C", "D")):
 
 # Label Polygons (labelpolygons) on polygon A-B-C-D: same loose check as Label Lines.
 def t_label_polygons():
+    """Label Polygons on polygon A-B-C-D makes labels or reports them (loose check)."""
     poly = make_polygon("DR_PG")
     b = ents_before()
     open_cmd("labelpolygons")
@@ -254,6 +261,7 @@ def label_points_now():
 # Point Label Table (createpointlabeltable) after labelling A and B: exactly one new Table object on the layer.
 # Row-count candidate properties are reported, not checked.
 def t_point_label_table_rows():
+    """Point Label Table after labelling A and B makes exactly one Table on the layer."""
     labels = label_points_now()
     b = ents_before()
     open_cmd("createpointlabeltable")
@@ -268,6 +276,7 @@ def t_point_label_table_rows():
 # Leader Lines (createleaderlines) from a point label (selTarget, by serial) to point T: passes when new
 # objects appear or one of the label's Leader* properties is set.
 def t_leader_lines():
+    """Leader Lines from a point label to point T adds a leader (new object or Leader* property set)."""
     labels = LABELS.get("points") or label_points_now()
     b = ents_before()
     open_cmd("createleaderlines")
@@ -364,6 +373,7 @@ result = hit
 # the node was ticked and a new block definition MCP_IMPORT_BLOCK exists. Afterwards the MCP_IMPORT* definitions
 # are purged and the folder setting is cleared again. Runs last in TESTS.
 def t_import_blocks():
+    """Import Blocks from a generated DXF adds MCP_IMPORT_BLOCK, then purges it and restores the folder setting."""
     import os, shutil
     os.makedirs(BLOCKS_DIR, exist_ok=True)
     # DXF group-code/value pairs, one per line: HEADER, a BLOCKS section with the block, an empty ENTITIES section
@@ -401,6 +411,7 @@ def t_import_blocks():
 # Edit Label Table add the polygon there. Passes when a new LabelTable exists and the panel reports
 # "polygons: 1". The table is added to MADE (label tables are found by walking the project).
 def t_polygon_label_table():
+    """Polygon Label Table for a labelled polygon makes a LabelTable listing one polygon."""
     poly = make_polygon("DR_PG_TBL")
     # a label table lists LABELED objects: label the polygon first (as for lines)
     open_cmd("labelpolygons")
@@ -426,6 +437,7 @@ def t_polygon_label_table():
 # Create Block (createblock) MCP_TEST_BLOCK from two lines, base point A: exactly one block definition with
 # that name exists afterwards. Reports how many source lines are left.
 def t_create_block():
+    """Create Block from two lines makes exactly one MCP_TEST_BLOCK definition."""
     l1 = ln("DR_BLK1", [(0, -60), (20, -60)])
     l2 = ln("DR_BLK2", [(20, -60), (20, -45)])
     b = ents_before()
@@ -443,6 +455,7 @@ def t_create_block():
 # Insert Block (insertblock) of MCP_TEST_BLOCK at U on the test layer, rotation 0: one new BlockReference whose
 # block-name property mentions MCP_TEST_BLOCK. Needs t_create_block.
 def t_insert_block():
+    """Insert Block places one BlockReference of MCP_TEST_BLOCK at U (needs t_create_block)."""
     b = ents_before()
     open_cmd("insertblock")
     r = fill([["blkComboBox1", BLOCK], ["layer1", LAYER], ["Location1", P["U"]], ["Rotation", "0"]], press="Insert", wait=2)
@@ -457,6 +470,7 @@ def t_insert_block():
 # Delete command), the list is narrowed to just that block, then Apply. Passes when the block is gone and the
 # list shrank by exactly one; if more than one went, Undo is run.
 def t_purge_blocks():
+    """Purge Blocks narrowed to MCP_TEST_BLOCK removes exactly that one definition (Undo if more went)."""
     # only ever purge our own test block: delete its references first, untick everything else, verify, Apply
     refs = [e["serial"] for e in entities(LAYER) if "BlockReference" in e["type"]]
     if refs:
@@ -491,6 +505,7 @@ def t_purge_blocks():
 # Create Hatch (createhatch), CROSS pattern at scale 1 inside a closed 100 x 50 line: a new object whose type
 # contains "atch" (Hatch / hatch).
 def t_hatch():
+    """Create Hatch inside a closed rectangle makes a hatch object."""
     rect = ln("DR_HATCH_BND", [(0, 0), (100, 0), (100, 50), (0, 50), (0, 0)], closed=True)
     b = ents_before()
     open_cmd("createhatch")
@@ -534,6 +549,7 @@ PLOT_TYPES = ["DynaviewBoundaryCollection", "PlanGridSheetSet", "Boundary"]
 # Print Plan View (printplanview) -> Create (never Print) a plotbox MCP_PLOTBOX at scale 50 centred on the test
 # rectangle: all three PLOT_TYPES appear with that name. They go to MADE for deletion.
 def t_print_plan_view_create():
+    """Print Plan View -> Create (never Print) makes the three plotbox objects named MCP_PLOTBOX."""
     # Create (never Print) makes a printable setup named after the plotbox: DynaviewBoundaryCollection + its
     # Boundary + PlanGridSheetSet (+ BasicSheet, DynaViews). Deleting the first three removes all of it.
     before = set(x["serial"] for x in find_types(PLOT_TYPES))
@@ -553,6 +569,7 @@ def t_print_plan_view_create():
 
 # Create Plan Set (createplanset) MCP_TEST_PLANSET: a new PlanSet/SheetSet object with that name (added to MADE).
 def t_plan_set():
+    """Create Plan Set makes a plan set named MCP_TEST_PLANSET."""
     before = set(x["serial"] for x in find_types(["PlanSet", "SheetSet"]))
     open_cmd("createplanset")
     r = fill([["NameTextBox", "MCP_TEST_PLANSET"]], press="OK", wait=2)
@@ -570,6 +587,7 @@ PDF = os.path.join(os.path.dirname(os.path.abspath(__file__)), "mcp_test_3d.pdf"
 # Create 3D PDF (create3dpdf) to PDF with "ModifyProjectSettings" off: the file exists and is over 1000 bytes.
 # The file is then deleted (if TBC still holds it, the next run's first step deletes it).
 def t_create_3d_pdf():
+    """Create 3D PDF writes a PDF over 1000 bytes without changing project settings (file deleted after)."""
     import os
     if os.path.exists(PDF):
         os.remove(PDF)
@@ -596,6 +614,7 @@ def coord(x, y):
 # Table panel that OK opens. Passes when a new Table is on the layer or a new LabelTable exists anywhere
 # (those not on the layer go to MADE).
 def t_line_label_table():
+    """Line Label Table for a labelled line makes a table (on the layer or anywhere in the project)."""
     line = ln("DR_TBL_LINE", [(0, 0), (100, 0)])
     open_cmd("labellines")
     st = S.run_ipy("command_ui", "state", {})
@@ -621,6 +640,7 @@ def t_line_label_table():
 # Labeling Scale Factor (planarscalefactor): "Use a fixed scale factor" 1.0 -> Apply; the panel's scale factor
 # text must show 1.0 afterwards. This is a project setting, so the panel's previous choices are put back after.
 def t_labeling_scale_factor():
+    """Labeling Scale Factor takes a fixed factor of 1.0; the project setting is put back afterwards."""
     open_cmd("planarscalefactor")
     before = panel_texts()
     # remember the selected option(s) and the factor box, to restore them afterwards
@@ -647,6 +667,7 @@ def t_labeling_scale_factor():
 # Create Dynaview Boundary Set (createdynaviewboundarycollection) MCP_DVB_SET, 1 row x 2 columns, origin at the
 # test origin (typed as "northing, easting"): a new collection with that name (added to MADE).
 def t_dynaview_boundary_set():
+    """Create Dynaview Boundary Set makes a collection named MCP_DVB_SET."""
     before = set(x["serial"] for x in find_types(["DynaviewBoundaryCollection"]))
     open_cmd("createdynaviewboundarycollection")
     r = fill([["txtName", "MCP_DVB_SET"], ["lyrLayer", LAYER], ["nudRows", 1], ["nudColumns", 2], ["crdOrigin", coord(0, 0)]], press="Apply", wait=2)
@@ -660,6 +681,7 @@ def t_dynaview_boundary_set():
 # Create Sheet Set (createsheetset) MCP_TEST_SHEETSET, Standard, ISO A1 landscape: a new set with that name
 # (added to MADE).
 def t_sheet_set():
+    """Create Sheet Set makes a sheet set named MCP_TEST_SHEETSET."""
     before = set(x["serial"] for x in find_types(["SheetSet", "PlanSet"]))
     open_cmd("createsheetset")
     r = fill([["NameTextBox", "MCP_TEST_SHEETSET"], ["cbSheetSetTypePicker", "Standard"], ["cmbPaperSize", "ISO A1 (594 x 841 mm)"],
@@ -674,6 +696,7 @@ def t_sheet_set():
 # Create Scale Bar (createscalebar), specified scale 1:50, "Alternating Scale Bar", 80 below the test origin:
 # at least one new ScaleBar object (found by type, added to MADE).
 def t_scale_bar():
+    """Create Scale Bar at a specified 1:50 scale makes at least one ScaleBar object."""
     b = ents_before()
     open_cmd("createscalebar")
     sb0 = set(x["serial"] for x in find_types(["ScaleBar"]))
@@ -694,6 +717,7 @@ IMG = os.path.join(os.path.dirname(os.path.abspath(__file__)), "mcp_test_image.b
 # one new object on the layer. In MANUAL, not run: the note above MANUAL says Apply creates nothing (the image
 # is placed and sized with grips in the view).
 def t_insert_image():
+    """Insert Image of a generated 4 x 4 BMP adds an object to the layer (MANUAL: not run)."""
     import os, struct
     # tiny 4x4 24-bit BMP made here (no external file needed)
     # each pixel is the bytes 00 80 ff (BMP stores blue, green, red); rows are padded to a multiple of 4 bytes.
@@ -747,6 +771,7 @@ def snap():
 # (ClientAreaTextBox, ClientAreaTextBox#2 ...). Note: snap() returns JSON, so its serial keys come back as
 # strings, and the int() conversion for MADE happens here.
 def t_quick_profile():
+    """Quick Profile across a throwaway surface makes an object named MCP_QPROFILE."""
     # small throwaway surface from A, B, C, D, M
     open_cmd("surfacecreate", select=[SER[k] for k in ("A", "B", "C", "D", "M")])
     fill([["Name", SURF]], press="OK", wait=2)

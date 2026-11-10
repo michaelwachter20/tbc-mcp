@@ -100,6 +100,7 @@ def setup():
 # tbc_export action=formats: the exporter list must include the CAD "DXF exporter" and the Custom
 # "P,N,E,elev,Code" format. The detail shows how many exporters each category has.
 def t_export_formats():
+    """tbc_export action=formats lists the DXF exporter and the Custom P,N,E,elev,Code format."""
     r = S.t_export({"action": "formats"})
     cats = r["formats"]
     ok = "CAD" in cats and "DXF exporter" in cats["CAD"] and "P,N,E,elev,Code" in cats.get("Custom", [])
@@ -109,6 +110,7 @@ def t_export_formats():
 # tbc_export to CSV (Custom > P,N,E,elev,Code) of points A, B, C: one row per point, first column the point
 # ID, last column the code MCPX.
 def t_export_csv():
+    """tbc_export to CSV writes one row per test point, with its ID and code."""
     path = os.path.join(OUT, "mcp_points.csv")
     r = S.t_export({"category": "Custom", "format": "P,N,E,elev,Code", "serials": [SER[k] for k in "ABC"], "path": path})
     rows = open(path, encoding="utf-8-sig").read().strip().splitlines() if r["exported"] else []
@@ -119,6 +121,7 @@ def t_export_csv():
 # tbc_export to DXF (CAD > DXF exporter) of the test linestring: over 500 bytes and contains a POLYLINE.
 # The file is reused by t_import_dxf.
 def t_export_dxf():
+    """tbc_export to DXF writes the test line as a POLYLINE (the file t_import_dxf reuses)."""
     path = os.path.join(OUT, "MCP_EXPORT_LINES.dxf")
     r = S.t_export({"category": "CAD", "format": "DXF exporter", "serials": LINES, "path": path})
     txt = open(path, errors="replace").read() if r["exported"] else ""
@@ -129,6 +132,7 @@ def t_export_dxf():
 # tbc_export to LandXML (Construction > LandXML exporter) of the line and points: a <LandXML document that
 # mentions all three point IDs.
 def t_export_landxml():
+    """tbc_export to LandXML writes a LandXML document naming all three test points."""
     path = os.path.join(OUT, "mcp_data.xml")
     r = S.t_export({"category": "Construction", "format": "LandXML exporter", "serials": LINES + [SER[k] for k in "ABC"], "path": path})
     txt = open(path, encoding="utf-8", errors="replace").read() if r["exported"] else ""
@@ -150,6 +154,7 @@ def remove_import(file_name, extra_serials=()):
 # tbc_import action=scan on the import folder after writing a two-point CSV (P,E,N,elev,Code; IDs 4790001 and
 # 4790002 at N0+300): the scan must list the file (with the importer TBC picked for it).
 def t_import_scan():
+    """tbc_import action=scan lists a freshly written CSV with the importer TBC picks for it."""
     with open(os.path.join(IN, "MCP_IMPORT_POINTS.csv"), "w") as f:
         f.write("4790001,%.3f,%.3f,5.000,MCPIMP\n4790002,%.3f,%.3f,5.500,MCPIMP\n" % (E0, N0 + 300, E0 + 10, N0 + 300))
     r = S.t_import({"action": "scan", "folder": IN})
@@ -162,6 +167,7 @@ def t_import_scan():
 # MCPIMP. Refuses to run when the ID already exists (e.g. left over from an earlier run). Needs t_import_scan's
 # file. The imported points are deleted afterwards; the import record stays.
 def t_import_csv():
+    """tbc_import of the CSV puts point 4790001 at its position with its code (then deletes the points)."""
     if point("4790001"):
         record("Import CSV", False, "point 4790001 already exists - refusing to import duplicates")
         return
@@ -176,6 +182,7 @@ def t_import_csv():
 # tbc_import of the DXF that t_export_dxf wrote (allow_cad=true lets the CAD importer run): no errors and at
 # least one new object on the test layer. The imported objects are deleted afterwards; the record stays.
 def t_import_dxf():
+    """tbc_import of a TBC-written DXF (allow_cad) brings in objects without errors (then deletes them)."""
     src = os.path.join(OUT, "MCP_EXPORT_LINES.dxf")
     if not os.path.exists(src):
         record("Import DXF", False, "needs the DXF from Export DXF")

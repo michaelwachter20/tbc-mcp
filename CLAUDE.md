@@ -62,6 +62,10 @@ py -3.12 tests\test_server_fixes.py
 py -3.12 tests\test_watchdog.py
 ```
 
+`test_knowledge_audit.py` and `test_knowledge_split.py` call `git`, so git must be on PATH. Every other file in
+`tests\` (the `*_tests.py` suites, `tab_survey.py`, `cad_tab_survey.py`, `test_mcp_stdio.py`, `test_v2_e2e.py`,
+`tests\dev\`) drives a live TBC or TBC's IronPython: don't run them in an automated session.
+
 With TBC open and the MCP Bridge switched on (green), the live suites exercise real commands on throwaway
 objects and clean up after themselves, e.g. `py -3.12 tests\linework_tests.py`; results go to
 `tests\<suite>_results.json` (git-ignored). Each file's docstring says what it needs, what it changes and how
@@ -71,7 +75,8 @@ to run it.
 
 1. **Version header.** Every code file starts with `# Written for and verified on Trimble Business Center 2026.10
    (build 44.0.9666.28609)...`. Keep it as line 1. For a newer TBC release, **add** handling and keep the 2026.10
-   behavior.
+   behavior. (Saved scripts in `knowledge\scripts\` are data: they start with their `tbc-script` JSON header, which
+   `knowledge.parse_script` needs first, and record the release in it.)
 2. **Add, never delete** knowledge: skills from another release get an appended `## TBC <release>` section, scripts
    are archived on overwrite, lessons from another release can't be removed.
 3. **No job data in the repository** (suite contract). `knowledge\` holds general know-how only and is never
@@ -98,6 +103,15 @@ to run it.
    `tbc_preferences`); facts about one job -> `projects.py` (`tbc_project_notes`); practice true on every job ->
    `practices.py` (`tbc_practices`). Keep the server `INSTRUCTIONS`, tool descriptions and
    `knowledge\skills\basics\working_safely_in_tbc.skill.md` saying the same.
+
+## How this fits the suite
+
+TBC MCP is one of four programs kept side by side in `Documents\GitHub\`: Project Analyzer (the hub that fills each
+job's project database), Outlook Classic Reader (mail, through Project Analyzer), Civil 3D MCP (the same pattern as
+this repository, for Civil 3D) and TBC MCP. They share `<shared>\projects\*.db` and `<shared>\practices.json` under
+Project Analyzer's `docs/suite-knowledge.md`. The suite map is
+[../project-analyzer/docs/SUITE-MAP.md](../project-analyzer/docs/SUITE-MAP.md); what it means for this code is in
+[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), section 12.
 
 ## Adding a tool
 

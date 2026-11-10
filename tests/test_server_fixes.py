@@ -45,12 +45,14 @@ ok = True
 
 
 def check(cond, label):
+    """Print PASS/FAIL for one check and remember a failure in `ok` (the exit code)."""
     global ok
     ok = ok and bool(cond)
     print(("PASS " if cond else "FAIL ") + label)
 
 
 def raises(fn, text):
+    """True when fn() raises an exception whose message contains `text` (case-insensitive)."""
     try:
         fn()
     except Exception as ex:
@@ -61,14 +63,17 @@ def raises(fn, text):
 class patched:
     """Temporarily replace attributes of a module (restored on exit)."""
     def __init__(self, mod, **values):
+        """Remember the module and the attribute values to put in place."""
         self.mod, self.values, self.saved = mod, values, {}
 
     def __enter__(self):
+        """Save the current attributes and set the stand-ins."""
         for k, v in self.values.items():
             self.saved[k] = getattr(self.mod, k)
             setattr(self.mod, k, v)
 
     def __exit__(self, *exc):
+        """Put the saved attributes back (also after an exception, which is not swallowed)."""
         for k, v in self.saved.items():
             setattr(self.mod, k, v)
 
@@ -77,6 +82,7 @@ class patched:
 class FakeBridge:
     """Answers bridge requests like the macro does; project_info takes `delay` seconds."""
     def __init__(self, delay):
+        """Listen on a free loopback port and start the accept thread (daemon, dies with the test)."""
         self.delay, self.token = delay, "fake-token-123456"
         self.sock = socket.socket()
         self.sock.bind(("127.0.0.1", 0))
@@ -85,6 +91,7 @@ class FakeBridge:
         threading.Thread(target=self.serve, daemon=True).start()
 
     def serve(self):
+        """Accept connections forever, one thread each, like the macro's accept thread."""
         while True:
             try:
                 c, _ = self.sock.accept()
@@ -93,6 +100,10 @@ class FakeBridge:
             threading.Thread(target=self.one, args=(c,), daemon=True).start()
 
     def one(self, c):
+        """Answer one request line (the server's call_bridge sends one request per connection).
+
+        The token is not checked: this stand-in only has to look like the macro to the server.
+        """
         with c:
             req = json.loads(c.makefile("r", encoding="utf-8").readline())
             if req["method"] == "project_info":
@@ -112,11 +123,13 @@ p = subprocess.Popen([sys.executable, server], stdin=subprocess.PIPE, stdout=sub
 
 
 def send(obj):
+    """Write one JSON-RPC line to the server's stdin (a str is sent as it is, to test malformed input)."""
     p.stdin.write((obj if isinstance(obj, str) else json.dumps(obj)) + "\n")
     p.stdin.flush()
 
 
 def read():
+    """Read and parse the server's next stdout line (blocks until it comes)."""
     return json.loads(p.stdout.readline())
 
 
@@ -166,6 +179,7 @@ state = {"clicked": False}
 
 
 def grid_ipy(module, action, args, **k):
+    """Stand-in for run_ipy: a checkbox grid whose row 600 turns checked once grid_click has run."""
     if action == "grid_read":
         n = min(int(args.get("limit") or 200), 1000)
         return {"columns": [{"name": "Chk", "header": "Chk", "type": "CheckBoxColumn"}],
@@ -185,6 +199,11 @@ existing, created = {"5", "6"}, []
 
 
 def points_bridge(method, params=None, timeout=None):
+    """Stand-in for call_bridge: the ID check reports `existing` as taken; create_points only records the names.
+
+    The ID check's code (NEXT_ID_CODE) starts with a line `args = [...]`, so the names asked about are read back
+    from it.
+    """
     if method == "execute_python":
         names = ast.literal_eval(params["code"].split("\n", 1)[0].split("=", 1)[1].strip())
         return {"result": {"max_numeric": 6, "taken": [n for n in names if n in existing]}}
@@ -215,6 +234,7 @@ write_it = {"on": False}
 
 
 def fake_fill(a):
+    """Stand-in for command_ui_fill: rewrites the target file only when write_it["on"] (a real export)."""
     if write_it["on"]:
         with open(target, "w") as f:
             f.write("new export")
@@ -244,10 +264,12 @@ ran = []
 
 
 def t_one():
+    """Dummy live-suite test: records that it ran (guards run()'s choice of tests)."""
     ran.append("one")
 
 
 def t_two():
+    """Dummy live-suite test: records that it ran (guards run()'s choice of tests)."""
     ran.append("two")
 
 

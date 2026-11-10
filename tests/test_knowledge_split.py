@@ -8,7 +8,8 @@ command, the job-data guard), and that a whole session of writes leaves the repo
 Needs TBC
     No. A made-up built-in layer and the learned layer live in a temporary folder; the last part runs the real
     repository's built-ins with only PROJECT_KNOWLEDGE_DIR set (a temporary folder) and checks nothing in the
-    repository changed.
+    repository changed. Needs git on PATH for that last check (`git status --porcelain`, compared before and
+    after, so uncommitted edits elsewhere in the working tree don't fail it).
 
 How to run
     py -3.12 tests\\test_knowledge_split.py
@@ -38,12 +39,14 @@ ok = True
 
 
 def check(cond, label):
+    """Print PASS/FAIL for one check and remember a failure in `ok` (the exit code)."""
     global ok
     ok = ok and bool(cond)
     print(("PASS " if cond else "FAIL ") + label)
 
 
 def raises(fn, text):
+    """True when fn() raises a KnowledgeError whose message contains `text` (any case); other errors propagate."""
     try:
         fn()
     except K.KnowledgeError as ex:
@@ -52,6 +55,7 @@ def raises(fn, text):
 
 
 def write(path, text):
+    """Write a UTF-8 text file with LF line endings, creating its folder (builds the made-up built-in layer)."""
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w", encoding="utf-8", newline="\n") as f:
         f.write(text)

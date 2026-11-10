@@ -42,6 +42,7 @@ def setup():
 # Rename Points (renamepoints), "Add constant" 1000 with the report checkbox (chkReport) off:
 # both selected points' numeric IDs must go up by exactly 1000.
 def t_rename():
+    """Rename Points "Add constant" 1000 raises both selected points' numeric IDs by exactly 1000."""
     pts = make_points(LAYER, [(E0, N0, 1), (E0 + 5, N0, 1)])
     names = [p["name"] for p in pts]
     open_cmd("renamepoints", [p["serial"] for p in pts])
@@ -54,6 +55,7 @@ def t_rename():
 # Average Points (createaveragepointcmd): three selected points -> Add -> Compute a new point with the next
 # numeric ID. It must sit at the plain mean of the three: (E0+1, N0+20.667, z 4).
 def t_average():
+    """Average Points of three points makes a new point at their plain mean."""
     pts = make_points(LAYER, [(E0, N0 + 20, 2), (E0 + 2, N0 + 20, 4), (E0 + 1, N0 + 22, 6)])
     open_cmd("createaveragepointcmd", [p["serial"] for p in pts])
     new_id = str(int(max(int(p["name"]) for p in pts)) + 1)
@@ -132,6 +134,7 @@ def t_explode_points():
 # second point (given by ID in "To"); its position must match (E0+10, N0+65). The detail line also shows the
 # new name (TBC is expected to add "(MOVED)").
 def t_move_survey_point():
+    """Move Survey Point puts a point onto a second point's position (picker by serial, target by ID)."""
     p = make_points(LAYER, [(E0, N0 + 60, 5)])[0]
     target = make_points(LAYER, [(E0 + 10, N0 + 65, 5)])[0]
     open_cmd("movesurveypoint")
@@ -145,6 +148,7 @@ def t_move_survey_point():
 
 # Transform Survey Points (transformsurveypoints): delta easting 15 only; both points' eastings must rise by 15.
 def t_transform():
+    """Transform Survey Points with delta easting 15 moves both points 15 east."""
     pts = make_points(LAYER, [(E0, N0 + 80, 1), (E0 + 10, N0 + 80, 1)])
     open_cmd("transformsurveypoints", [p["serial"] for p in pts])
     r = fill([["eastingCheckBox", True], ["deltaEasting", "15"]], press="Apply", wait=2)
@@ -157,6 +161,7 @@ def t_transform():
 # 4 points, one at each corner (within 0.02). The new points are deleted at the end of the test because
 # they land on the 'Points' layer, which the suite's cleanup doesn't touch.
 def t_integrate():
+    """Integrate to Geometry on a closed square adds exactly 4 points, one per corner (then deletes them)."""
     s = make_line(LAYER, "INTEG", [(E0, N0 + 100, 2), (E0 + 30, N0 + 100, 2), (E0 + 30, N0 + 130, 2), (E0, N0 + 130, 2)], closed=True)
     # new points go to the DEFAULT 'Points' layer (no layer option) and skip IDs that already exist
     total0 = S.call_bridge("project_info")["point_count"]

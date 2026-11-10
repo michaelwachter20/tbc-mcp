@@ -13,6 +13,11 @@ text is taken from the XML as Markdown-ish plain text:
 
 No formatting, images or embedded objects. Members bigger than MAX_MEMBER_BYTES (uncompressed) are skipped, so a
 damaged or hostile file can't fill the memory. Raises OfficeTextError for a file that isn't a readable zip.
+
+Runs in the CPython MCP server only (never inside TBC). Its one caller is projects.py (tbc_project_notes actions
+files, read and search over a job's User Knowledge folder); it only reads the file it is given and writes nothing.
+Project Analyzer, when it has run, has the same documents' text in the job database already, and projects.py
+prefers that.
 """
 import posixpath
 import re
@@ -30,6 +35,7 @@ _REL = "{http://schemas.openxmlformats.org/package/2006/relationships}"
 
 
 class OfficeTextError(Exception):
+    """The file can't be read as an Office document (not a zip, broken XML, missing main part, unreadable)."""
     pass
 
 
@@ -61,6 +67,10 @@ def _paragraphs(root, ns):
 
 
 def _docx(z):
+    """Text of a Word file: body paragraphs and tables in document order (a table row as "| a | b |").
+
+    Only the main document part is read (no headers, footers, footnotes or comments).
+    """
     root = _xml(z, "word/document.xml")
     if root is None:
         raise OfficeTextError("no word/document.xml")
@@ -77,6 +87,11 @@ def _docx(z):
 
 
 def _pptx(z):
+    """Text of a PowerPoint file: each slide as "## Slide N" and its non-empty paragraphs (no speaker notes).
+
+    Slides are taken in the order of their file numbers (slide1.xml, slide2.xml, ...), sorted numerically so slide10
+    comes after slide9; N counts the slides read, which is the shown order unless slides were reordered in PowerPoint.
+    """
     names = [n for n in z.namelist() if re.match(r"ppt/slides/slide\d+\.xml$", n)]
     names.sort(key=lambda n: int(re.search(r"(\d+)\.xml$", n).group(1)))
     out = []
@@ -90,6 +105,8 @@ def _pptx(z):
 
 
 def _cell_text(c, shared):
+    """The shown text of one spreadsheet cell <c>: shared string (t="s") looked up in `shared`, inline string,
+    boolean as TRUE/FALSE, anything else (numbers, formula results) as stored. '' when empty or unresolvable."""
     kind = c.get("t")
     if kind == "inlineStr":
         return "".join(t.text or "" for t in c.iter(_S + "t"))
@@ -107,6 +124,12 @@ def _cell_text(c, shared):
 
 
 def _xlsx(z):
+    """Text of an Excel workbook: each sheet as "## <name>" and its non-empty rows, cells joined with " | ".
+
+    Sheets come in workbook order, found through the workbook's relationships file (targets are relative to xl/,
+    or absolute from the package root when they start with "/"). Without a usable workbook.xml, every
+    xl/worksheets/sheetN.xml is read under its file name. Empty cells are not padded, so columns can shift.
+    """
     shared = []
     sst = _xml(z, "xl/sharedStrings.xml")
     if sst is not None:

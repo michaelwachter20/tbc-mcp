@@ -38,6 +38,12 @@ When a newer TBC behaves differently, knowledge is ADDED for that release and ne
   - lessons: new lessons carry the current release; old ones stay
   - command layouts: a different release's layout goes under 'versions' -> {release: layout}; the original stays
   - scripts: script_version increments on every save; the previous file is archived in scripts/_archive/
+
+Runs in the CPython MCP server only, never inside TBC: nothing here talks to the bridge. Callers: tbc_mcp_server.py
+(tools tbc_memory, tbc_skills, tbc_script, tbc_preferences, the command_ui_* panel recorder, prefs_text for the
+INSTRUCTIONS); projects.py takes the shared folder and KnowledgeError from here, and practices.py also the locks,
+backups, atomic replace and job_data_problems. Saved scripts are IronPython run inside TBC by the server's
+execute_python; this module only stores them.
 """
 import contextlib
 import datetime
@@ -102,6 +108,7 @@ ARCHIVE = os.path.join(SCRIPTS, "_archive")
 
 
 def _same(a, b):
+    """True when two paths name the same place (absolute, Windows case rules)."""
     return os.path.normcase(os.path.abspath(a)) == os.path.normcase(os.path.abspath(b))
 
 
@@ -128,6 +135,7 @@ def is_learned(path):
 
 
 def _layer_name(path):
+    """'learned' or 'built-in': which layer a knowledge file comes from (shown to the AI)."""
     return "learned" if is_learned(path) else "built-in"
 
 
@@ -593,6 +601,9 @@ def save_skill(name, category, description, body, requires_write=False, paramete
 
 
 def _save_skill(name, category, description, body, requires_write, parameters, overwrite):
+    """save_skill() under the skill's file lock. Always writes into the learned layer: a learned skill in place, a
+    new one (or one hiding a built-in) under SKILLS/<category>. Refuses to overwrite a skill that holds knowledge
+    for another TBC release (append_version_section adds to it instead)."""
     existing = _skill_path(name)
     path = existing if existing and is_learned(existing) else os.path.join(SKILLS, category, name + ".skill.md")
     rel = current_release()
@@ -627,6 +638,8 @@ def append_version_section(name, body, release=None):
 
 
 def _append_section(name, p, target, body, release):
+    """append_version_section() under the target's file lock: add the release to tbc_versions in the frontmatter
+    (inserted after 'name:' when missing) and append the '## TBC <release>' section; writes `target` (learned)."""
     if is_learned(target) and os.path.exists(target):
         p = target  # re-read under the lock: another server may have added a section meanwhile
     rel = release or current_release()
@@ -747,6 +760,9 @@ def save_script(name, text, overwrite=False):
 
 
 def _save_script(name, p, text, meta, overwrite):
+    """save_script() under the script's file lock. Overwriting archives the current text (built-in or learned) as
+    _archive/<name>.v<n>.py in the learned folder and saves version n+1 with the release added; a new script keeps
+    the script_version its header gives (1 when none). Writes the learned path `p`."""
     existing = _script_file(name)
     if existing:
         if not overwrite:
@@ -776,6 +792,8 @@ def delete_script(name):
 
 
 def _delete_script(name, p):
+    """delete_script() under the file lock: archive the learned script as _archive/<name>.v<n>.retired.py, then
+    remove it from scripts/. KnowledgeError for a built-in or unknown script."""
     if not os.path.exists(p):
         if _script_file(name):
             raise KnowledgeError("Script %r is built in (shipped with TBC MCP), so it can't be retired here. Save a new "
@@ -892,6 +910,9 @@ def add_lesson(text, topic=None, tags=None):
 
 
 def _add_lesson(text, topic, tags):
+    """add_lesson() under the lessons lock: skip a duplicate (same text, any case, among the current lessons of both
+    layers), else append one JSON line to the learned lessons.jsonl with the next learned id and the running TBC
+    release."""
     ls = _lessons()
     duplicate = next((l for l in ls if l.get("text", "").strip().lower() == text.strip().lower()), None)
     if duplicate:
@@ -908,6 +929,7 @@ def _add_lesson(text, topic, tags):
 
 
 def _ends_with_newline(path):
+    """True when a (non-empty) file's last byte is a newline; used before appending to a possibly torn JSONL file."""
     with open(path, "rb") as f:
         f.seek(-1, os.SEEK_END)
         return f.read(1) == b"\n"
@@ -950,6 +972,9 @@ def delete_lesson(lid):
 
 
 def _delete_lesson(lid):
+    """delete_lesson() under the lessons lock. Only a lesson of the running TBC release can go. A learned one is
+    dropped from the learned file; a built-in one is hidden by a {"id", "retired"} line there (the repository is
+    never written). The rewrite keeps the old file as a .bak."""
     gone = next((l for l in _lessons() if l.get("id") == lid), None)
     if not gone:
         raise KnowledgeError("No lesson with id %s" % lid)
@@ -1020,6 +1045,9 @@ def record_command(state):
 
 
 def _record_command(state, c):
+    """record_command() under the command file's lock: store the panel layout (field ids, labels, kinds, a sample of
+    options, buttons) in the learned commands/<key>.json. Options of project-data dropdowns are never recorded (they
+    are job data). A layout from another TBC release is kept and this release's is added under "versions"."""
     old = get_command(c["key"]) or {}
     fields = []
     for f in state.get("fields", []):
@@ -1123,6 +1151,8 @@ def update_pref(pid, text):
 
 
 def _update_pref(pid, text):
+    """update_pref() under the preferences lock: change the text in the learned file; a built-in preference gets a
+    learned copy with the same id, which then wins over the built-in one."""
     current = next((p for p in list_prefs() if p.get("id") == pid), None)
     if not current:
         raise KnowledgeError("No preference with id %s" % pid)

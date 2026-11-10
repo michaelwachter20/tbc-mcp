@@ -75,6 +75,7 @@ def clear():
 
 # Select Points (selectpoints) by layer (cboLayer) and feature code (txtFieldCode) SELA: exactly A and C.
 def t_select_points():
+    """Select Points by layer and feature code SELA selects exactly A and C."""
     clear()
     open_cmd("selectpoints")
     r = fill([["cboLayer", LAYER], ["txtFieldCode", "SELA"]], press="OK", wait=2)
@@ -85,6 +86,7 @@ def t_select_points():
 
 # Select Points by point ID (SelectedPointID box): only B among our objects.
 def t_select_points_by_id():
+    """Select Points by point ID selects only B among the test objects."""
     clear()
     open_cmd("selectpoints")
     r = fill([["SelectedPointID", P["B"]]], press="OK", wait=2)
@@ -94,6 +96,7 @@ def t_select_points_by_id():
 
 # Select Points with "Add to current selection" on, starting from {B}: code SELA adds A and C -> A, B, C.
 def t_add_to_selection():
+    """Select Points with "Add to current selection" keeps B and adds A and C."""
     S.call_bridge("set_selection", {"serials": [SER["B"]]})
     open_cmd("selectpoints", select=[SER["B"]])
     r = fill([["cboLayer", LAYER], ["txtFieldCode", "SELA"], ["chkAddToCurrentSelection", True]], press="OK", wait=2)
@@ -104,6 +107,7 @@ def t_add_to_selection():
 # Select Duplicate Points (selectduplicatepoints), tolerance 0.01, over the whole project: A or D (which share
 # a position) must be selected; which of the pair TBC picks isn't fixed by the test.
 def t_select_duplicate_points():
+    """Select Duplicate Points (tolerance 0.01) selects one of the coincident points A and D."""
     clear()
     open_cmd("selectduplicatepoints")
     r = fill([["MinimumDistance", "0.01"]], press="OK", wait=3)
@@ -114,6 +118,7 @@ def t_select_duplicate_points():
 
 # Select by Elevation (selectbyelevation), 15 to 25, "entirely within range": B (z 20) but none of A, C, D.
 def t_select_by_elevation():
+    """Select by Elevation 15-25 "entirely within range" selects B and none of A, C, D."""
     clear()
     open_cmd("selectbyelevation")
     r = fill([["m_MinElevationValue", "15"], ["m_MaxElevationValue", "25"], ["m_EntirelyWithinRangeRadio", True]], press="OK", wait=3)
@@ -126,6 +131,7 @@ def t_select_by_elevation():
 # Select Observations (selectobservations) by type "Total Station Observation": exercises the checked-list box
 # (clbType). Always records PASS: it only reports how many total-station observations TBC selected.
 def t_select_observations():
+    """Select Observations by type fills a checked-list box (always PASS; reports the count only)."""
     clear()
     open_cmd("selectobservations")
     r = fill([["clbType", "Total Station Observation"]], press="OK", wait=3)
@@ -136,6 +142,7 @@ def t_select_observations():
 # Select by Layer (selectbylayer): ticking the layer in its checked-list box selects straight away (no OK is
 # pressed); exactly our 4 points and 2 lines must be selected. The panel is closed afterwards.
 def t_select_by_layer():
+    """Select by Layer selects exactly the test layer's points and lines, without pressing OK."""
     clear()
     open_cmd("selectbylayer")
     r = fill([["LayerCheckedListBox", LAYER]], wait=2)
@@ -148,6 +155,7 @@ def t_select_by_layer():
 # Select by Polygon (selectbypolygon) with the box as boundary (picker m_BoundaryEntity takes its serial),
 # "Inside boundary": A, B and D, not C (ignoring the box itself).
 def t_select_by_polygon():
+    """Select by Polygon "Inside boundary" selects A, B and D but not C."""
     clear()
     open_cmd("selectbypolygon")
     r = fill([["m_BoundaryEntity", OBJ["box"]], ["cb_SelectType", "Inside boundary"]], press="OK", wait=3)
@@ -160,6 +168,7 @@ def t_select_by_polygon():
 # Select Similar (selectsimilar) to point A, matching on Feature code only (every other enabled attribute
 # checkbox is unticked): A and C (code SELA) but not B.
 def t_select_similar():
+    """Select Similar to A on feature code only selects A and C, not B."""
     clear()
     open_cmd("selectsimilar")
     r = fill([["selectEntity", SER["A"]], ["chkAllProperties", False]])
@@ -179,6 +188,7 @@ def t_select_similar():
 # re-read after each fill and the option texts are looked up rather than hard-coded; the prints are
 # diagnostics. Passes when exactly one object, B, is selected.
 def t_quick_select():
+    """Quick Select (Points, Feature Code = SELB) through its step-by-step panel selects only B."""
     clear()
     open_cmd("quickselect")
     st = S.run_ipy("command_ui", "state", {})
@@ -205,6 +215,7 @@ def t_quick_select():
 # Invert Selection (invertselection, run directly, no panel) starting from {A}: A is no longer selected and
 # B, C and D are.
 def t_invert_selection():
+    """Invert Selection from {A} deselects A and selects B, C and D."""
     S.call_bridge("set_selection", {"serials": [SER["A"]]})
     total = None
     S.t_run_command({"key": "invertselection"})
@@ -221,6 +232,7 @@ def t_invert_selection():
 
 # Select All (command key "all", run directly): every one of our points and lines is in the selection.
 def t_select_all():
+    """Select All includes every test point and line."""
     clear()
     S.t_run_command({"key": "all"})
     S.wait_idle()

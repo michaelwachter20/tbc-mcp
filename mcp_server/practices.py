@@ -17,6 +17,12 @@ right before every write and written atomically (temp file in the same folder, t
 so two servers never lose each other's change), keeps the last 3 versions as practices.json.bak1..3, and retries the
 rename while Windows holds the file. The current practices are shown to the AI at the start of a session, next to the
 user's preferences (practices_text).
+
+Runs in the CPython MCP server only (never inside TBC, never through the bridge). Callers: tbc_mcp_server.py's
+t_practices (tool tbc_practices) and its INSTRUCTIONS (practices_text), and projects.overview (current). Uses
+knowledge.py for the shared folder, locks, backups, atomic replace and the job-data check, and projects.py for the
+one-line clean-up, timestamps and tool names. Civil 3D MCP and Project Analyzer read and write the same file under
+the same rules, each changing only its own entries.
 """
 import json
 import os
@@ -66,6 +72,8 @@ def _save(data):
 
 
 def _entries(data):
+    """The entries of a loaded file that are objects (anything else another tool left in the list is ignored, and
+    kept on write because `data` itself is what gets saved)."""
     return [e for e in data["practices"] if isinstance(e, dict)]
 
 
@@ -90,6 +98,8 @@ def _clean(text):
 
 
 def _topics(topics):
+    """Topics as a clean list of lower-case one-line words (one string is taken as a list of one); None stays None
+    (update: leave the topics as they are). KnowledgeError for anything that isn't strings."""
     if topics is None:
         return None
     if isinstance(topics, str):
@@ -131,6 +141,8 @@ def add(text, topics=None):
 
 
 def _add(text, topics):
+    """add() under the file lock: duplicate check, next practice-N (highest id of any entry, retired too, + 1, so ids
+    are never reused), append and save. Writes practices.json."""
     data = _load()  # re-read right before writing
     for e in _entries(data):
         if not e.get("retired") and str(e.get("practice", "")).strip().lower() == text.lower():
@@ -144,6 +156,8 @@ def _add(text, topics):
 
 
 def _own(data, pid):
+    """The entry `pid` when TBC may change it: it exists, its source is 'tbc' and it isn't retired. Otherwise a
+    KnowledgeError naming the owning tool (another tool's practice is corrected by adding a new one)."""
     entry = next((e for e in _entries(data) if e.get("id") == pid), None)
     if not entry:
         raise K.KnowledgeError("No practice %r." % pid)
@@ -166,6 +180,7 @@ def update(pid, text=None, topics=None):
 
 
 def _update(pid, text, topics):
+    """update() under the file lock: re-read, check ownership, change what was given, stamp 'updated', save."""
     data = _load()
     entry = _own(data, pid)
     if text is not None:

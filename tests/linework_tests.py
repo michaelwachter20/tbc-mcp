@@ -106,6 +106,7 @@ def ents_before():
 # Create Polyline (createpolyline), "Specify individual points": A, B, C each typed into "Next point" and
 # added with "Add Point". One new object whose first vertex is A and last is C.
 def t_polyline():
+    """Create Polyline with typed point IDs makes one line from A to C."""
     b = ents_before()
     open_cmd("createpolyline")
     r = fill([["Name", "LW_PL"], ["Layer", LAYER], ["Elevation", "5"], ["Specify individual points", True]])
@@ -122,6 +123,7 @@ def t_polyline():
 # Create Circle (createcircle): centre Q, radius 20. Every sampled point of the new object must be 20 (within
 # 0.05) from Q.
 def t_circle():
+    """Create Circle from a centre point ID and radius makes a circle of radius 20 about Q."""
     b = ents_before()
     open_cmd("createcircle")
     r = fill([["Name", "LW_CIRC"], ["Layer", LAYER], ["Elevation", "5"], ["Center point", P["Q"]], ["Radius", "20"]], press="Create", wait=1.5)
@@ -136,6 +138,7 @@ def t_circle():
 
 # Three-Point Circle (createthreepointcircle) through A, B, M.
 def t_three_point_circle():
+    """Three-Point Circle through A, B, M makes the radius-50 circle centred at (50, 0)."""
     b = ents_before()
     open_cmd("createthreepointcircle")
     r = fill([["Name", "LW_C3"], ["Layer", LAYER], ["Elevation", "5"], ["Point one", P["A"]], ["Point two", P["B"]], ["Point three", P["M"]]], press="Apply", wait=1.5)
@@ -152,6 +155,7 @@ def t_three_point_circle():
 # Create Arc (createarc) through start A, middle M, end B (same circle as above). The detail also lists the
 # "Create arc using" methods the panel offers.
 def t_arc():
+    """Create Arc through A, M, B ends at A and B and lies on the radius-50 circle."""
     b = ents_before()
     st = open_cmd("createarc")
     opts = [f.get("options") for f in st["fields"] if f["label"] == "Create arc using"]
@@ -170,6 +174,7 @@ def t_arc():
 # Create Rectangle (createrectangle) from corner A to corner C: the vertices' x values are {0, 100} and y
 # values {0, 50}.
 def t_rectangle():
+    """Create Rectangle from corner A to corner C makes the 100 x 50 rectangle."""
     b = ents_before()
     open_cmd("createrectangle")
     r = fill([["Name", "LW_RECT"], ["Layer", LAYER], ["Elevation", "5"], ["Corner one", P["A"]], ["Corner two", P["C"]]], press="OK", wait=1.5)
@@ -185,6 +190,7 @@ def t_rectangle():
 # Three-Point Rectangle (createthreepointrectangle): corners R1, R2 and width 10. Only checks that one object
 # with at least 4 vertices was made; the vertices are printed for inspection (`side` is for the detail line).
 def t_three_point_rectangle():
+    """Three-Point Rectangle from R1, R2 and a width makes one object with at least 4 vertices."""
     b = ents_before()
     open_cmd("createthreepointrectangle")
     r = fill([["Name", "LW_R3"], ["Layer", LAYER], ["Elevation", "5"], ["Corner one", P["R1"]], ["Corner two", P["R2"]], ["Width", "10"]], press="Apply", wait=1.5)
@@ -217,6 +223,7 @@ def edit_linestring_vertices(keys):
 # Create Linestring (createlinestring) + Edit Linestring with point IDs A, B, C: the vertices are exactly
 # A, B, C and take z 10 from the points.
 def t_linestring():
+    """Create Linestring + Edit Linestring by point ID gives vertices A, B, C with z from the points."""
     open_cmd("createlinestring")
     r = fill([["Name", "LW_LS"], ["Layer", LAYER]], press="OK", wait=2)
     line = edit_linestring_vertices(["A", "B", "C"])
@@ -228,6 +235,7 @@ def t_linestring():
 
 # Create Polygon (createpolygon) + Edit Linestring with A, B, C, D: the 100 x 50 rectangle.
 def t_polygon():
+    """Create Polygon through A, B, C, D gives the 100 x 50 rectangle."""
     open_cmd("createpolygon")
     r = fill([["Name", "LW_PG"], ["Layer", LAYER]], press="OK", wait=2)
     line = edit_linestring_vertices(["A", "B", "C", "D"])
@@ -245,6 +253,7 @@ SURF = "MCP_LW_SURF"
 # Create Breakline (createbreakline) A -> C, added to a throwaway surface built first with Create Surface
 # (surfacecreate) from A, B, C, D, M. Passes when the breakline runs A -> C and the surface exists.
 def t_breakline():
+    """Create Breakline A -> C added to a throwaway surface: the line runs A -> C and the surface exists."""
     # small throwaway surface from A,B,C,D,M (the project's own surface is 1M triangles: too slow to recompute)
     ser = [S.call_bridge("list_points", {"name_contains": P[k], "limit": 5})["points"][0]["serial"] for k in ("A", "B", "C", "D", "M")]
     open_cmd("surfacecreate", select=ser)
@@ -266,6 +275,7 @@ def t_breakline():
 # Create Boundary (createboundary), "Polygon (from a line)" with a rectangle A..C as the source line (picker
 # m_ctrlExistingEntity takes its serial): the new boundary has the rectangle's corners.
 def t_boundary():
+    """Create Boundary "Polygon (from a line)" on a rectangle gets the rectangle's corners."""
     # Polygon mode keeps only Point + the last Additional point when points are typed (vertices need view picks),
     # so build the boundary from an existing closed line: Create Rectangle A..C, then "Polygon (from a line)".
     b0 = ents_before()
@@ -289,6 +299,7 @@ def t_boundary():
 # Quick Line (quickline): A, B, C typed into its WPF "Coordinate" box, each followed by a newline, then Apply.
 # The new line's vertices are exactly A, B, C. The per-step fill results are printed as diagnostics.
 def t_quick_line():
+    """Quick Line with point IDs typed into its WPF Coordinate box (Enter per vertex) makes A-B-C."""
     b = ents_before()
     open_cmd("quickline")
     r = fill([["Name", "LW_QL"], ["Layer", LAYER]])
@@ -309,6 +320,7 @@ def t_quick_line():
 # Best-Fit Line (bestfitline), "Straight Line 2D (Plan View)" through selected points A and B: every vertex
 # of the new line lies on y = 0.
 def t_best_fit_line():
+    """Best-Fit Line 2D through selected points A and B lies on y = 0."""
     b = ents_before()
     # look up the points' serials by ID (list_points name_contains; the first hit is taken)
     ser = [S.call_bridge("list_points", {"name_contains": P[k], "limit": 5})["points"][0]["serial"] for k in ("A", "B")]
@@ -325,6 +337,7 @@ def t_best_fit_line():
 # Capture Outline (captureoutline): eight edge points O1-O8, then "Close outline" and Ok; the outline's
 # corners should be the rectangle's corners. In MANUAL, not run: the README says it needs Plan View picks.
 def t_outline():
+    """Capture Outline from two points per edge closes on the rectangle's corners (MANUAL: not run)."""
     b = ents_before()
     open_cmd("captureoutline")
     r = fill([["Name (optional)", "LW_OUT"], ["Layer", LAYER]])
@@ -358,6 +371,7 @@ def ln(name, pts):
 # Convert To Linestring (anz_converttolinestring) on a rectangle made by Create Rectangle: exactly one new
 # object, a Linestring with the rectangle's four corners. Reports whether the source was kept.
 def t_convert_to_linestring():
+    """Convert To Linestring on a CAD rectangle makes one Linestring with the same corners."""
     src = rect_polyline("LW_CONV_SRC")
     b = ents_before()
     st = open_cmd("anz_converttolinestring", select=[src])
@@ -374,6 +388,7 @@ def t_convert_to_linestring():
 
 # Offset (offsetlinestring) 10 to the Left of an eastward line A-B: the new line lies on y = 10 (north).
 def t_offset():
+    """Offset 10 to the Left of an eastward line puts the new line on y = 10."""
     line = ln("LW_OFF_SRC", [(0, 0), (100, 0)])
     b = ents_before()
     open_cmd("offsetlinestring")
@@ -388,6 +403,7 @@ def t_offset():
 # Fillet/Chamfer (filletchamfer), radius 10 on the whole line A-B-C: the corner at B is replaced by an arc
 # with tangent points (90,0) and (100,10). In MANUAL, not run: the README says it needs Plan View picks.
 def t_fillet():
+    """Fillet radius 10 replaces corner B with an arc between (90,0) and (100,10) (MANUAL: not run)."""
     line = ln("LW_FIL", [(0, 0), (100, 0), (100, 50)])
     open_cmd("filletchamfer")
     r = fill([["Fillet", True], ["Fillet radius", "10"], ["Apply to entire line", True], ["selLine1", line]], press="Apply", wait=2)
@@ -403,6 +419,7 @@ def t_fillet():
 # Trim/Extend (trimextendlines), "Multiple lines to bounding lines": a short line (0,20)-(50,20) is extended to
 # the vertical bounding line x = 100; its last vertex must become (100, 20).
 def t_trim_extend():
+    """Trim/Extend (selection mode, no view pick) extends a short line to the bounding line x = 100."""
     bound = ln("LW_TE_BOUND", [(100, -20), (100, 70)])
     line = ln("LW_TE", [(0, 20), (50, 20)])
     # "One line to bounding lines" needs a pick in the view (which end); the selection-based mode needs no pick:
@@ -420,6 +437,7 @@ def t_trim_extend():
 # Divide Lines (divideline) "by number of separated objects" = 4 on a 100-long line: four pieces of 25 each
 # (the original line's serial is counted along with the new objects, in case it is kept as one of the pieces).
 def t_divide_lines():
+    """Divide Lines into 4 objects splits a 100-long line into four pieces of 25."""
     line = ln("LW_DIV", [(0, 0), (100, 0)])
     b = ents_before()
     open_cmd("divideline", select=[line])
@@ -435,6 +453,7 @@ def t_divide_lines():
 # Break (breakline) at distance 40 along a 100-long line: two pieces spanning x 0-40 and 40-100.
 # Note the command key "breakline" is Break; Create Breakline is "createbreakline".
 def t_break():
+    """Break at distance 40 leaves two pieces spanning 0-40 and 40-100."""
     line = ln("LW_BRK", [(0, 0), (100, 0)])
     b = ents_before()
     open_cmd("breakline")
@@ -461,6 +480,7 @@ def span(serial):
 # Explode Lines (anz_explodelines), "Every segment", on A-B-C: segments A-B and B-C both exist afterwards.
 # `b` leaves the source line out so it counts too, whether TBC keeps or reuses it.
 def t_explode_lines():
+    """Explode Lines "Every segment" on A-B-C leaves segments A-B and B-C."""
     line = ln("LW_EXP", [(0, 0), (100, 0), (100, 50)])
     b = ents_before() - {line}
     open_cmd("anz_explodelines", select=[line])
@@ -475,6 +495,7 @@ def t_explode_lines():
 # Join (joinlines), "Two lines": (0,0)-(50,0) and (50,0)-(100,0) become one line from (0,0) to (100,0);
 # only one of the two serials is left.
 def t_join():
+    """Join "Two lines" leaves one line running (0,0) to (100,0)."""
     l1 = ln("LW_J1", [(0, 0), (50, 0)])
     l2 = ln("LW_J2", [(50, 0), (100, 0)])
     open_cmd("joinlines")
@@ -489,6 +510,7 @@ def t_join():
 # Clip (cliplines), "Remove lines outside bounding lines", a line crossing the rectangle A..C at y 25 from
 # x -20 to 120: the only piece left (besides the rectangle) runs (0,25) to (100,25).
 def t_clip():
+    """Clip removes the parts of a crossing line outside the rectangle, leaving (0,25)-(100,25)."""
     rect = rect_polyline("LW_CLIP_BND")
     line = ln("LW_CLIP", [(-20, 25), (120, 25)])
     b = ents_before() - {line}
@@ -504,6 +526,7 @@ def t_clip():
 # Set Line Elevation (setlineelevation) 25 on a 2D line: passes when either get_entity's effective vertex
 # elevations or the polyseg z values are all 25 (TBC may store the elevation outside the vertices).
 def t_set_line_elevation():
+    """Set Line Elevation 25 on a 2D line shows z 25 (from get_entity or the polyseg)."""
     # TBC refuses lines with 3D vertices ("Linestrings with 3D coordinates cannot be given a constant elevation"): 2D line
     line = make_line(LAYER, "LW_ELEV", [(E0, N0, None), (E0 + 100, N0, None)])
     open_cmd("setlineelevation")
@@ -521,6 +544,7 @@ def t_set_line_elevation():
 # Delete Segment (deletelinesegment) on a linestring A-B-C: the last entry in the panel's segment list is
 # deleted; the line must be left with 2 vertices starting at A or B.
 def t_delete_segment():
+    """Delete Segment removes one segment of A-B-C, leaving a 2-vertex line."""
     open_cmd("createlinestring")
     fill([["Name", "LW_DELSEG"], ["Layer", LAYER]], press="OK", wait=2)
     line = edit_linestring_vertices(["A", "B", "C"])
@@ -540,6 +564,7 @@ def t_delete_segment():
 # Insert Segment (standardinsertlinesegment) on a pre-selected linestring A-B, location M: the line gains
 # a vertex at (50,50) and has 3 vertices.
 def t_insert_segment():
+    """Insert Segment at point M adds a vertex at (50,50) to the line A-B."""
     open_cmd("createlinestring")
     fill([["Name", "LW_INSSEG"], ["Layer", LAYER]], press="OK", wait=2)
     line = edit_linestring_vertices(["A", "B"])
@@ -558,6 +583,7 @@ def t_insert_segment():
 # with a FAIL if the area didn't take. Passes when at least 2 new objects appear; areas are reported. Runs last
 # in TESTS.
 def t_divide_area():
+    """Divide Area into 2 subareas, with Area to Divide set before Origin (the field-order guard)."""
     open_cmd("createpolygon")
     fill([["Name", "LW_DIVA"], ["Layer", LAYER]], press="OK", wait=2)
     poly = edit_linestring_vertices(["A", "B", "C", "D"])
@@ -586,6 +612,7 @@ def t_divide_area():
 # Create Composite Geometry (createcompositegeometry), "Composite polyline" from (0,0)-(50,0) and
 # (50,0)-(100,50): one new object running from (0,0) to (100,50).
 def t_composite_geometry():
+    """Create Composite Geometry from two lines makes one object from (0,0) to (100,50)."""
     l1 = ln("LW_CG1", [(0, 0), (50, 0)])
     l2 = ln("LW_CG2", [(50, 0), (100, 50)])
     b = ents_before()
@@ -602,6 +629,7 @@ def t_composite_geometry():
 # Track Region Outline (trackregionoutline): two lines forming the rectangle's outline and reference point IN
 # inside it: one new region with the rectangle's four corners.
 def t_track_region():
+    """Track Region Outline around reference point IN makes one region with the rectangle's corners."""
     l1 = ln("LW_TR1", [(0, 0), (100, 0), (100, 50)])
     l2 = ln("LW_TR2", [(100, 50), (0, 50), (0, 0)])
     b = ents_before()
@@ -619,6 +647,7 @@ def t_track_region():
 # must show exactly one crossing with LW_X2 higher, LW_X1 lower and a vertical difference of 10. The flags
 # TBC places are removed again with "Remove All Flags".
 def t_crossing_geometry():
+    """Detect Crossing Geometry finds one crossing, LW_X2 10 above LW_X1, then removes its flags."""
     l1 = ln("LW_X1", [(0, 0), (100, 50)])
     l2 = make_line(LAYER, "LW_X2", [(E0, N0 + 50, 20), (E0 + 100, N0, 20)])
     open_cmd("crossinggeometry")
@@ -636,6 +665,7 @@ def t_crossing_geometry():
 # Append Tracked (appendtrackedline): base line (0,0)-(50,0) plus line to append (60,0)-(100,0): the base
 # line still exists and now ends at (100,0).
 def t_append_tracked():
+    """Append Tracked extends the base line to end at (100,0)."""
     base_l = ln("LW_AT_BASE", [(0, 0), (50, 0)])
     app = ln("LW_AT_APP", [(60, 0), (100, 0)])
     open_cmd("appendtrackedline")

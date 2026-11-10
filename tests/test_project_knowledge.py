@@ -62,12 +62,17 @@ ok = True
 
 
 def check(cond, label):
+    """Print PASS/FAIL for one check and remember a failure in `ok` (the exit code)."""
     global ok
     ok = ok and bool(cond)
     print(("PASS " if cond else "FAIL ") + label)
 
 
 def raises(fn, text):
+    """True when fn() raises a KnowledgeError (the AI-facing error) whose message contains `text`, any case.
+
+    Any other exception propagates, so a crash is never mistaken for a friendly refusal.
+    """
     try:
         fn()
     except K.KnowledgeError as ex:
@@ -83,6 +88,11 @@ def sha(path, text=False):
 
 
 def sql(path, query, args=()):
+    """Run one statement on a test database with its own connection, commit, and return all rows.
+
+    Used to set up the fixture copy (as another suite tool would write it) and to look at the file behind
+    projects.py's back.
+    """
     db = sqlite3.connect(path)
     try:
         rows = db.execute(query, args).fetchall()
@@ -384,6 +394,7 @@ import datetime, zipfile  # noqa: E401,E402
 
 
 def office(path, members):
+    """Write a minimal Office file (zip of XML parts, {part name: xml}) for office_text.py to read."""
     with zipfile.ZipFile(path, "w") as z:
         for name, xml in members.items():
             z.writestr(name, '<?xml version="1.0" encoding="UTF-8"?>' + xml)
@@ -800,6 +811,7 @@ real_stat = os.stat
 
 
 def flaky_stat(path, *args, **kwargs):
+    """os.stat stand-in that denies access to layers.md, like a file locked or protected on a real PC."""
     if str(path).endswith("layers.md"):
         raise PermissionError(13, "Permission denied", path)
     return real_stat(path, *args, **kwargs)
@@ -883,6 +895,7 @@ import threading  # noqa: E402
 
 
 def lessons_from(n):
+    """Thread body: add 15 lessons numbered for thread `n` (guards the lessons file lock)."""
     for i in range(15):
         K.add_lesson("Thread lesson %d-%d about panels" % (n, i))
 
@@ -938,12 +951,14 @@ p = subprocess.Popen([sys.executable, server], stdin=subprocess.PIPE, stdout=sub
 
 
 def rpc(i, method, params):
+    """Send one JSON-RPC request to the server under test and return its "result" (reads one stdout line)."""
     p.stdin.write(json.dumps({"jsonrpc": "2.0", "id": i, "method": method, "params": params}) + "\n")
     p.stdin.flush()
     return json.loads(p.stdout.readline())["result"]
 
 
 def call(i, name, args):
+    """Call one tool over MCP; returns (isError, text) for an error, else (False, the parsed JSON result)."""
     r = rpc(i, "tools/call", {"name": name, "arguments": args})
     text = r["content"][0]["text"]
     return r["isError"], (text if r["isError"] else json.loads(text))

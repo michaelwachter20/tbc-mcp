@@ -1,10 +1,19 @@
 # Written for and verified on Trimble Business Center 2026.10 (build 44.0.9666.28609). For a newer release, ADD handling for it and keep the 2026.10 behaviour (see README > TBC versions).
 """
-Audit: no job data in the repository's general knowledge (suite contract, rule 8). Scans every file under knowledge\
+Audit: no job data in the repository's general knowledge (suite contract, rule 8). Scans every file under knowledge\\
 that git tracks with the same rules the knowledge base applies before saving (knowledge.job_data_problems): absolute
 paths outside program/system folders, user-profile paths, TBC project and job file names, and the names of the jobs
 in this computer's shared projects folder (read only, if it exists). Fails listing file and line for every hit.
 Usage: python test_knowledge_audit.py
+
+Needs TBC
+    No. Offline. Needs git on PATH (it asks `git ls-files` what is tracked); without it the script stops with
+    FileNotFoundError before checking anything. It reads the shared folder's project databases only to learn the
+    job names (knowledge._job_names), and writes nothing.
+
+How to run
+    py -3.12 tests\\test_knowledge_audit.py
+PASS/FAIL lines; exit code 0 when no hit, else 1.
 """
 import os, subprocess, sys
 
