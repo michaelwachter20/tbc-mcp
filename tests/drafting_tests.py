@@ -14,7 +14,9 @@ How to run
                                                        depend on earlier ones (edit_text on text, insert_block
                                                        on create_block, purge_blocks on insert_block)
     Add --keep (alone or with test names) to skip the teardown. Run it from any folder.
-    MANUAL tests (Angular Dimension, Insert Image) are never run by this script.
+    MANUAL tests (Angular Dimension, Insert Image) need picks or grips in the Plan View and are left out by
+    default: name them (py -3.12 drafting_tests.py angular_dimension insert_image) or add --manual to run
+    them after TESTS.
 
 What it creates and cleans up
     Layer MCP_DRTEST, 3000 east / 600 north of the Plan View centre, with reference points A-D (100 x 50
@@ -158,9 +160,9 @@ def t_linear_dimension():
 
 
 # Angular Dimension (createangulardimension), "Two line segments" A-B and A-D, location M: one new Dimension
-# (90 degrees). In MANUAL, not run (see the note above MANUAL).
+# (90 degrees). In MANUAL, opt-in only (see the note above MANUAL).
 def t_angular_dimension():
-    """Angular Dimension between two lines makes one Dimension object (MANUAL: not run)."""
+    """Angular Dimension between two lines makes one Dimension object (MANUAL: opt-in only)."""
     # "Arc segment" mode linked by serial says "A valid segment cannot be obtained from the selected object" (it
     # needs a pick). "Two line segments" with two single-segment lines leaves nothing to pick: A-B and A-D = 90 deg.
     l1 = ln("DR_ANG1", [(0, 0), (100, 0)])
@@ -714,10 +716,10 @@ IMG = os.path.join(os.path.dirname(os.path.abspath(__file__)), "mcp_test_image.b
 
 
 # Insert Image (insertimage) of a generated 4 x 4 BMP, lower corner 100 north of the origin, scale 1: at least
-# one new object on the layer. In MANUAL, not run: the note above MANUAL says Apply creates nothing (the image
-# is placed and sized with grips in the view).
+# one new object on the layer. In MANUAL, opt-in only: the note above MANUAL says Apply creates nothing (the
+# image is placed and sized with grips in the view).
 def t_insert_image():
-    """Insert Image of a generated 4 x 4 BMP adds an object to the layer (MANUAL: not run)."""
+    """Insert Image of a generated 4 x 4 BMP adds an object to the layer (MANUAL: opt-in only)."""
     import os, struct
     # tiny 4x4 24-bit BMP made here (no external file needed)
     # each pixel is the bytes 00 80 ff (BMP stores blue, green, red); rows are padded to a multiple of 4 bytes.
@@ -809,11 +811,13 @@ TESTS = [t_text, t_edit_text, t_linear_dimension, t_label_points, t_label_lines,
 # "A valid segment cannot be obtained from the selected object." when the line/arc is linked by serial.
 # Insert Image: file accepted and validated, lower corner typed, Apply -> nothing created (placed/sized with grips
 # in the view). Copy to Sheet / Create Dynaview / Custom Sheet need a Sheet View open.
+# Opt-in: name them on the command line or pass --manual (tbc_testkit.run's `manual`).
 MANUAL = [t_angular_dimension, t_insert_image]
 
 if __name__ == "__main__":
     # teardown (unless --keep): delete the non-layer objects first, then the surface, the layer's contents,
     # the layer and leftover windows
     run(TESTS, sys.argv[1:], setup,
-        lambda: None if "--keep" in sys.argv else (cleanup_made(), cleanup([LAYER], surface_names=[SURF], base_forms=BASE_FORMS)))
+        lambda: None if "--keep" in sys.argv else (cleanup_made(), cleanup([LAYER], surface_names=[SURF], base_forms=BASE_FORMS)),
+        manual=MANUAL)
     __import__("tbc_testkit").save_results("drafting_results.json")

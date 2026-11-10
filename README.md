@@ -357,7 +357,7 @@ TBC is a big, busy application. These guardrails are built into the tools, so ev
 | **Ask before acting** | Commands that act immediately or open a web page need an explicit `confirm=true`, so the AI asks you first. |
 | **Paced launches** | At least 2.5 s between commands, and a panel must finish loading before anything is typed into it. |
 | **Waits for Compute Project** | Nothing happens while TBC is computing, and a progress window is never cancelled. |
-| **Gentle with popups** | Only Cancel, Close or No are ever pressed automatically; otherwise the popup is closed with X. TBC error reports are logged and work stops. |
+| **Gentle with popups** | Only Cancel, Close or No are ever pressed automatically; otherwise the popup is closed with X. The exception is a short list of information popups whose only button is OK and that save nothing (such as Projection Definition after the first grid point): those are answered with OK and listed in `popups_answered`. TBC error reports are logged and work stops. |
 | **Field-order guards** | Panels that need one field before another (for example Divide Area's area before its baseline) are filled in a safe order. |
 | **Settle time** | A short pause after each entry lets TBC finish drawing previews before the next step. |
 | **Deletes the TBC way** | Deletion always goes through TBC's own Delete command, and never removes an import's record (that broke the next import). |
@@ -576,6 +576,8 @@ Run the Linework suite yourself (it cleans up after itself, and writes its resul
 ```bash
 py -3.12 tests\linework_tests.py
 ```
+
+Tests that need you at the screen (MANUAL) are skipped unless you name them on the command line or add `--manual`.
 
 ---
 

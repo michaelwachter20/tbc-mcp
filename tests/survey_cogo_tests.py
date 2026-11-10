@@ -147,11 +147,16 @@ def t_move_survey_point():
 
 
 # Transform Survey Points (transformsurveypoints): delta easting 15 only; both points' eastings must rise by 15.
+# Apply asks "Transformation Complete: Do you want to generate a transformation report?" (Yes / No): answered No
+# (no report), so no popup is left for the suite's popup guard.
 def t_transform():
-    """Transform Survey Points with delta easting 15 moves both points 15 east."""
+    """Transform Survey Points with delta easting 15 moves both points 15 east (report question answered No)."""
     pts = make_points(LAYER, [(E0, N0 + 80, 1), (E0 + 10, N0 + 80, 1)])
     open_cmd("transformsurveypoints", [p["serial"] for p in pts])
     r = fill([["eastingCheckBox", True], ["deltaEasting", "15"]], press="Apply", wait=2)
+    report = [d for d in r.get("after", {}).get("dialogs", []) if d.get("title") == "Transformation Complete"]
+    if report:
+        click("No", scope="dialog:%d" % report[0]["index"])
     now = [x for x in points(LAYER) if x["serial"] in [p["serial"] for p in pts]]
     ok = len(now) == 2 and all(close((x["easting"],), (e + 15,)) for x, e in zip(sorted(now, key=lambda x: x["easting"]), (E0, E0 + 10)))
     record("Transform Survey Points", ok, "eastings -> %s (expected +15)" % [round(x["easting"] - E0, 3) for x in now], r)

@@ -11,7 +11,8 @@ How to run
     py -3.12 tests\\linework_tests.py                (the README's command; from the repository root)
     py -3.12 tests\\linework_tests.py offset join    only these (function names without "t_")
     Add --keep (alone or with test names) to skip the teardown.
-    Only tests in TESTS can run; MANUAL (Capture Outline, Fillet/Chamfer) is never run by this script.
+    MANUAL tests (Capture Outline, Fillet/Chamfer) need picks in the Plan View and are left out by default:
+    name them (`py -3.12 tests\\linework_tests.py outline fillet`) or add --manual to run them after TESTS.
 
 What it creates and cleans up
     Layer MCP_LWTEST, 3000 east of the Plan View centre, with numeric reference points (see setup()), one or
@@ -33,6 +34,9 @@ from tbc_testkit import S, record, close, base, points, entities, make_points, m
 LAYER = "MCP_LWTEST"
 E0, N0 = base(3000)
 P = {}  # alias -> point ID
+# alias -> point serial (kept from setup: looking a point up by ID with list_points' substring filter can return
+# another point, e.g. "12" for ID "2" when the project's IDs start at 1)
+SER = {}
 # windows already open before the run; cleanup() closes any other non-modal window left behind
 BASE_FORMS = set(f["id"] for f in S.run_ipy("command_ui", "forms", {}))
 
@@ -94,6 +98,7 @@ def setup():
     made = make_points(LAYER, [(E0 + x, N0 + y, z) for x, y, z in coords.values()])
     for k, p in zip(coords, made):
         P[k] = p["name"]
+        SER[k] = p["serial"]
     print("test area E %.2f N %.2f; reference points %s" % (E0, N0, P))
 
 
@@ -255,7 +260,7 @@ SURF = "MCP_LW_SURF"
 def t_breakline():
     """Create Breakline A -> C added to a throwaway surface: the line runs A -> C and the surface exists."""
     # small throwaway surface from A,B,C,D,M (the project's own surface is 1M triangles: too slow to recompute)
-    ser = [S.call_bridge("list_points", {"name_contains": P[k], "limit": 5})["points"][0]["serial"] for k in ("A", "B", "C", "D", "M")]
+    ser = [SER[k] for k in ("A", "B", "C", "D", "M")]
     open_cmd("surfacecreate", select=ser)
     fill([["Name", SURF]], press="OK", wait=2)
     S.wait_idle()
@@ -322,8 +327,7 @@ def t_quick_line():
 def t_best_fit_line():
     """Best-Fit Line 2D through selected points A and B lies on y = 0."""
     b = ents_before()
-    # look up the points' serials by ID (list_points name_contains; the first hit is taken)
-    ser = [S.call_bridge("list_points", {"name_contains": P[k], "limit": 5})["points"][0]["serial"] for k in ("A", "B")]
+    ser = [SER[k] for k in ("A", "B")]
     open_cmd("bestfitline", select=ser)
     r = fill([["Line type", "Straight Line 2D (Plan View)"], ["Layer", LAYER]], press="OK", wait=2)
     S.run_ipy("command_ui", "close", {})
@@ -335,9 +339,9 @@ def t_best_fit_line():
 
 
 # Capture Outline (captureoutline): eight edge points O1-O8, then "Close outline" and Ok; the outline's
-# corners should be the rectangle's corners. In MANUAL, not run: the README says it needs Plan View picks.
+# corners should be the rectangle's corners. In MANUAL (opt-in): the README says it needs Plan View picks.
 def t_outline():
-    """Capture Outline from two points per edge closes on the rectangle's corners (MANUAL: not run)."""
+    """Capture Outline from two points per edge closes on the rectangle's corners (MANUAL: opt-in only)."""
     b = ents_before()
     open_cmd("captureoutline")
     r = fill([["Name (optional)", "LW_OUT"], ["Layer", LAYER]])
@@ -401,9 +405,9 @@ def t_offset():
 
 
 # Fillet/Chamfer (filletchamfer), radius 10 on the whole line A-B-C: the corner at B is replaced by an arc
-# with tangent points (90,0) and (100,10). In MANUAL, not run: the README says it needs Plan View picks.
+# with tangent points (90,0) and (100,10). In MANUAL (opt-in): the README says it needs Plan View picks.
 def t_fillet():
-    """Fillet radius 10 replaces corner B with an arc between (90,0) and (100,10) (MANUAL: not run)."""
+    """Fillet radius 10 replaces corner B with an arc between (90,0) and (100,10) (MANUAL: opt-in only)."""
     line = ln("LW_FIL", [(0, 0), (100, 0), (100, 50)])
     open_cmd("filletchamfer")
     r = fill([["Fillet", True], ["Fillet radius", "10"], ["Apply to entire line", True], ["selLine1", line]], press="Apply", wait=2)
@@ -681,10 +685,11 @@ TESTS = [t_polyline, t_circle, t_three_point_circle, t_arc, t_rectangle, t_three
          t_convert_to_linestring, t_offset, t_trim_extend, t_divide_lines, t_break,
          t_explode_lines, t_join, t_clip, t_set_line_elevation, t_delete_segment, t_insert_segment,
          t_composite_geometry, t_track_region, t_crossing_geometry, t_append_tracked, t_divide_area]
-# Not run by default: Capture Outline and Fillet/Chamfer need picks in the Plan View
+# Not run by default: Capture Outline and Fillet/Chamfer need picks in the Plan View (opt-in: name them or --manual)
 MANUAL = [t_outline, t_fillet]
 
 if __name__ == "__main__":
     # teardown (unless --keep): delete MCP_LW_SURF, the layer's contents, the layer and leftover windows
-    run(TESTS, sys.argv[1:], setup, lambda: None if "--keep" in sys.argv else cleanup([LAYER], surface_names=[SURF], base_forms=BASE_FORMS))
+    run(TESTS, sys.argv[1:], setup, lambda: None if "--keep" in sys.argv else cleanup([LAYER], surface_names=[SURF], base_forms=BASE_FORMS),
+        manual=MANUAL)
     __import__("tbc_testkit").save_results("linework_results.json")

@@ -138,8 +138,9 @@ All in `tbc_mcp_server.py` unless noted. New code that runs commands should go t
 | License popups only ever closed with X | `is_license_dialog`, `safe_dismiss`, `t_tbc_dialogs` (`force` needed otherwise) |
 | At least 2.5 s between command launches | `pace_command` (`TBC_MCP_COMMAND_GAP`) |
 | A panel must stop changing before it is filled | `t_command_ui_open` (field list stable for 1.2 s) |
-| Nothing happens while TBC computes; progress windows are never touched | `tbc_busy`, `wait_idle` (up to `TBC_MCP_IDLE_TIMEOUT`, 900 s) |
+| Nothing happens while TBC computes; progress windows are never touched (a popup waiting for an answer is not "computing", even inside TBC's calculate loop) | `tbc_busy`, `wait_idle` (up to `TBC_MCP_IDLE_TIMEOUT`, 900 s) |
 | Popups backed out of safely: only Cancel/Close/No/Abort, else close with X; one pass | `safe_dismiss` |
+| No popup left open by a change: information popups with only OK that TBC opens while recalculating (listed, checked live: e.g. "Projection Definition" after the first grid point in a new project) are answered with OK; any other popup that holds a request is reported at once instead of after the 120 s timeout | `KNOWN_OK_POPUPS`, `call_bridge_watched` (create_points, create_linestring, set_properties, execute_python), `ui_after`, `safe_dismiss` |
 | TBC error reports logged and work stopped | `is_error_dialog`, `log_tbc_error` (`memory/tbc_errors.log` in the learned folder, outside the repo) |
 | Commands known to act at once, or open a browser, need `confirm=true` | `check_known_danger` (lessons containing `DANGER_WORDS`) |
 | Field-order rules | `guard_fill`, `FILL_ORDER_GUARDS` |

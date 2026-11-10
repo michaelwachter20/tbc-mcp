@@ -8,18 +8,35 @@ command, the job-data guard), and that a whole session of writes leaves the repo
 Needs TBC
     No. A made-up built-in layer and the learned layer live in a temporary folder; the last part runs the real
     repository's built-ins with only PROJECT_KNOWLEDGE_DIR set (a temporary folder) and checks nothing in the
-    repository changed. Needs git on PATH for that last check (`git status --porcelain`, compared before and
-    after, so uncommitted edits elsewhere in the working tree don't fail it).
+    repository changed. Needs git for that last check (`git status --porcelain`, compared before and after, so
+    uncommitted edits elsewhere in the working tree don't fail it): git on PATH, else GitHub Desktop's bundled
+    git, else Git for Windows (find_git). Without any, that one check is a FAIL that says so; the rest still runs.
 
 How to run
     py -3.12 tests\\test_knowledge_split.py
 PASS/FAIL per check; exit code 0 when all pass, else 1.
 """
-import json, os, shutil, site, subprocess, sys, tempfile
+import glob, json, os, re, shutil, site, subprocess, sys, tempfile
 
 here = os.path.dirname(os.path.abspath(__file__))
 repo = os.path.normpath(os.path.join(here, ".."))
 server = os.path.join(repo, "mcp_server", "tbc_mcp_server.py")
+
+
+def find_git():
+    """Path of git.exe: on PATH, else the newest GitHub Desktop's bundled git, else Git for Windows; None if none.
+    (Same lookup as tests\\test_knowledge_audit.py; GitHub Desktop doesn't put its git on PATH.)"""
+    found = shutil.which("git")
+    if found:
+        return found
+    desktop = glob.glob(os.path.join(os.environ.get("LOCALAPPDATA", ""), "GitHubDesktop", "app-*", "resources", "app", "git", "cmd", "git.exe"))
+    # newest app-<version> first, compared as numbers (app-3.4.10 is newer than app-3.4.9)
+    desktop.sort(key=lambda p: [int(n) for n in re.findall(r"\d+", p.split(os.sep + "GitHubDesktop" + os.sep)[-1].split(os.sep)[0])], reverse=True)
+    others = [os.path.join(os.environ.get(v, ""), "Git", "cmd", "git.exe") for v in ("ProgramFiles", "ProgramFiles(x86)")]
+    return next((c for c in desktop + others if os.path.isfile(c)), None)
+
+
+git = find_git()  # looked up now: LOCALAPPDATA is redirected to a temporary folder just below
 work = tempfile.mkdtemp(prefix="tbc_mcp_split_test_")
 os.environ.setdefault("PYTHONUSERBASE", site.getuserbase())  # keep pip --user packages when APPDATA is redirected
 for var in ("LOCALAPPDATA", "APPDATA", "TEMP", "TMP"):
@@ -223,7 +240,7 @@ print("done")
 env = dict(os.environ, PROJECT_KNOWLEDGE_DIR=session_shared, PYTHONDONTWRITEBYTECODE="1",
            TBC_MCP_INFO=os.path.join(work, "no_bridge.json"), TBC_MCP_EXIT_WITH_TBC="0")
 env.pop("TBC_MCP_KNOWLEDGE_DIR")
-status = lambda: subprocess.run(["git", "status", "--porcelain", "--untracked-files=all"], cwd=repo, capture_output=True, text=True).stdout
+status = lambda: subprocess.run([git, "status", "--porcelain", "--untracked-files=all"], cwd=repo, capture_output=True, text=True).stdout if git else None
 repo_before, kb_before = status(), snapshot(os.path.join(repo, "knowledge"))
 r = subprocess.run([sys.executable, "-c", script, os.path.join(repo, "mcp_server")], env=env, capture_output=True, text=True)
 check(r.returncode == 0 and "done" in r.stdout, "every writer ran in a session without TBC_MCP_KNOWLEDGE_DIR%s" % (": " + r.stderr[-600:] if r.returncode else ""))
@@ -245,7 +262,8 @@ check(os.path.isfile(os.path.join(learned_session, "memory", "lessons.jsonl")) a
       "everything learned went to <shared>\\tbc")
 check(os.path.isfile(os.path.join(session_shared, "practices.json")) and os.path.isfile(os.path.join(session_shared, "projects", "session-job.db")),
       "practices and the project database went to the shared folder")
-check(status() == repo_before, "git status of the repository is unchanged")
+check(git and status() == repo_before, "git status of the repository is unchanged" if git else
+      "git status of the repository is unchanged: git not found (not on PATH, no GitHub Desktop or Git for Windows), put git on PATH")
 check(snapshot(os.path.join(repo, "knowledge")) == kb_before, "no file under the repository's knowledge\\ was added or changed")
 
 shutil.rmtree(work, ignore_errors=True)

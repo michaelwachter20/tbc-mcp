@@ -15,7 +15,8 @@ Needs TBC
 
 How a suite uses it
     A suite defines functions named t_<name>(), each of which calls record(name, ok, detail) one or more
-    times, then hands the list to run(tests, wanted, setup, teardown). run() executes them in order, stops
+    times, then hands the list to run(tests, wanted, setup, teardown, manual=MANUAL); MANUAL tests run only
+    when named on the command line or with --manual. run() executes them in order, stops
     the whole suite when TBC shows an error report, tidies up after each test with done(), and prints
     "N/M passed" at the end. Suites call cleanup() from their teardown to delete the throwaway layers,
     surfaces and windows they made.
@@ -119,8 +120,9 @@ def make_points(layer, coords, code=None):
 
 
 def make_line(layer, name, coords, closed=False):
-    """Create a linestring through the bridge API from [(x, y, z)] vertices; returns its serial."""
-    return S.call_bridge("create_linestring", {"name": name, "layer": layer, "closed": closed,
+    """Create a linestring through the bridge API from [(x, y, z)] vertices; returns its serial.
+    Like the create_linestring tool, through S.call_bridge_watched (a recalculation popup is answered or reported)."""
+    return S.call_bridge_watched("create_linestring", {"name": name, "layer": layer, "closed": closed,
                                                "vertices": [{"x": x, "y": y, "z": z} for x, y, z in coords]})["serial"]
 
 
@@ -207,7 +209,7 @@ def cleanup(layers, surface_names=(), base_forms=None):
     print("cleanup done; popups left:", S.dialogs_snapshot())
 
 
-def run(tests, wanted, setup=None, teardown=None):
+def run(tests, wanted, setup=None, teardown=None, manual=()):
     """Run a suite's test functions in order with the safety rules shared by every live suite.
 
     tests     list of functions named t_<name>; <name> (the "t_" prefix stripped) is the test name
@@ -216,12 +218,19 @@ def run(tests, wanted, setup=None, teardown=None):
     setup     called once before the first test (e.g. create the throwaway layer and base points)
     teardown  called once at the end (usually cleanup()), but skipped when a TBC error popup is still open,
               so the user can read it
+    manual    the suite's MANUAL tests (they need picks in the Plan View or another window a script can't
+              give them, so they are expected to fail unattended). They are opt-in, run after `tests`: each one
+              named in `wanted`, or all of them when `wanted` holds "--manual"
     After each test: wait for Compute Project, then stop the whole suite if TBC showed an error report
-    (a new error popup, or new lines in S.ERROR_LOG during the test); otherwise tidy up with done() and pause
-    one second. An exception inside a test is recorded as a FAIL and the suite carries on.
+    (a new error popup, or new lines in S.ERROR_LOG during the test); otherwise record a FAIL
+    "<name> popups" if any other popup is still open (no tool may leave TBC waiting on a popup), tidy up with
+    done() and pause one second. An exception inside a test is recorded as a FAIL and the suite carries on.
     Prints "N/M passed" (counting record() calls, not test functions) at the end.
     """
+    run_manual = "--manual" in (wanted or [])
     wanted = [w for w in (wanted or []) if not w.startswith("--")]  # "--keep" alone must still run every test
+    if manual:
+        tests = list(tests) + [t for t in manual if run_manual or t.__name__[2:] in wanted]
     if setup:
         setup()
     try:
@@ -237,7 +246,8 @@ def run(tests, wanted, setup=None, teardown=None):
             except Exception as ex:
                 record(nm, False, "exception: %s" % str(ex)[:600])
             S.wait_idle()
-            errs = [d for d in S.dialogs_snapshot() if S.is_error_dialog(d)]
+            left = S.dialogs_snapshot()
+            errs = [d for d in left if S.is_error_dialog(d)]
             for d in errs:
                 S.log_tbc_error(d, "test " + nm)
             if errs or (os.path.exists(S.ERROR_LOG) and os.path.getsize(S.ERROR_LOG) > log_size):
@@ -245,6 +255,10 @@ def run(tests, wanted, setup=None, teardown=None):
                 for d in errs:
                     print("   ", d.get("title"), "|", (d.get("message") or "")[:800])
                 return
+            # guard: a tool must never leave a popup waiting for an answer (the user would find TBC blocked);
+            # done() below still tidies it up so the suite can go on
+            if left:
+                record(nm + " popups", False, "popup(s) left open after the test: %s" % [(d.get("title"), d.get("buttons")) for d in left])
             done()
             time.sleep(1.0)  # pacing between commands
     finally:

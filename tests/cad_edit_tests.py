@@ -17,7 +17,8 @@ How to run
 What it creates and cleans up
     Layers MCP_CADTEST and MCP_CADTEST2, three fixture points (next free numeric IDs) 1000 display units east
     of the Plan View centre, one short linestring per test, a 5 x 5 grid of points and a flat surface
-    MCP_DRAPE_TEST for the drape test, and a copy of one block reference for the explode test.
+    MCP_DRAPE_TEST for the drape test, and a copy of one block reference for the explode test (exploded
+    parts that keep a layer of their own are deleted by the test itself).
     cleanup() always runs (finally block): it deletes the surface, every object and point on both layers and
     then the layers themselves.
 
@@ -160,12 +161,13 @@ def t_rotate():
     record("Rotate", ok, "vertex (E0, N0+200) -> %s; %s" % (a[0][:2], "clockwise" if close(a[0][:2], cw) else "counter-clockwise" if ok else "?"), r)
 
 
-# Scale Objects (scaleobjects): factor 2 from TA. Only "Horizontal (X) scale" is filled, yet the expected last
-# vertex (E0+200, N0+600) is the original (E0+100, N0+300) doubled in both X and Y.
+# Scale Objects (scaleobjects): factor 2 from TA in both X and Y. "Lock X and Y scales" is ticked explicitly so
+# the Y scale follows the X scale (rather than relying on the checkbox's remembered state); the expected last
+# vertex (E0+200, N0+600) is the original (E0+100, N0+300) doubled in both X and Y about TA (E0, N0).
 def t_scale():
-    """Scale Objects factor 2 from TA doubles the line's distance from TA."""
+    """Scale Objects factor 2 (X and Y locked) from TA doubles the line's distance from TA."""
     s = fresh_line("SCL")
-    r = run_tool("scaleobjects", [s], [["From", fx["TA"]], ["Horizontal (X) scale", "2"]])
+    r = run_tool("scaleobjects", [s], [["From", fx["TA"]], ["Lock X and Y scales", True], ["Horizontal (X) scale", "2"]])
     a = verts(s)
     record("Scale", close(a[-1][:2], (E0 + 200, N0 + 600)), "last vertex -> %s (expected E0+200, N0+600)" % (a[-1][:2],), r)
 
@@ -224,11 +226,14 @@ def t_name():
 
 
 # Explode (explode) on a copy of an existing block reference moved onto the test layer: the copy must be gone
-# afterwards and the layer must hold at least as many objects as before (the exploded parts).
+# afterwards and at least one new CAD object (an exploded part) must exist. A block's parts keep their own
+# layers, so they are looked for in the whole project, not only on the test layer; parts that landed on
+# another layer are deleted here, since cleanup() only empties the test layers.
 def t_explode():
-    """Explode on a copy of an existing block reference removes the copy and leaves its parts on the layer."""
-    # Never create CAD entities through raw API (crash on 2026-10-13). Instead copy an existing CAD polyline
-    # with TBC's own Copy Objects command onto the test layer, then explode the copy. The original is untouched.
+    """Explode on a copy of an existing block reference replaces the copy with its parts."""
+    # Never create CAD entities through raw API (crash on 2026-10-13). Instead copy an existing CAD block
+    # reference (ForeignCad.BlockReference) with TBC's own Copy Objects command, move the copy onto the test
+    # layer, then explode the copy. The original is untouched.
     src = S.call_bridge("list_entities", {"type_contains": "ForeignCad.BlockReference", "limit": 1})["entities"]
     if not src:
         record("Explode", False, "no block reference in the project to copy")
@@ -247,12 +252,16 @@ def t_explode():
     s = copies[0]["serial"]
     # move the copy onto the test layer so cleanup() removes it and its exploded parts
     S.call_bridge("set_properties", {"serial": s, "properties": {"Layer": LAYER}})
-    n_before = len(on_layer(LAYER))
+    before_explode = set(e["serial"] for e in S.call_bridge("list_entities", {"type_contains": "ForeignCad", "limit": 100000})["entities"])
     r = run_tool("explode", [s], [], press="Explode")
-    ents = on_layer(LAYER)
-    still = any(e["serial"] == s for e in ents)
-    record("Explode", not still and len(ents) > n_before - 1, "source gone: %s; objects on layer %d -> %d; types %s" % (
-        not still, n_before, len(ents), sorted(set(e["type"] for e in ents))), r)
+    after = S.call_bridge("list_entities", {"type_contains": "ForeignCad", "limit": 100000})["entities"]
+    still = any(e["serial"] == s for e in after)
+    parts = [e for e in after if e["serial"] not in before_explode]
+    off_layer = [e["serial"] for e in parts if e.get("layer") not in (LAYER, LAYER2)]
+    record("Explode", not still and len(parts) >= 1, "source gone: %s; %d part(s) (%d off the test layer); types %s" % (
+        not still, len(parts), len(off_layer), sorted(set(e["type"] for e in parts))), r)
+    if off_layer:
+        S.t_delete_entities({"serials": off_layer})  # TBC's own Delete command
 
 
 # Create at Intervals (createatinterval): points every 25 along the selected line, IDs starting INT1, on the
@@ -354,6 +363,8 @@ if __name__ == "__main__":
             # after each test close any popup the safe way (Cancel/Close/No or X); if one stays open, stop
             acts = S.safe_dismiss()
             if acts:
+                # guard (as tbc_testkit.run): no tool may leave a popup waiting for an answer
+                record(t.__name__[2:] + " popups", False, "popup(s) left open after the test: %s" % [a.get("dialog") for a in acts if a.get("dialog")])
                 print("      dismissed:", acts)
                 if any(a.get("still_open") for a in acts):
                     print("ABORT: popups could not be closed safely")

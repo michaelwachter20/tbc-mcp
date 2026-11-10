@@ -60,6 +60,7 @@ verified: "2026-10-13, compiled from live sessions with the user on TBC 2026.10"
 | 2.5 s minimum gap between command launches; panels must stop changing before they are filled | run_command, command_ui_open |
 | Wait until TBC is idle (no Compute Project window, not recalculating) before every command action and after every button press | all command_ui_* tools, tbc_wait_idle |
 | Popups: only Cancel/Close/No are pressed, otherwise closed with X; license popups always X; progress windows never touched; one pass only | tbc_dialogs action=dismiss, safe_dismiss |
+| Exception: a few information popups with only an OK button, checked to save nothing (e.g. "Projection Definition" after the first grid point in a new project), are answered with OK so no change leaves TBC blocked; the result lists them in `popups_answered`. Any other popup that appears while a change runs is reported at once: read it with tbc_dialogs and answer it or ask the user | create_points, create_linestring, set_properties, execute_python, every button press |
 | WPF popups (e.g. "Feature Library Missing") are detected like normal dialogs | command_ui_*, tbc_dialogs |
 | TBC error-report popups (buttons << / OK) are logged to `memory\tbc_errors.log` in the learned know-how folder and work stops | after every button press |
 | Grid checkboxes / radio buttons are clicked like a user (setting them in code leaves TBC out of sync) | command_ui_fill, ui_grid |

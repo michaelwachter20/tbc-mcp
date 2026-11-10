@@ -348,7 +348,8 @@ def run_ipy(module, action, args, transaction=False):
 #   standard Windows dialog:      {"native": True, "hwnd", "title", "message", "buttons"}
 
 # The only buttons ever pressed automatically: they back out of a popup (README: "Only Cancel, Close or No are
-# ever pressed automatically"). Compared lower-cased against the button text.
+# ever pressed automatically"). Compared lower-cased against the button text. The one exception is the OK of the
+# information popups listed in KNOWN_OK_POPUPS (below safe_dismiss).
 SAFE_BUTTONS = ("cancel", "close", "no", "abort")
 # Substrings of a popup's title + message that mark it as a license/subscription popup ("licens" matches license,
 # licensed, licensing). Licensing is the user's business: such popups are only ever closed with X.
@@ -435,15 +436,23 @@ def log_tbc_error(d, context=""):
 def tbc_busy():
     """True while TBC is computing (project calculate loop or a progress window is up).
 
-    Two checks, in this order: any progress window among the open popups (is_busy_dialog), then the project's
-    InCalculateLoop flag read through execute_python. A bridge timeout also counts as busy, because the bridge
-    can only answer when TBC's UI thread is free. Other BridgeErrors (e.g. bridge not running) propagate.
+    Checks, in this order: any progress window among the open popups (is_busy_dialog) -> busy; any other popup
+    -> NOT busy; then the project's InCalculateLoop flag read through execute_python. A popup that waits for an
+    answer can be shown from inside the calculate loop (e.g. "Projection Definition" after the first grid point
+    in a new project): InCalculateLoop then stays True until someone answers it, so counting it as busy would
+    make wait_idle wait out its whole timeout in front of a popup that only needs a click. Callers deal with
+    popups themselves (ui_after reports them, command_ui_open refuses, safe_dismiss closes them).
+    A bridge timeout also counts as busy, because the bridge can only answer when TBC's UI thread is free.
+    Other BridgeErrors (e.g. bridge not running) propagate.
     Read-only: several small bridge calls, nothing is changed in TBC.
     """
     try:
         st = ui_state(include_text=False)
-        if any(is_busy_dialog(x) for x in dialogs_snapshot(st)):
+        ds = dialogs_snapshot(st)
+        if any(is_busy_dialog(x) for x in ds):
             return True
+        if ds:
+            return False  # TBC is waiting for an answer, not computing (see above)
         # 60 s instead of the 120 s default: a slower answer is treated as "busy" and asked again by wait_idle
         return bool(call_bridge("execute_python", {"code": "result = bool(prj.InCalculateLoop) if prj is not None else False",
                                                    "transaction": False}, timeout=60).get("result"))
@@ -489,6 +498,7 @@ def safe_dismiss(dialogs=None):
     """Dismiss popups WITHOUT ever pressing an unknown button: only Cancel/Close/No/Abort, otherwise close the
     window like its X button. License popups are always closed with X. Progress windows are never touched
     (we wait for them instead). Error reports are logged before closing. Single pass, never loops.
+    The one exception: information popups listed in KNOWN_OK_POPUPS (OK is their only button) get their OK.
 
     dialogs: list of dialog dicts to handle. None = wait_idle() first, then every popup currently open
              (dialogs_snapshot). Callers that already have a list (ui_after, t_command_ui_open, t_create_points)
@@ -503,7 +513,10 @@ def safe_dismiss(dialogs=None):
     if dialogs is None:
         wait_idle()
         dialogs = dialogs_snapshot()
-    actions = []
+    # Popups that only inform and offer nothing but OK (KNOWN_OK_POPUPS) are answered with their OK, as TBC means
+    # them to be; closing them with X would leave TBC's own follow-up step undecided
+    actions = answer_known_popups([d for d in dialogs if is_known_ok_popup(d)])
+    dialogs = [d for d in dialogs if not is_known_ok_popup(d)]
     # Highest index first: closing a popup renumbers the ones after it, so working backwards keeps every index in
     # this snapshot pointing at the popup it was read from (native dialogs are addressed by hwnd and keep their place)
     for d in sorted(dialogs, key=lambda x: -x.get("index", -1) if not x.get("native") else 1):
@@ -542,6 +555,90 @@ def safe_dismiss(dialogs=None):
             actions.append({"still_open": [x.get("title") for x in left],
                             "note": "Stopped after one pass; ask the user to close these."})
     return actions
+
+
+# Popups TBC shows only to inform, with OK as their only button, which the server answers with OK by itself:
+# (exact title, lower-case substring of the message). Add one only after checking on a live TBC that OK merely
+# accepts what the popup says and writes no file.
+KNOWN_OK_POPUPS = [
+    # Shown from inside the recalculation after the first grid coordinate goes into a project whose projection has
+    # no false origin yet (e.g. a new, blank project). It sits inside the request that made the point (the bridge
+    # never answers until it is closed) and keeps TBC in its calculate loop. OK accepts TBC's own update of the
+    # projection's false origin from that point (a project setting in memory); nothing is saved. Checked on
+    # TBC 2026.10 (WinForms ScaleOnlyForm, read-only False easting / False northing boxes, one OK button).
+    ("Projection Definition", "will be automatically updated using grid point"),
+]
+
+
+def is_known_ok_popup(d):
+    """True for a TBC popup listed in KNOWN_OK_POPUPS (same title, message contains the text) whose only button
+    is OK. Standard Windows dialogs (native) never match."""
+    if d.get("native"):
+        return False
+    btns = [b.strip().lower() for b in d.get("buttons") or [] if b]
+    msg = (d.get("message") or "").lower()
+    return btns == ["ok"] and any((d.get("title") or "").strip() == t and m in msg for t, m in KNOWN_OK_POPUPS)
+
+
+def answer_known_popups(dialogs):
+    """Press OK on each popup of `dialogs` that is_known_ok_popup, highest index first (pressing one renumbers the
+    ones after it). Returns [{"dialog", "action", "message"}] for the AI to pass on; failures are listed, not raised.
+    Changes TBC: whatever OK does on those popups (see KNOWN_OK_POPUPS: accepts, never saves)."""
+    done = []
+    for d in sorted([x for x in dialogs if is_known_ok_popup(x)], key=lambda x: -x.get("index", 0)):
+        try:
+            run_ipy("command_ui", "click", {"button": "OK", "scope": "dialog:%d" % d["index"]})
+            done.append({"dialog": d.get("title"), "action": "pressed OK (an information popup; nothing was saved)",
+                         "message": d.get("message")})
+        except BridgeError as ex:
+            done.append({"dialog": d.get("title"), "action": "failed: %s" % ex})
+    return done
+
+
+def call_bridge_watched(method, params=None, timeout=None, first_wait=2.0, poll=1.0):
+    """call_bridge for requests that change the project (create points or lines, set properties, run code), which
+    makes TBC recalculate - and a recalculation can open a popup that waits for an answer INSIDE this request, so
+    the bridge would never answer and the call would only end with the 120 s timeout, leaving the popup open.
+
+    The request runs on a helper thread; after `first_wait` seconds (most requests are done by then) the popups
+    are checked every `poll` seconds while it is still waiting (the bridge serves those checks while TBC shows a
+    modal popup; otherwise they simply queue behind the request). KNOWN_OK_POPUPS are answered with OK and the
+    request then finishes normally; its result gets "popups_answered". Any other popup is not answered: a
+    BridgeError names it, so the AI reads it with tbc_dialogs and answers it (or asks the user) - the change may
+    already be made, which the message says. Errors of the request itself are raised as call_bridge raises them.
+    """
+    box = {}
+
+    def work():
+        """The request itself, on the helper thread; its result or exception goes into `box`."""
+        try:
+            box["result"] = call_bridge(method, params, timeout)
+        except Exception as ex:  # handed to the caller's thread below
+            box["error"] = ex
+    th = threading.Thread(target=work, daemon=True)
+    th.start()
+    th.join(first_wait)
+    answered = []
+    while th.is_alive():
+        try:
+            ds = dialogs_snapshot()
+        except BridgeError:
+            ds = []  # e.g. this check itself timed out while TBC computes: keep waiting for the request
+        if th.is_alive() and ds:
+            known = [d for d in ds if is_known_ok_popup(d)]
+            if known:
+                answered += answer_known_popups(known)
+            elif not any(is_busy_dialog(d) for d in ds):
+                raise BridgeError("TBC opened a popup while doing '%s' and waits for an answer; the change may already "
+                                  "be made (check with the read tools afterwards). Read the popup with tbc_dialogs and "
+                                  "answer it, or ask the user: %s" % (method, [(d.get("title"), d.get("buttons")) for d in ds]))
+        th.join(poll)
+    if "error" in box:
+        raise box["error"]
+    r = box.get("result")
+    if answered and isinstance(r, dict):
+        r["popups_answered"] = answered
+    return r
 
 
 # Minimum seconds between two command launches (README "Paced launches": at least 2.5 s). TBC_MCP_COMMAND_GAP.
@@ -780,10 +877,11 @@ def ui_after(wait):
       "waited_for_compute_s"  only when wait_idle actually had to wait
       "tbc_error" + "hint"    TBC error popups (logged to ERROR_LOG); returned at once, nothing else is done -
                               the hint tells the AI to stop and tell the user
+      "popups_answered"       information popups of KNOWN_OK_POPUPS, answered with OK right away
       "license_problem" + "auto_dismissed"  license popups, closed right away with X via safe_dismiss
       "dialogs" + "hint"      any other popup, left open for the AI to read and answer with tbc_dialogs
       "field_status"          the StatusMessage of fields in the open panel that have one (TBC's field messages)
-    Side effects: may close license popups; writes error popups to ERROR_LOG.
+    Side effects: may close license popups and press OK on KNOWN_OK_POPUPS; writes error popups to ERROR_LOG.
     Used after every button press: command_ui_fill (with press), command_ui_click, ui_grid set/click,
     tbc_dialogs click/file.
     """
@@ -802,6 +900,12 @@ def ui_after(wait):
         snap["tbc_error"] = [{"title": x.get("title"), "message": x.get("message")} for x in errs]
         snap["hint"] = "TBC reported an error (logged). Stop and tell the user before doing anything else."
         return snap
+    known = [x for x in d if is_known_ok_popup(x)]
+    if known:
+        # Information popups with only OK (KNOWN_OK_POPUPS): answered here, then TBC finishes its recalculation
+        snap["popups_answered"] = answer_known_popups(known)
+        d = [x for x in d if not is_known_ok_popup(x)]
+        wait_idle()
     lic = [x for x in d if is_license_dialog(x)]
     if lic:
         # License popups are backed out of at once (closed with X by safe_dismiss), never answered
@@ -1475,8 +1579,9 @@ def t_create_points(a):
                               "to continue after the highest numeric ID (%d), or pass allow_duplicates=true."
                               % (clash[:20], a["start_id"], info["max_numeric"]))
     if not any(p.get("feature_code") for p in pts):
-        r = call_bridge("create_points", {"points": [{k: v for k, v in p.items() if k != "feature_code"} for p in pts],
-                                          "units": units})
+        # watched: the first grid point in a new project can open a popup inside this request (KNOWN_OK_POPUPS)
+        r = call_bridge_watched("create_points", {"points": [{k: v for k, v in p.items() if k != "feature_code"} for p in pts],
+                                                  "units": units})
         r["method"] = "api (one undo step)"
         return r
     # feature codes -> Create Point panel (TBC's own code processing)
@@ -2035,12 +2140,13 @@ def t_execute_python(a):
     """Tool execute_python (only registered when ALLOW_PYTHON): run IronPython 3.4 code inside TBC.
 
     a: {"code": str, "transaction": bool (default True in the bridge: one undo step, rolled back on error)}.
-    Passed straight to the bridge. Returns {"stdout": last 20000 chars of print output, "result": the code's
+    Passed to the bridge through call_bridge_watched (a popup TBC opens meanwhile is answered if it is a known
+    information popup, else reported). Returns {"stdout": last 20000 chars of print output, "result": the code's
     `result` variable} plus "related_lessons" (lessons about TBC command keys named in the code,
     K.lessons_relevant_to) and, first time per project, "project_notes".
     Changes TBC: whatever the code does - the escape hatch, with full SDK access.
     """
-    r = call_bridge("execute_python", a)
+    r = call_bridge_watched("execute_python", a)  # code that changes the project can make TBC open a popup
     if isinstance(r, dict):
         lessons = K.lessons_relevant_to(a.get("code", ""))
         if lessons:
@@ -2369,12 +2475,13 @@ TOOLS = [
          "units": UNITS}, ["points"]),
      t_create_points, {"readOnlyHint": False, "destructiveHint": False}),
     # create_linestring / create_layer / set_properties -> bridge methods of the same name; each runs inside one
-    # "MCP: ..." transaction in the bridge, so it is one undo step in TBC
+    # "MCP: ..." transaction in the bridge, so it is one undo step in TBC. Those that place or change geometry go
+    # through call_bridge_watched (a recalculation popup inside the request is answered or reported)
     ("create_linestring", "Create a straight-segment linestring from vertices (x=easting, y=northing, z optional).",
      obj({"vertices": {"type": "array", "minItems": 2, "items": obj({"x": {"type": "number"}, "y": {"type": "number"}, "z": {"type": "number"}}, ["x", "y"])},
           "name": {"type": "string"}, "layer": {"type": "string"}, "closed": {"type": "boolean", "default": False}, "units": UNITS},
          ["vertices"]),
-     lambda a: call_bridge("create_linestring", a), {"readOnlyHint": False, "destructiveHint": False}),
+     lambda a: call_bridge_watched("create_linestring", a), {"readOnlyHint": False, "destructiveHint": False}),
     ("create_layer", "Create a layer (or return the existing one with that name).",
      obj({"name": {"type": "string"}, "color": {"type": "string", "description": "HTML color, e.g. '#FF0000' or 'Red'."}}, ["name"]),
      lambda a: call_bridge("create_layer", a), {"readOnlyHint": False, "destructiveHint": False}),
@@ -2382,7 +2489,7 @@ TOOLS = [
      "'Layer' accepts a layer name; '*Color' accepts HTML colors. Single undo step.",
      obj({"serial": {"type": "integer"}, "serials": {"type": "array", "items": {"type": "integer"}},
           "properties": {"type": "object"}}, ["properties"]),
-     lambda a: call_bridge("set_properties", a), {"readOnlyHint": False, "destructiveHint": True}),
+     lambda a: call_bridge_watched("set_properties", a), {"readOnlyHint": False, "destructiveHint": True}),
     # delete_entities -> t_delete_entities: select + TBC's own Delete command (the bridge's raw removal method
     # refuses), refuses import records, verifies the objects are gone
     ("delete_entities", "Delete objects by serial number through TBC's own Delete command (select + Delete), then confirm they are gone. Works for layers too (select the layer serial). Ctrl+Z in TBC restores them. Import records (FileProperties, "

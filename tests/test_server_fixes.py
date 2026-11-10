@@ -22,11 +22,14 @@ What it checks
     - the live suites' run() ignores --keep when choosing tests, and save_results() writes into tests\\
     - write_tab_skill.py works without a "tab" key; tools\\sdkdoc.py honors TBC_SDK_DOCS and never caches nothing
     - tbc_help no longer imports html.parser
+    - a popup waiting for an answer isn't "computing" (tbc_busy); the known OK-only information popup is answered
+      with OK by call_bridge_watched, ui_after and safe_dismiss; an unknown one is reported, never pressed
+    - the live suites record a FAIL for a popup left open after a test, and run MANUAL tests only on request
 
 Pass / fail
     PASS/FAIL per check; exit code 0 when all pass, else 1. Nothing outside temporary folders is written.
 """
-import ast, json, os, shutil, socket, subprocess, sys, tempfile, threading, time
+import ast, contextlib, io, json, os, shutil, socket, subprocess, sys, tempfile, threading, time
 
 here = os.path.dirname(os.path.abspath(__file__))
 repo = os.path.normpath(os.path.join(here, ".."))
@@ -320,6 +323,78 @@ check(out.returncode == 0 and "[DemoAsm] T:Foo.Bar  -- Hello there" in out.stdou
 out = subprocess.run([sys.executable, "-c", "import sys; sys.path.insert(0, %r); import tbc_help; print('html.parser' in sys.modules)"
                       % os.path.join(repo, "mcp_server")], capture_output=True, text=True)
 check(out.stdout.strip() == "False", "tbc_help no longer imports html.parser (it crashed CPython 3.15)")
+
+# --- 10. popups that wait for an answer (found live: "Projection Definition" after the first point) -------------
+proj_popup = {"index": 0, "title": "Projection Definition", "buttons": ["OK"],
+              "message": "1000.000 ft 2000.000 ft The false origin values in the projection definition will be "
+                         "automatically updated using grid point '1'."}
+progress = {"index": 0, "title": "Compute Project", "buttons": ["Cancel"], "message": "Computing the project"}
+in_loop = lambda m, p=None, timeout=None: {"result": True}  # InCalculateLoop stays True behind such a popup
+with patched(S, ui_state=lambda *a, **k: {}, call_bridge=in_loop):
+    with patched(S, dialogs_snapshot=lambda *a, **k: [proj_popup]):
+        check(S.tbc_busy() is False, "tbc_busy: a popup waiting for an answer is not 'computing' (wait_idle won't sit out its timeout)")
+    with patched(S, dialogs_snapshot=lambda *a, **k: [progress]):
+        check(S.tbc_busy() is True, "...a progress window still is")
+    with patched(S, dialogs_snapshot=lambda *a, **k: []):
+        check(S.tbc_busy() is True, "...and so is the calculate loop without any popup")
+check(S.is_known_ok_popup(proj_popup) and not S.is_known_ok_popup(dict(proj_popup, buttons=["OK", "Cancel"]))
+      and not S.is_known_ok_popup(dict(proj_popup, title="Other")), "only the listed OK-only information popup is known")
+
+clicked = threading.Event()
+popup_now = {"which": proj_popup}
+
+
+def blocked_bridge(method, params=None, timeout=None):
+    """Stand-in for call_bridge: the request hangs (like the macro behind a modal popup) until the popup is
+    clicked, then answers."""
+    clicked.wait(10)
+    return {"points": [{"name": "1"}]} if clicked.is_set() else {"timed_out": True}
+
+
+def click_ipy(module, action, args, **k):
+    """Stand-in for run_ipy: pressing a popup's button closes it and lets the hanging request finish."""
+    used.append((action, args.get("button"), args.get("scope")))
+    clicked.set()
+    return {"pressed": args.get("button")}
+
+
+used = []
+with patched(S, call_bridge=blocked_bridge, run_ipy=click_ipy,
+             dialogs_snapshot=lambda *a, **k: [] if clicked.is_set() else [popup_now["which"]]):
+    t0 = time.time()
+    r = S.call_bridge_watched("create_points", {}, first_wait=0.1, poll=0.1)
+    check(r.get("points") and r.get("popups_answered") and used == [("click", "OK", "dialog:0")] and time.time() - t0 < 5,
+          "call_bridge_watched presses OK on the known popup and the request completes: %s" % used)
+    clicked.clear()
+    used[:] = []
+    popup_now["which"] = dict(proj_popup, title="Something Else", buttons=["Yes", "No"])
+    check(raises(lambda: S.call_bridge_watched("create_points", {}, first_wait=0.1, poll=0.1), "tbc_dialogs") and not used,
+          "...an unknown popup is reported (nothing pressed) instead of waiting for the timeout")
+    clicked.set()  # let the stand-in request end
+
+used = []
+with patched(S, ui_state=lambda *a, **k: {"open_command": None}, dialogs_snapshot=lambda *a, **k: [proj_popup],
+             wait_idle=lambda *a, **k: 0, run_ipy=lambda m, a, args, **k: used.append((a, args.get("button"))) or {}):
+    with patched(S.time, sleep=lambda s: None):
+        snap = S.ui_after(0)
+        acts = S.safe_dismiss([proj_popup])
+check(snap.get("popups_answered") and "dialogs" not in snap, "ui_after answers the known popup instead of leaving it: %s" % snap)
+check(used[-1] == ("click", "OK") and acts[0]["action"].startswith("pressed OK"), "safe_dismiss presses its OK, not X: %s" % acts)
+
+# --- 11. live-suite helpers: popup guard, MANUAL tests opt-in -------------------------------------------------
+before = len(T.results)
+with patched(S, wait_idle=lambda *a, **k: 0, dialogs_snapshot=lambda *a, **k: [proj_popup]), patched(T, done=lambda: None), \
+        patched(T.time, sleep=lambda s: None), contextlib.redirect_stdout(io.StringIO()):
+    T.run([t_one], [])  # its expected "FAIL one popups" line is kept out of this test's own PASS/FAIL output
+check([x for x in T.results[before:] if x["test"] == "one popups" and not x["ok"]],
+      "run() records a FAIL when a popup is left open after a test")
+ran[:] = []
+with patched(S, wait_idle=lambda *a, **k: 0, dialogs_snapshot=lambda *a, **k: []), patched(T, done=lambda: None), \
+        patched(T.time, sleep=lambda s: None):
+    T.run([t_one], [], manual=[t_two])
+    T.run([t_one], ["--manual"], manual=[t_two])
+    T.run([t_one], ["two"], manual=[t_two])
+check(ran == ["one", "one", "two", "two"], "MANUAL tests run only when named or with --manual: %s" % ran)
 
 shutil.rmtree(work, ignore_errors=True)
 sys.exit(0 if ok else 1)

@@ -217,7 +217,6 @@ def t_quick_select():
 def t_invert_selection():
     """Invert Selection from {A} deselects A and selects B, C and D."""
     S.call_bridge("set_selection", {"serials": [SER["A"]]})
-    total = None
     S.t_run_command({"key": "invertselection"})
     S.wait_idle()
     sel = selected()
