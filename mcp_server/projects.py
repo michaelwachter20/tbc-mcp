@@ -1875,6 +1875,10 @@ def locate(path, name, active_path):
         low = written.lower()
         originals = []
         for o in _loads(_meta(db, "reference_roots"), []):
+            # The contract's form is {"original", "in_copy"}; Project Analyzer up to 0.3.4 stored [original, in_copy]
+            # pairs instead, so both are read (reading only the objects, this fallback never applied to a real job).
+            if isinstance(o, (list, tuple)) and len(o) == 2:
+                o = {"original": o[0], "in_copy": o[1]}
             if isinstance(o, dict) and isinstance(o.get("original"), str) and o["original"].strip():
                 originals.append((to_windows(o["original"]), to_windows(str(o.get("in_copy") or ""))))
         originals.sort(key=lambda o: -len(o[0]))  # the most specific original folder wins

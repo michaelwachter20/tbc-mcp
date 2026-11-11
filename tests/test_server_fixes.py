@@ -177,6 +177,20 @@ with patched(S, run_ipy=lambda m, a, args, **k: used.append(args.get("scope") or
         S.safe_dismiss(dialogs)
 check(used == ["dialog:2", "dialog:1", "dialog:0"], "safe_dismiss works from the highest index down: %s" % used)
 
+# --- 3b. is_error_dialog: a "<<" button alone isn't an error report -------------------------------------------------
+# Found live (TBC 2026.10): Line Style Manager, an ordinary dialog with Cancel / OK / << / < / X, was logged as a TBC
+# error and stopped the work. The error report itself has only "<<" and OK.
+check(S.is_error_dialog({"title": "Trimble Business Center", "message": "Something failed.", "buttons": ["<<", "OK"]})
+      and S.is_error_dialog({"title": "", "message": "", "buttons": [">>", " ok "]}),
+      "an error report (<< / OK) is an error dialog")
+check(not S.is_error_dialog({"title": "Line Style Manager", "message": "", "buttons": ["Cancel", "OK", "<<", "<", "X"]})
+      and not S.is_error_dialog({"title": "Symbol Manager", "message": "", "buttons": ["Cancel", "OK", "<<", "<", "X"]}),
+      "Line Style Manager and Symbol Manager (Cancel / OK / << / < / X) are not")
+check(S.is_error_dialog({"title": "Error", "message": "", "buttons": ["OK"]})
+      and S.is_error_dialog({"title": "TBC", "message": "Unhandled exception in command", "buttons": ["Cancel", "<<"]})
+      and not S.is_error_dialog({"title": "Save", "message": "Save changes?", "buttons": ["Yes", "No", "Cancel"]}),
+      "the wording and the 'Error' title still count; an ordinary question doesn't")
+
 # --- 4. ui_grid set: re-read the clicked row by its index -------------------------------------------------------
 state = {"clicked": False}
 

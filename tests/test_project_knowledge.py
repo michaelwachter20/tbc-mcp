@@ -254,6 +254,16 @@ sql(elm, "DELETE FROM refs WHERE file_id = '5555555555555555'")
 sql(elm, "DELETE FROM files WHERE id = '5555555555555555'")
 sql(elm, "DELETE FROM meta WHERE key = 'job_folders'")
 P.forget_jobs()
+# Project Analyzer up to 0.3.4 stored reference_roots as [original, in_copy] pairs, not the contract's objects:
+# locate reads both, so a job analysed by an older version still gets its paths translated.
+contract_roots = sql(elm, "SELECT value FROM meta WHERE key = 'reference_roots'")[0][0]
+sql(elm, "UPDATE meta SET value = ? WHERE key = 'reference_roots'", (json.dumps([["p:\\jobs\\1234 elm st", ""]]),))
+P.forget_jobs()
+r = P.locate("P:\\Jobs\\1234 Elm St\\Survey\\CP.job", None, vce)
+check(r["status"] == "translated" and r["source"] == "reference_roots" and r["relative"] == "Survey\\CP.job",
+      "locate: reference_roots stored as pairs (an older analyzer) are read too")
+sql(elm, "UPDATE meta SET value = ? WHERE key = 'reference_roots'", (contract_roots,))
+P.forget_jobs()
 
 # --- 3. facts: TBC writes only its own --------------------------------------------------------------------------
 r = P.add_note("Survey control is on layer CTRL\nat 12+50", None, vce, topics=["control"], date="2026-10-12")

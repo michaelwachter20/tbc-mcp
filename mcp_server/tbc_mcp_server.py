@@ -407,17 +407,26 @@ def is_busy_dialog(d):
     return any(w in t for w in BUSY_WORDS) and (not btns or btns == ["cancel"])
 
 
+# The buttons a TBC error report can have besides its "<<" / ">>" details toggle (lower case). A dialog with any other
+# button (Cancel, "<", X ...) is a working dialog, whatever arrows it has.
+ERROR_REPORT_BUTTONS = frozenset(("<<", ">>", "ok", "close", "details", "copy", "continue", "quit"))
+
+
 def is_error_dialog(d):
     """True if dialog dict d looks like a TBC error report / crash popup.
 
-    Signs: "<<" or ">>" buttons (TBC's error-report window has them; the working_safely_in_tbc skill:
-    "TBC error-report popups (buttons << / OK)"), exception wording ("exception",
-    "unexpected error", "has stopped", .NET's "object reference not set ..."), or a window titled exactly "Error".
-    Such popups are logged with log_tbc_error; ui_after then tells the AI to stop and tell the user.
+    Signs: a "<<" or ">>" button beside nothing but the buttons an error report has (TBC's error-report window is
+    "<<" and OK; the working_safely_in_tbc skill: "TBC error-report popups (buttons << / OK)"), exception wording
+    ("exception", "unexpected error", "has stopped", .NET's "object reference not set ..."), or a window titled
+    exactly "Error". Such popups are logged with log_tbc_error; ui_after then tells the AI to stop and tell the user.
+
+    A "<<" button alone is not enough: Line Style Manager and Symbol Manager are ordinary dialogs with Cancel, OK,
+    "<<", "<" and X (copy a style from a source file), and were logged as TBC errors, which stopped the work.
     """
     t = ("%s %s" % (d.get("title") or "", d.get("message") or "")).lower()
-    btns = [b.lower() for b in d.get("buttons") or [] if b]
-    return ("<<" in btns or ">>" in btns or "exception" in t or "unexpected error" in t or "has stopped" in t
+    btns = [b.strip().lower() for b in d.get("buttons") or [] if b and b.strip()]
+    arrows = ("<<" in btns or ">>" in btns) and all(b in ERROR_REPORT_BUTTONS for b in btns)
+    return (arrows or "exception" in t or "unexpected error" in t or "has stopped" in t
             or "object reference not set" in t or (d.get("title") or "").strip().lower() == "error")
 
 
