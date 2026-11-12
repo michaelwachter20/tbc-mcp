@@ -976,7 +976,7 @@ def call(i, name, args):
 
 init = rpc(1, "initialize", {"protocolVersion": "2025-06-18", "capabilities": {}})
 ins = init["instructions"]
-check(init["serverInfo"]["version"] == "0.5.0", "server version 0.5.0")
+check(init["serverInfo"]["version"] == "0.5.1", "server version 0.5.1")
 check("REFERENCE ONLY" in ins and "which file is current" in ins,
       "instructions say the job database is for reference only and to ask for the current file")
 check("THREE KINDS OF KNOWLEDGE" in ins and "tbc_practices" in ins and "tbc_project_notes" in ins, "instructions explain the three kinds of knowledge")
